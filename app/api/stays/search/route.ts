@@ -11,6 +11,7 @@ import { staysConfig } from "@/lib/stays/config";
 import { staysError } from "@/lib/stays/errors";
 import { limitOrThrow, staysRoute } from "@/lib/stays/route";
 import { searchStays } from "@/lib/stays/search";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,7 +44,9 @@ async function run(req: Request, raw: unknown): Promise<Response> {
 
 export const GET = staysRoute("stays/search", async (req: Request) => {
     const sp = new URL(req.url).searchParams;
-    return run(req, Object.fromEntries([...sp.entries()].filter(([, v]) => v !== "")));
+    const res = await run(req, Object.fromEntries([...sp.entries()].filter(([, v]) => v !== "")));
+    // Vizitatorii anonimi primesc același rezultat → edge; logat = își exclude propriile anunțuri → private.
+    return applyCachePolicy(res, "stays/search", req);
 });
 
 export const POST = staysRoute("stays/search", async (req: Request) => run(req, await req.json().catch(() => null)));

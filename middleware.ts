@@ -5,6 +5,7 @@ import { routing } from "@/lib/i18n/routing";
 import { LOCALES } from "@/lib/i18n/config";
 import { APP_URL } from "@/lib/app-url";
 import { mediaCspOrigins } from "@/lib/storage/config";
+import { NO_STORE, managesOwnCacheHeaders } from "@/lib/http/cache-policy";
 
 const ONBOARDING_PATH = "/onboarding";
 
@@ -215,7 +216,7 @@ export function middleware(request: NextRequest) {
     const hasSeller = Boolean(cookies.get(SELLER_COOKIE)?.value);
     const hasAdmin = Boolean(cookies.get(ADMIN_COOKIE)?.value);
 
-    if (pathname.startsWith("/api/")) return NextResponse.next();
+    if (pathname.startsWith("/api/")) return apiResponseDefaults(request);
     const target = gatedRedirectTarget(
       pathname,
       hasShopper,
@@ -253,6 +254,23 @@ export function middleware(request: NextRequest) {
 
   // 4) Delegăm restul (locale resolution, rewrite, cookie set) către next-intl.
   return intlMiddleware(request);
+}
+
+// ---------- Cache implicit pentru API ----------
+//
+// Orice GET /api/* e per-utilizator până la proba contrarie: `private, no-store`.
+// Excepție: rutele din lib/http/cache-policy.ts (PUBLIC_ROUTES + ISR) își pun
+// singure Cache-Control. Atenție: antetele setate aici CÂȘTIGĂ în fața celor din
+// handler (verificat pe `next start`), de aceea excepția e explicită, nu „handler-ul
+// îl suprascrie”. Regula Cloudflare cache-uiește doar răspunsurile cu `s-maxage`
+// (docs/infra/edge-cache.md).
+function apiResponseDefaults(request: NextRequest): NextResponse {
+  const res = NextResponse.next();
+  const { method } = request;
+  if ((method === "GET" || method === "HEAD") && !managesOwnCacheHeaders(request.nextUrl.pathname)) {
+    res.headers.set("Cache-Control", NO_STORE);
+  }
+  return res;
 }
 
 // ---------- CSP nonce-based (rute sensibile) ----------

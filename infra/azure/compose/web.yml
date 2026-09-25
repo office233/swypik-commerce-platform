@@ -80,6 +80,8 @@ services:
     profiles: [cron]
     build:
       context: ../../hetzner/cron-worker
+    # Același run.sh ca pe Hetzner (inclusiv `prewarm-catalogs` la 15 min —
+    # cataloage externe + știri calde în Redis). Joburile noi apar după rebuild.
     # Tag separat: cron-worker se reconstruiește doar cu --services cron-worker.
     image: swypik/cron-worker:${CRON_IMAGE_TAG:-latest}
     env_file:

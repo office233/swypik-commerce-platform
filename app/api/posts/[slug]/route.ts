@@ -4,6 +4,7 @@
  */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ type ItemRow = {
 };
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
@@ -92,7 +93,8 @@ export async function GET(
       [post.id],
     );
 
-    return NextResponse.json(
+    return applyCachePolicy(
+      NextResponse.json(
       {
         id: post.id,
         slug: post.slug,
@@ -136,8 +138,9 @@ export async function GET(
               }
             : null,
         })),
-      },
-      { headers: { "Cache-Control": "public, max-age=15, s-maxage=30" } },
+      }),
+      "posts/[slug]",
+      req,
     );
   } catch (err) {
     return NextResponse.json(

@@ -1,11 +1,23 @@
 /**
  * Client Radio Browser API pentru Swypik Audio (Tab 1: Radio Live).
- * Interoghează serverele Radio Browser pentru posturile din România și globale.
- * Include fallback cu stream-urile oficiale verificate pentru radiourile naționale de top.
+ *
+ * Două straturi:
+ *  - `fetch*Stations` — apel extern (mirror-uri, timeout), folosit DOAR de
+ *    preîncălzire (cron `prewarm-catalogs`, lib/prewarm/catalogs.ts); întorc
+ *    `null` când toate mirror-urile cad, ca preîncălzirea să păstreze copia veche.
+ *  - calea cererii citește copia caldă din Redis (`getWarmCatalog("radio:ro")`,
+ *    lib/prewarm/catalogs.ts) și nu așteaptă niciodată API-ul extern.
+ *
+ * Radio-Browser dă `url` (cel declarat) și `url_resolved` (după redirect/playlist):
+ * redăm `url_resolved`, iar `url` (dacă e diferit și https) intră în
+ * `streamUrlFallbacks` — playerul trece la el dacă primul nu pornește.
  */
 
 import type { AudioItemDto } from "./types";
 import { isSecureStreamUrl } from "./license";
+import { CURATED_ROMANIAN_STATIONS } from "./radio-curated";
+
+export { CURATED_ROMANIAN_STATIONS };
 
 const RADIO_SERVERS = [
     "https://de1.api.radio-browser.info",
@@ -15,154 +27,12 @@ const RADIO_SERVERS = [
 
 /** Timeout per mirror — dacă un server Radio Browser e lent, trecem rapid la următorul. */
 const FETCH_TIMEOUT_MS = 5_000;
+const USER_AGENT = "SwypikAudio/1.0";
 
-// Fallback verificat cu stream-urile directe oficiale ale radiourilor din România
-export const CURATED_ROMANIAN_STATIONS: AudioItemDto[] = [
-    {
-        id: "radio_kissfm_ro",
-        slug: "kiss-fm-romania",
-        title: "Kiss FM",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://live.kissfm.ro/kissfm.aacp",
-        durationMs: 0,
-        genre: "Pop & Top 40",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 9500,
-    },
-    {
-        id: "radio_zu_ro",
-        slug: "radio-zu",
-        title: "Radio ZU",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://stream.radiozu.ro:8020/live.aac",
-        durationMs: 0,
-        genre: "Pop & Hituri",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 9200,
-    },
-    {
-        id: "radio_europafm_ro",
-        slug: "europa-fm-romania",
-        title: "Europa FM",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://astreaming.europafm.ro:8000/EuropaFM_aac",
-        durationMs: 0,
-        genre: "Știri & Pop",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 8700,
-    },
-    {
-        id: "radio_rockfm_ro",
-        slug: "rock-fm-romania",
-        title: "Rock FM",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://live.rockfm.ro/rockfm.aacp",
-        durationMs: 0,
-        genre: "Rock Clasic & Modern",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 8900,
-    },
-    {
-        id: "radio_magicfm_ro",
-        slug: "magic-fm-romania",
-        title: "Magic FM",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://live.magicfm.ro/magicfm.aacp",
-        durationMs: 0,
-        genre: "Soft Rock & Clasic",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 7800,
-    },
-    {
-        id: "radio_digifm_ro",
-        slug: "digi-fm-romania",
-        title: "Digi FM",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://edge126.rdsnet.ro:8443/digifm/digifm.mp3",
-        durationMs: 0,
-        genre: "Știri & Hituri",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 7600,
-    },
-    {
-        id: "radio_virgin_ro",
-        slug: "virgin-radio-romania",
-        title: "Virgin Radio",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://astreaming.virginradio.ro:8000/virgin_aacp",
-        durationMs: 0,
-        genre: "Hip-Hop & Urban",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 7400,
-    },
-    {
-        id: "radio_profm_ro",
-        slug: "pro-fm-romania",
-        title: "PRO FM",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://edge126.rdsnet.ro:8443/profm/profm.mp3",
-        durationMs: 0,
-        genre: "Dance & Club",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 7100,
-    },
-    {
-        id: "radio_guerrilla_ro",
-        slug: "radio-guerrilla",
-        title: "Radio Guerrilla",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://stream.eliberadio.ro:8000/guerrilla.aac",
-        durationMs: 0,
-        genre: "Alternative & Indie",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 6900,
-    },
-    {
-        id: "radio_dancefm_ro",
-        slug: "dance-fm-romania",
-        title: "Dance FM",
-        artist: "Radio Live România",
-        coverUrl: "",
-        streamUrl: "https://edge126.rdsnet.ro:8443/dancefm/dancefm.mp3",
-        durationMs: 0,
-        genre: "Electronic & House",
-        source: "radio",
-        isLive: true,
-        stationCountry: "România",
-        stationVotes: 6800,
-    },
-];
-
-interface RawRadioStation {
+export interface RawRadioStation {
     stationuuid: string;
     name: string;
+    url?: string;
     url_resolved: string;
     favicon?: string;
     tags?: string;
@@ -173,146 +43,107 @@ interface RawRadioStation {
     lastcheckok?: number;
 }
 
-let cachedStations: { data: AudioItemDto[]; expiresAt: number } | null = null;
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 ore
-
-export async function getLiveRadioStations(country = "romania", limit = 40): Promise<AudioItemDto[]> {
-    if (cachedStations && cachedStations.expiresAt > Date.now()) {
-        return cachedStations.data;
-    }
-
-    for (const server of RADIO_SERVERS) {
-        try {
-            const url = `${server}/json/stations/bycountry/${encodeURIComponent(country)}?order=votes&reverse=true&limit=${limit}`;
-            const res = await fetch(url, {
-                headers: { "User-Agent": "SwypikAudio/1.0" },
-                next: { revalidate: 3600 },
-                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-            });
-
-            if (!res.ok) continue;
-
-            const stations = (await res.json()) as RawRadioStation[];
-            if (!Array.isArray(stations) || stations.length === 0) continue;
-
-            // Filtrare: doar stream-uri active (lastcheckok === 1) cu URL valid
-            const activeStations = stations
-                .filter((s) => s.lastcheckok === 1 && isSecureStreamUrl(s.url_resolved) && s.name)
-                .map((s): AudioItemDto => {
-                    const slug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-                    // Folosește fallback cover dacă favicon lipsește
-                    const cover =
-                        isSecureStreamUrl(s.favicon)
-                            ? s.favicon
-                            : CURATED_ROMANIAN_STATIONS.find((c) => c.title.toLowerCase() === s.name.toLowerCase())?.coverUrl ||
-                              null;
-
-                    return {
-                        id: `radio_${s.stationuuid}`,
-                        slug,
-                        title: s.name.trim(),
-                        artist: "Radio Live România",
-                        coverUrl: cover,
-                        streamUrl: s.url_resolved,
-                        durationMs: 0,
-                        genre: s.tags?.split(",")?.[0]?.trim() || "Radio",
-                        source: "radio",
-                        isLive: true,
-                        bitrateKbps: s.bitrate || 128,
-                        stationCountry: s.country || "România",
-                        stationVotes: s.votes || 0,
-                    };
-                });
-
-            // Combină radiourile curatoriate în față
-            const curatedIds = new Set(CURATED_ROMANIAN_STATIONS.map((c) => c.title.toLowerCase()));
-            const uniqueApiStations = activeStations.filter((s) => !curatedIds.has(s.title.toLowerCase()));
-            const combined = [...CURATED_ROMANIAN_STATIONS, ...uniqueApiStations];
-
-            cachedStations = { data: combined, expiresAt: Date.now() + CACHE_TTL_MS };
-            return combined;
-        } catch {
-            // Continuă la următorul server mirror
-        }
-    }
-
-    // Fallback garantat dacă niciun server Radio Browser nu răspunde
-    return CURATED_ROMANIAN_STATIONS;
+function slugify(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
-export async function getCuratedRomanianRadios(): Promise<AudioItemDto[]> {
-    return getLiveRadioStations("romania", 40);
+/** URL-uri https distincte, fără cel principal. */
+export function streamFallbacks(primary: string, candidates: Array<string | null | undefined>): string[] {
+    const out: string[] = [];
+    for (const c of candidates) {
+        if (!isSecureStreamUrl(c)) continue;
+        const url = c.trim();
+        if (url !== primary && !out.includes(url)) out.push(url);
+    }
+    return out;
 }
 
-export async function getTopGlobalRadios(limit = 12): Promise<AudioItemDto[]> {
+export function mapRadioStation(s: RawRadioStation, defaults: { artist: string; country: string; genre: string }): AudioItemDto {
+    const fallbacks = streamFallbacks(s.url_resolved, [s.url]);
+    return {
+        id: `radio_${s.stationuuid}`,
+        slug: slugify(s.name),
+        title: s.name.trim(),
+        artist: defaults.artist,
+        coverUrl: isSecureStreamUrl(s.favicon) ? s.favicon : null,
+        streamUrl: s.url_resolved,
+        ...(fallbacks.length ? { streamUrlFallbacks: fallbacks } : {}),
+        durationMs: 0,
+        genre: s.tags?.split(",")?.[0]?.trim() || defaults.genre,
+        source: "radio",
+        isLive: true,
+        bitrateKbps: s.bitrate || 128,
+        stationCountry: s.country || defaults.country,
+        stationVotes: s.votes || 0,
+    };
+}
+
+function isPlayable(s: RawRadioStation, requireCheckOk: boolean): boolean {
+    return (!requireCheckOk || s.lastcheckok === 1) && isSecureStreamUrl(s.url_resolved) && Boolean(s.name);
+}
+
+/** Primul mirror care răspunde cu o listă nevidă; `null` dacă toate cad. */
+async function queryMirrors(path: string): Promise<RawRadioStation[] | null> {
     for (const server of RADIO_SERVERS) {
         try {
-            const url = `${server}/json/stations/topclick/${limit}`;
-            const res = await fetch(url, {
-                headers: { "User-Agent": "SwypikAudio/1.0" },
-                next: { revalidate: 3600 },
+            const res = await fetch(`${server}${path}`, {
+                headers: { "User-Agent": USER_AGENT },
+                cache: "no-store",
                 signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
             });
             if (!res.ok) continue;
             const stations = (await res.json()) as RawRadioStation[];
-            if (!Array.isArray(stations) || stations.length === 0) continue;
-            return stations
-                .filter((s) => s.lastcheckok === 1 && isSecureStreamUrl(s.url_resolved) && s.name)
-                .map((s): AudioItemDto => ({
-                    id: `radio_${s.stationuuid}`,
-                    slug: s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                    title: s.name.trim(),
-                    artist: s.country || "Global Radio",
-                    coverUrl: isSecureStreamUrl(s.favicon) ? s.favicon : null,
-                    streamUrl: s.url_resolved,
-                    durationMs: 0,
-                    genre: s.tags?.split(",")?.[0]?.trim() || "Hits",
-                    source: "radio",
-                    isLive: true,
-                    bitrateKbps: s.bitrate || 128,
-                    stationCountry: s.country || "Global",
-                    stationVotes: s.votes || 0,
-                }));
+            if (Array.isArray(stations) && stations.length > 0) return stations;
         } catch {
-            // continue
+            // următorul mirror
         }
     }
-    return [];
+    return null;
+}
+
+/**
+ * Radiourile curatoriate, îmbogățite cu datele Radio-Browser ale aceluiași post
+ * (siglă, URL-uri alternative), urmate de restul posturilor active din API.
+ */
+export function mergeWithCurated(raw: RawRadioStation[]): AudioItemDto[] {
+    const byName = new Map(raw.map((s) => [s.name.trim().toLowerCase(), s]));
+    const curated = CURATED_ROMANIAN_STATIONS.map((c): AudioItemDto => {
+        const match = byName.get(c.title.toLowerCase());
+        if (!match) return c;
+        const fallbacks = streamFallbacks(c.streamUrl, [match.url_resolved, match.url]);
+        return {
+            ...c,
+            coverUrl: c.coverUrl || (isSecureStreamUrl(match.favicon) ? match.favicon : null),
+            ...(fallbacks.length ? { streamUrlFallbacks: fallbacks } : {}),
+        };
+    });
+    const curatedNames = new Set(CURATED_ROMANIAN_STATIONS.map((c) => c.title.toLowerCase()));
+    const rest = raw
+        .filter((s) => isPlayable(s, true) && !curatedNames.has(s.name.trim().toLowerCase()))
+        .map((s) => mapRadioStation(s, { artist: "Radio Live România", country: "România", genre: "Radio" }));
+    return [...curated, ...rest];
+}
+
+/** Apel extern (doar preîncălzire). */
+export async function fetchRomanianStations(limit = 40): Promise<AudioItemDto[] | null> {
+    const raw = await queryMirrors(`/json/stations/bycountry/romania?order=votes&reverse=true&limit=${limit}`);
+    return raw ? mergeWithCurated(raw) : null;
+}
+
+/** Apel extern (doar preîncălzire). */
+export async function fetchTopGlobalStations(limit = 24): Promise<AudioItemDto[] | null> {
+    const raw = await queryMirrors(`/json/stations/topclick/${limit}`);
+    if (!raw) return null;
+    return raw
+        .filter((s) => isPlayable(s, true))
+        .map((s) => mapRadioStation(s, { artist: s.country || "Global Radio", country: "Global", genre: "Hits" }));
 }
 
 export async function searchRadioStations(query: string, limit = 10): Promise<AudioItemDto[]> {
     if (!query.trim()) return [];
-    for (const server of RADIO_SERVERS) {
-        try {
-            const url = `${server}/json/stations/byname/${encodeURIComponent(query.trim())}?limit=${limit}`;
-            const res = await fetch(url, {
-                headers: { "User-Agent": "SwypikAudio/1.0" },
-                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-            });
-            if (!res.ok) continue;
-            const stations = (await res.json()) as RawRadioStation[];
-            if (!Array.isArray(stations) || stations.length === 0) continue;
-            return stations
-                .filter((s) => isSecureStreamUrl(s.url_resolved) && s.name)
-                .map((s): AudioItemDto => ({
-                    id: `radio_${s.stationuuid}`,
-                    slug: s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                    title: s.name.trim(),
-                    artist: s.country || "Radio Live",
-                    coverUrl: isSecureStreamUrl(s.favicon) ? s.favicon : null,
-                    streamUrl: s.url_resolved,
-                    durationMs: 0,
-                    genre: s.tags?.split(",")?.[0]?.trim() || "Radio",
-                    source: "radio",
-                    isLive: true,
-                    bitrateKbps: s.bitrate || 128,
-                    stationCountry: s.country || "Live",
-                    stationVotes: s.votes || 0,
-                }));
-        } catch {
-            // continue
-        }
-    }
-    return [];
+    const raw = await queryMirrors(`/json/stations/byname/${encodeURIComponent(query.trim())}?limit=${limit}`);
+    if (!raw) return [];
+    return raw
+        .filter((s) => isPlayable(s, false))
+        .map((s) => mapRadioStation(s, { artist: s.country || "Radio Live", country: "Live", genre: "Radio" }));
 }
-

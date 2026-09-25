@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ type OverlayTagRow = {
 };
 
 export async function GET(
-    _req: Request,
+    req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
@@ -56,10 +57,7 @@ export async function GET(
             [id]
         );
 
-        return NextResponse.json(
-            { tags: rows },
-            { headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" } }
-        );
+        return applyCachePolicy(NextResponse.json({ tags: rows }), "videos/[id]/products", req);
     } catch (e) {
         logger.error({ err: e }, "video products GET failed");
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

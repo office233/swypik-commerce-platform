@@ -12,6 +12,8 @@ export interface AudioItemDto {
     artist: string;
     coverUrl: string | null;
     streamUrl: string;
+    /** URL-uri alternative (https) încercate în ordine dacă `streamUrl` nu pornește (ex. `url` brut Radio-Browser). */
+    streamUrlFallbacks?: string[];
     durationMs: number; // 0 pentru Radio Live
     genre: string;
     source: AudioSourceType;
@@ -81,6 +83,7 @@ export function audioItemToTrackDto(item: AudioItemDto): TrackDto {
         liked: false,
         source: item.source,
         streamUrl: item.streamUrl,
+        streamUrlFallbacks: item.streamUrlFallbacks,
         isLive: item.isLive,
     };
 }

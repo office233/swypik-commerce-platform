@@ -3,11 +3,10 @@ import { AudioFeedQuerySchema } from "@/lib/audio/query-schemas";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
-import { getCuratedRomanianRadios, getTopGlobalRadios } from "@/lib/audio/radio-browser";
-import { getTrendingAudiusTracks } from "@/lib/audio/audius";
-import { getChillJamendoTracks, isJamendoConfigured } from "@/lib/audio/jamendo";
-import { getTrendingPodcasts } from "@/lib/audio/podcast";
+import { isJamendoConfigured } from "@/lib/audio/jamendo";
+import { getWarmCatalog } from "@/lib/prewarm/catalogs";
 import type { AudioFeedResponse, AudioFeedSection, AudioSourceType } from "@/lib/audio/types";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,12 +33,14 @@ export const GET = withErrorHandling(async function GET(req: Request) {
     const want = (s: AudioSourceType) => tab === "all" || tab === s;
     const jamendoReady = isJamendoConfigured();
 
+    // Doar copii calde din Redis (cron prewarm-catalogs, 15 min) — niciun apel
+    // extern pe calea cererii; înainte de prima preîncălzire: radiourile curatoriate.
     const [roRadios, globalRadios, audius, jamendo, podcasts] = await Promise.all([
-        want("radio") ? getCuratedRomanianRadios() : [],
-        want("radio") ? getTopGlobalRadios(GLOBAL_RADIO_LIMIT) : [],
-        want("audius") ? getTrendingAudiusTracks(SOURCE_ROW_LIMIT) : [],
-        want("jamendo") && jamendoReady ? getChillJamendoTracks(SOURCE_ROW_LIMIT) : [],
-        want("podcast") ? getTrendingPodcasts() : [],
+        want("radio") ? getWarmCatalog("radio:ro") : [],
+        want("radio") ? getWarmCatalog("radio:global").then((l) => l.slice(0, GLOBAL_RADIO_LIMIT)) : [],
+        want("audius") ? getWarmCatalog("audius:trending").then((l) => l.slice(0, SOURCE_ROW_LIMIT)) : [],
+        want("jamendo") && jamendoReady ? getWarmCatalog("jamendo:chill").then((l) => l.slice(0, SOURCE_ROW_LIMIT)) : [],
+        want("podcast") ? getWarmCatalog("podcasts:trending") : [],
     ]);
 
     const candidates: AudioFeedSection[] = [
@@ -53,7 +54,5 @@ export const GET = withErrorHandling(async function GET(req: Request) {
         sections: candidates.filter((s) => s.items.length > 0),
         unconfigured: jamendoReady ? [] : ["jamendo"],
     };
-    return NextResponse.json(response, {
-        headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600" },
-    });
+    return applyCachePolicy(NextResponse.json(response), "audio/feed", req);
 });

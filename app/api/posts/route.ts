@@ -29,6 +29,7 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { moderateUserText } from "@/lib/moderation/ai-text";
 import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -144,10 +145,7 @@ export async function GET(req: Request) {
     );
 
     if (posts.length === 0) {
-      return NextResponse.json(
-        { posts: [], nextCursor: null },
-        { headers: { "Cache-Control": "public, max-age=15, s-maxage=60" } },
-      );
+      return applyCachePolicy(NextResponse.json({ posts: [], nextCursor: null }), "posts", req);
     }
 
     const ids = posts.map((p) => p.id);
@@ -225,17 +223,10 @@ export async function GET(req: Request) {
     }));
 
     const last = posts[posts.length - 1];
-    return NextResponse.json(
-      {
-        posts: out,
-        nextCursor: posts.length === limit ? last.created_at : null,
-      },
-      {
-        headers: {
-          "Cache-Control":
-            "public, max-age=15, s-maxage=60, stale-while-revalidate=120",
-        },
-      },
+    return applyCachePolicy(
+      NextResponse.json({ posts: out, nextCursor: posts.length === limit ? last.created_at : null }),
+      "posts",
+      req,
     );
   } catch (err) {
     // Tables may not exist yet on first deploy — fail soft so the UI can render.

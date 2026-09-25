@@ -10,6 +10,7 @@ import { buildMusicViewer } from "@/lib/music/viewer";
 import { buildMusicHomeRows } from "@/lib/music/home";
 import { logger } from "@/lib/logger";
 import type { TrackDto } from "@/lib/music/types";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -57,5 +58,6 @@ export const GET = withErrorHandling(async function GET(req: Request) {
         playlists,
     });
 
-    return NextResponse.json({ featured: trending[0] ?? null, rows });
+    // Anonim → edge (identic pentru toți); logat → „Îmi plac”/playlist-uri → private.
+    return applyCachePolicy(NextResponse.json({ featured: trending[0] ?? null, rows }), "music/home", req);
 });

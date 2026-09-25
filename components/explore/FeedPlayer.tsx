@@ -5,11 +5,16 @@ import { Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import type { FeedVideo } from "@/lib/feed/types";
+import { posterImgProps } from "./useFeedPreload";
 
 export type FeedPlayerProps = {
   video: FeedVideo;
   /** Slide-ul vizibil: redă; restul stau în pauză (vecinii sunt doar preîncărcați). */
   active: boolean;
+  /** Posterul transformat pe CDN (același URL pentru <img> și `poster`). */
+  posterSrc: string | null;
+  /** Primul slide din feed: posterul e LCP → încărcare prioritară. */
+  priority: boolean;
   muted: boolean;
   /** false = animații reduse / pagină ascunsă: nu pornim singuri. */
   autoPlay: boolean;
@@ -23,9 +28,10 @@ export type FeedPlayerProps = {
  * (`fallbackUrl` = preview.mp4), subtitrări `<track>` din
  * /api/videos/[id]/captions?format=vtt. Tap = pauză / redare.
  */
-export default function FeedPlayer({ video, active, muted, autoPlay, captionLang, registerEl, onTimeUpdate }: FeedPlayerProps) {
+export default function FeedPlayer({ video, active, posterSrc, priority, muted, autoPlay, captionLang, registerEl, onTimeUpdate }: FeedPlayerProps) {
   const t = useTranslations("explore");
-  const ref = useHlsVideo(video.hlsUrl || video.url, video.fallbackUrl || video.url);
+  // Vecinii (preload) țin doar primul segment; la activare bufferul crește, fără re-creare.
+  const ref = useHlsVideo(video.hlsUrl || video.url, video.fallbackUrl || video.url, { bufferMode: active ? "active" : "preload" });
   const [paused, setPaused] = useState(true);
   const wasActive = useRef(false);
 
@@ -55,10 +61,14 @@ export default function FeedPlayer({ video, active, muted, autoPlay, captionLang
 
   return (
     <>
+      {posterSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element -- poster de pe CDN-ul media (deja transformat); pictat înainte ca <video> să aibă un cadru
+        <img src={posterSrc} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" {...posterImgProps(priority)} />
+      ) : null}
       <video
         ref={ref}
         className="absolute inset-0 h-full w-full object-cover"
-        poster={video.thumbnail || undefined}
+        poster={posterSrc || undefined}
         loop
         muted={muted}
         playsInline

@@ -8,6 +8,7 @@ import { searchAudiusTracks } from "@/lib/audio/audius";
 import { searchJamendoTracks } from "@/lib/audio/jamendo";
 import { fetchPodcastEpisodes } from "@/lib/audio/podcast";
 import type { AudioItemDto } from "@/lib/audio/types";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export const GET = withErrorHandling(async function GET(req: Request) {
     const { q: query, source } = parsed.data;
 
     if (!query) {
-        return NextResponse.json({ items: [] });
+        return applyCachePolicy(NextResponse.json({ items: [] }), "audio/search", req);
     }
 
     const tasks: Promise<AudioItemDto[]>[] = [];
@@ -49,5 +50,5 @@ export const GET = withErrorHandling(async function GET(req: Request) {
         }
     }
 
-    return NextResponse.json({ items: results });
+    return applyCachePolicy(NextResponse.json({ items: results }), "audio/search", req);
 });

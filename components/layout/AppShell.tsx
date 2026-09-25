@@ -19,6 +19,7 @@ import OnboardingGate from "@/components/onboarding/OnboardingGate";
 import PushPrompt from "@/components/notifications/PushPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import ServiceWorkerRegistrar from "@/components/pwa/ServiceWorkerRegistrar";
+import { WebVitalsReporter } from "@/components/perf/WebVitalsReporter";
 import CookieBanner from "@/components/CookieBanner";
 import ThemeProvider from "@/components/theme/ThemeProvider";
 import AppMenuProvider from "@/components/nav/AppMenuProvider";
@@ -124,6 +125,8 @@ export default async function AppShell({
                   <InstallPrompt />
                   <CookieBanner />
                   <ServiceWorkerRegistrar />
+                  {/* RUM propriu, anonim, fără cookie-uri (lib/perf) — p75 în /admin/health. */}
+                  <WebVitalsReporter />
                 </CurrencyProvider>
               </AppMenuProvider>
             </ToastProvider>

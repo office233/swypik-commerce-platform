@@ -6,6 +6,7 @@ import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { listPublishedSeries, listContinueWatching, listWatchlist } from "@/lib/movies/repository";
 import { toSeriesDto } from "@/lib/movies/dto";
 import { buildHomeRows, HOME_ROW_MAX } from "@/lib/movies/home";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -41,5 +42,6 @@ export const GET = withErrorHandling(async function GET(req: Request) {
         watchlist: watchlistRows.map((s) => toSeriesDto(s, s.episode_count, s.owner_name)),
     });
 
-    return NextResponse.json({ featured: trending[0] ?? null, rows });
+    // Anonim → edge (identic pentru toți); logat → „continuă”/watchlist personale → private.
+    return applyCachePolicy(NextResponse.json({ featured: trending[0] ?? null, rows }), "movies/home", req);
 });

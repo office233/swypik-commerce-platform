@@ -4,6 +4,7 @@ import { getProductDetail } from "@/lib/products/get-product-detail";
 import { convert } from "@/lib/fx/convert";
 
 import { logger } from "@/lib/logger";
+import { applyCachePolicy, applyNoStore, hasUrlPreferences } from "@/lib/http/cache-policy";
 export const dynamic = "force-dynamic";
 
 export async function GET(
@@ -17,6 +18,8 @@ export async function GET(
     const localeParam = url.searchParams.get("locale");
     const localeCookie = cookieStore.get("swypik_locale")?.value;
     const locale = (localeParam || localeCookie || "ro").toLowerCase();
+    // Edge doar când limba și moneda vin din URL (vezi lib/http/cache-policy.ts).
+    const urlOnly = hasUrlPreferences(url);
 
     const detail = await getProductDetail(id, locale);
 
@@ -24,7 +27,7 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const targetCurrency = (cookieStore.get("swypik_currency")?.value || "RON").toUpperCase();
+    const targetCurrency = (url.searchParams.get("currency") || cookieStore.get("swypik_currency")?.value || "RON").toUpperCase();
 
     const d: any = detail;
     const prod = d.product || d;
@@ -58,19 +61,10 @@ export async function GET(
       }
     }
 
-    if (d.product) {
-      return NextResponse.json({
-        ...d,
-        product: { ...prod, price: converted, priceRon },
-        currency: effectiveCurrency,
-      });
-    }
-    return NextResponse.json({
-      ...d,
-      currency: effectiveCurrency,
-      price: converted,
-      priceRon,
-    });
+    const res = d.product
+      ? NextResponse.json({ ...d, product: { ...prod, price: converted, priceRon }, currency: effectiveCurrency })
+      : NextResponse.json({ ...d, currency: effectiveCurrency, price: converted, priceRon });
+    return urlOnly ? applyCachePolicy(res, "products/[id]", req) : applyNoStore(res);
   } catch (error: any) {
     logger.error({ err: error }, "[Product Detail API]");
     return NextResponse.json({ error: "A aparut o eroare la incarcarea produsului." }, { status: 500 });

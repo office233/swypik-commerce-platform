@@ -4,6 +4,8 @@
  */
 import { dbQuery } from "@/lib/db";
 import type { AdminNewsRow, AdminNewsStatus } from "./admin-types";
+import { logger } from "@/lib/logger";
+import { invalidateNewsLists } from "@/lib/prewarm/news";
 
 export { ADMIN_NEWS_STATUSES } from "./admin-types";
 export type { AdminNewsRow, AdminNewsStatus } from "./admin-types";
@@ -56,5 +58,8 @@ export async function setArticleStatus(id: string, status: AdminNewsStatus, revi
       RETURNING id, status`,
     [id, status, reviewerId],
   );
-  return rows[0] ? { ok: true, row: rows[0] } : { ok: false, error: "not_found" };
+  if (!rows[0]) return { ok: false, error: "not_found" };
+  // Lista publică de știri e ținută caldă în Redis — o retragere trebuie să dispară imediat.
+  await invalidateNewsLists().catch((err: unknown) => logger.warn({ err }, "[news-admin] warm list invalidation failed"));
+  return { ok: true, row: rows[0] };
 }

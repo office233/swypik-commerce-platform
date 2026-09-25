@@ -6,6 +6,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { isAdminRequest } from "@/lib/security/admin-auth";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { refreshNewsLists } from "@/lib/prewarm/news";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,11 @@ async function handle(req: NextRequest) {
       // Totul a eșuat (feed-uri sau AI) — alertă, nu un „0 articole” tăcut.
       logger.error({ errors: res.errors, duplicates: res.duplicates }, "[news-pipeline] run produced nothing and had errors");
       return NextResponse.json({ ok: false, error: "pipeline_all_failed", ...res, triggeredBy }, { status: 502 });
+    }
+
+    if (res.ingested > 0) {
+      // Articolele noi apar imediat în lista caldă (lib/prewarm/news.ts), nu la următorul prewarm.
+      await refreshNewsLists().catch((err: unknown) => logger.warn({ err }, "[news-pipeline] warm list refresh failed"));
     }
 
     return NextResponse.json({

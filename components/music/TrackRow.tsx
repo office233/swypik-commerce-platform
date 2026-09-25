@@ -9,6 +9,7 @@ import type { TrackDto } from "@/lib/music/types";
 import { haptic } from "@/lib/haptic";
 import { formatDuration } from "./format";
 import { useMusicPlayer } from "./MusicPlayerProvider";
+import { usePreconnectStream } from "./player/preconnect";
 
 type Props = {
   track: TrackDto;
@@ -32,6 +33,7 @@ export default function TrackRow({ track, queue, index, onLike, onAddToPlaylist 
   const { current, playing, play, toggle } = useMusicPlayer();
   const isCurrent = current?.id === track.id;
   const own = isOwnCatalog(track);
+  const warmStream = usePreconnectStream(track);
 
   const handlePlay = () => {
     haptic("tap");
@@ -44,6 +46,7 @@ export default function TrackRow({ track, queue, index, onLike, onAddToPlaylist 
       <button
         type="button"
         onClick={handlePlay}
+        {...warmStream}
         aria-label={`${isCurrent && playing ? t("pause") : t("play")}: ${track.title}`}
         className="relative h-12 w-12 shrink-0 overflow-hidden rounded-control bg-surface-2"
       >

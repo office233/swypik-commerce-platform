@@ -18,16 +18,16 @@ import VideoSlide from "./VideoSlide";
 import { usePrefersReducedMotion } from "./format";
 import { useActiveIndex } from "./useActiveIndex";
 import { useFeed } from "./useFeed";
+import { useFeedPreload } from "./useFeedPreload";
 import { useFeedTelemetry } from "./useFeedTelemetry";
 import { useMutedPreference, usePageVisible } from "./usePlaybackPrefs";
 import { toDrawerProduct } from "./drawer-product";
 import { findLinkedVideo, parseFeedDeepLink } from "./deep-link";
+import { VIDEO_PLAYBACK } from "@/lib/config/video-playback";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
 
-/** Câte slide-uri în jurul celui activ montează player-ul (preîncărcarea următorului). */
-const MOUNT_RADIUS = 1;
 /** Cerem pagina următoare cu atâtea slide-uri înainte de final. */
 const PREFETCH_THRESHOLD = 3;
 
@@ -48,6 +48,7 @@ function FeedScreenInner({ initialCategory }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsKey = useMemo(() => items.map((i) => i.key).join("|"), [items]);
   const active = useActiveIndex(containerRef, itemsKey);
+  const preload = useFeedPreload(items, active);
   const [muted, setMuted] = useMutedPreference();
   const pageVisible = usePageVisible();
   const reducedMotion = usePrefersReducedMotion();
@@ -155,8 +156,10 @@ function FeedScreenInner({ initialCategory }: Props) {
                 {item.kind === "video" ? (
                   <VideoSlide
                     video={item.video}
-                    mounted={Math.abs(idx - active) <= MOUNT_RADIUS}
-                    active={idx === active}
+                    slot={preload.slotFor(idx)}
+                    mounted={Math.abs(idx - active) <= VIDEO_PLAYBACK.attachRadius}
+                    posterSrc={preload.posterSrc(item.video.thumbnail)}
+                    priority={idx === 0}
                     muted={muted}
                     autoPlay={autoPlay}
                     captionLang={locale}

@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 import { getRate } from "@/lib/fx/convert";
 
 import { logger } from "@/lib/logger";
+import { NO_STORE, applyCachePolicy, applyNoStore, hasUrlPreferences } from "@/lib/http/cache-policy";
 export const dynamic = "force-dynamic";
 
 const RO_TO_EN: Record<string, string> = {
@@ -39,6 +40,9 @@ export async function GET(req: Request) {
     const cookieStore = await cookies();
     const localeCookie = cookieStore.get("swypik_locale")?.value;
     const locale = (url.searchParams.get("locale") || localeCookie || "ro").toLowerCase();
+    // Cache la edge doar când limba ȘI moneda vin din URL (Cloudflare cache-uiește
+    // după URL, nu după cookie) — vezi lib/http/cache-policy.ts.
+    const urlOnly = hasUrlPreferences(url);
     const search = url.searchParams.get("search") || url.searchParams.get("q") || "";
     const rawLimit = parseInt(url.searchParams.get("limit") || "50", 10);
     const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(rawLimit, 200)) : 50;
@@ -59,7 +63,8 @@ export async function GET(req: Request) {
 
     if (isHierarchy) {
       const hierarchy = await getCategoryHierarchy(locale);
-      return NextResponse.json({ hierarchy });
+      const res = NextResponse.json({ hierarchy });
+      return url.searchParams.get("locale") ? applyCachePolicy(res, "products", req) : applyNoStore(res);
     }
 
     if (isCategories) {
@@ -79,7 +84,7 @@ export async function GET(req: Request) {
             Deprecation: "true",
             Sunset: "Sat, 01 Aug 2026 00:00:00 GMT",
             Link: "</api/categories>; rel=successor-version",
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": NO_STORE,
           },
         },
       );
@@ -120,7 +125,7 @@ export async function GET(req: Request) {
     const cacheSeconds = mode === "video" ? 300 : 60;
 
     // Currency conversion (aligned with /api/products/[id]): listing stores price in RON.
-    const targetCurrency = (cookieStore.get("swypik_currency")?.value || "RON").toUpperCase();
+    const targetCurrency = (url.searchParams.get("currency") || cookieStore.get("swypik_currency")?.value || "RON").toUpperCase();
     let fxRate = 1;
     if (targetCurrency !== "RON") {
       try {
@@ -173,38 +178,22 @@ export async function GET(req: Request) {
       ? Boolean((result as any).hasMore)
       : nextOffset < result.total;
 
-    return NextResponse.json(
-      {
-        products,
-        currency: targetCurrency,
-        total: result.total,
-        offset: result.offset || 0,
-        limit: result.limit || limit,
-        hasMore,
-        source: "postgresql",
-        nextPage: hasMore
-          ? `?offset=${nextOffset}&limit=${result.limit || limit}`
-          : null,
-      },
-      {
-        // 2026-08-24 (audit perf/corectitudine): prețurile sunt convertite după
-        // cookie-ul `swypik_currency`, dar răspunsul era marcat `public` cu
-        // `Vary: Accept-Encoding` — un cache partajat putea servi prețuri în
-        // EUR unui vizitator cu RON (și invers) timp de câteva minute.
-        // Răspunsul convertit devine `private`; cel în moneda de bază (RON,
-        // majoritatea traficului) păstrează cache-ul CDN neatins.
-        headers: isConverted
-          ? {
-            "Cache-Control": `private, max-age=${mode === "video" ? 60 : 30}`,
-            "Vary": "Accept-Encoding, Cookie",
-          }
-          : {
-            "Cache-Control": `public, max-age=${mode === "video" ? 60 : 30}, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 2}`,
-            "CDN-Cache-Control": `public, max-age=${cacheSeconds}`,
-            "Vary": "Accept-Encoding, Cookie",
-          },
-      },
-    );
+    const res = NextResponse.json({
+      products,
+      // Conversie eșuată ⇒ prețurile sunt în RON; nu le etichetăm în altă monedă.
+      currency: isConverted ? targetCurrency : "RON",
+      total: result.total,
+      offset: result.offset || 0,
+      limit: result.limit || limit,
+      hasMore,
+      source: "postgresql",
+      nextPage: hasMore
+        ? `?offset=${nextOffset}&limit=${result.limit || limit}`
+        : null,
+    });
+    // 2026-08-24 (audit): prețurile depind de moneda aleasă — dacă vine din cookie,
+    // răspunsul e per-vizitator (Cloudflare ignoră `Vary: Cookie`) → no-store.
+    return urlOnly ? applyCachePolicy(res, "products", req) : applyNoStore(res);
   } catch (error: any) {
     logger.error({ err: error }, "[Products API]");
     return NextResponse.json(

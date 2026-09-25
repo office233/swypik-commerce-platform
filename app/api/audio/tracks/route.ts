@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,9 +99,10 @@ export async function GET(request: Request) {
       popularity: r.popularity,
     }));
 
-    return NextResponse.json(
-      { tracks, limit, offset, hasMore: tracks.length === limit },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
+    return applyCachePolicy(
+      NextResponse.json({ tracks, limit, offset, hasMore: tracks.length === limit }),
+      "audio/tracks",
+      request,
     );
   } catch (err) {
     logger.error({ err }, "/api/audio/tracks failed");

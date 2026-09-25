@@ -8,6 +8,7 @@ import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/config";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { listCatalog } from "@/lib/shop/catalog";
 import { CatalogQuerySchema } from "@/lib/shop/schemas";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
 
   try {
     const page = await listCatalog({ ...parsed.data, locale });
-    return NextResponse.json(page, { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } });
+    return applyCachePolicy(NextResponse.json(page), "shop/products", req);
   } catch (err) {
     logger.error({ err }, "[shop.products] list failed");
     return NextResponse.json({ code: "internal" }, { status: 500 });

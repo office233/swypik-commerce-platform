@@ -7,6 +7,7 @@ import { z } from "zod";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { geoReverse } from "@/lib/geo/nominatim";
 import { logger } from "@/lib/logger";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
   }
   try {
     const result = await geoReverse(parsed.data.lat, parsed.data.lng);
-    return NextResponse.json({ result });
+    return applyCachePolicy(NextResponse.json({ result }), "geo/reverse", req);
   } catch (e) {
     log.warn({ err: (e as Error).message }, "geo reverse failed");
     return NextResponse.json({ result: null });

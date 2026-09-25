@@ -45,26 +45,26 @@ function getHeaders(): HeadersInit {
     return headers;
 }
 
-export async function getAudiusTrendingTracks(limit = 25): Promise<AudioItemDto[]> {
-    if (cachedTrending && cachedTrending.expiresAt > Date.now()) {
-        return cachedTrending.data;
-    }
-
+/**
+ * Apel extern fără cache (preîncălzirea, lib/prewarm/catalogs.ts): `null` când
+ * Audius nu răspunde, ca preîncălzirea să păstreze copia veche.
+ */
+export async function fetchAudiusTrending(limit = 25): Promise<AudioItemDto[] | null> {
     try {
         const url = `https://api.audius.co/v1/tracks/trending?app_name=swypik&limit=${limit}`;
         const res = await fetch(url, {
             headers: getHeaders(),
-            next: { revalidate: 3600 },
+            cache: "no-store",
             signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
 
         if (!res.ok) {
-            return [];
+            return null;
         }
 
         const json = (await res.json()) as AudiusResponse;
         if (!json.data || !Array.isArray(json.data) || json.data.length === 0) {
-            return [];
+            return null;
         }
 
         const tracks: AudioItemDto[] = json.data.map((t) => {
@@ -86,11 +86,20 @@ export async function getAudiusTrendingTracks(limit = 25): Promise<AudioItemDto[
             };
         });
 
-        cachedTrending = { data: tracks, expiresAt: Date.now() + CACHE_TTL_MS };
         return tracks;
     } catch {
-        return [];
+        return null;
     }
+}
+
+export async function getAudiusTrendingTracks(limit = 25): Promise<AudioItemDto[]> {
+    if (cachedTrending && cachedTrending.expiresAt > Date.now()) {
+        return cachedTrending.data;
+    }
+    const tracks = await fetchAudiusTrending(limit);
+    if (!tracks) return [];
+    cachedTrending = { data: tracks, expiresAt: Date.now() + CACHE_TTL_MS };
+    return tracks;
 }
 
 export const getTrendingAudiusTracks = getAudiusTrendingTracks;

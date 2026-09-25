@@ -37,6 +37,24 @@ const CONNECTION_TIMEOUT_MS = Number(process.env.PG_CONNECTION_TIMEOUT_MS) > 0
   ? Math.trunc(Number(process.env.PG_CONNECTION_TIMEOUT_MS))
   : 10_000;
 
+/**
+ * Mărimea pool-ului per replică (2026-09-27, w6-performance). Cu N replici web,
+ * totalul N × PG_POOL_MAX (+ workeri, cron, admin) trebuie să rămână sub
+ * `max_connections` al serverului Postgres (300 în infra/azure/compose/data.yml)
+ * — vezi docs/infra/scaling.md. Peste ~4 replici: PgBouncer în mod transaction.
+ */
+export function poolSettingsFromEnv(env: NodeJS.ProcessEnv = process.env): { max: number; idleTimeoutMillis: number } {
+  const isProd = env.NODE_ENV === "production";
+  const rawMax = Number(env.PG_POOL_MAX);
+  const rawIdle = Number(env.PG_IDLE_TIMEOUT_MS);
+  return {
+    max: Number.isInteger(rawMax) && rawMax >= 1 && rawMax <= 200 ? rawMax : isProd ? 15 : 5,
+    // 30 s: la trafic în rafale, închiderea după 10 s forța reconectări (TLS/TCP
+    // către un server Postgres separat) exact la următorul vârf.
+    idleTimeoutMillis: Number.isFinite(rawIdle) && rawIdle >= 1000 ? Math.trunc(rawIdle) : 30_000,
+  };
+}
+
 function getPool(): Pool {
   if (pool) return pool;
 
@@ -45,12 +63,16 @@ function getPool(): Pool {
     throw new Error("DATABASE_URL is missing");
   }
 
-  const isProd = process.env.NODE_ENV === "production";
+  const { max, idleTimeoutMillis } = poolSettingsFromEnv();
 
   pool = new Pool({
     connectionString,
-    max: isProd ? 15 : 5,
-    idleTimeoutMillis: 10_000,
+    max,
+    idleTimeoutMillis,
+    // TCP keep-alive: conexiunile inactive către serverul Postgres separat nu
+    // sunt tăiate tăcut de NAT/firewall (altfel prima interogare după o pauză eșuează).
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
     connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
     statement_timeout: STATEMENT_TIMEOUT_MS,
     // O tranzacție uitată deschisă ține și conexiunea, și locks-urile.
