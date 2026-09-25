@@ -5,14 +5,12 @@
  *  - promotes user to role='creator' (preserving admin/moderator)
  *  - inserts a row in `creators` (legacy table) if email present, ON CONFLICT DO NOTHING/UPDATE
  *  - logs moderation action
- *  - sends notification email best-effort (non-blocking on failure)
+ *  - notifies the user in-app + email, in their locale (best-effort)
  */
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { getDb } from "@/lib/db";
-import { sendEmail } from "@/lib/email/service";
-import { APP_URL } from "@/lib/app-url";
-import { logger } from "@/lib/logger";
+import { notifyApplicationDecision } from "@/lib/creator/application-notify";
 import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const runtime = "nodejs";
@@ -32,8 +30,7 @@ export async function POST(
 
   const client = await getDb().connect();
   let userEmail: string | null = null;
-  let username: string | null = null;
-  let requestedHandle: string | null = null;
+  let appUserId: string | null = null;
   let alreadyApproved = false;
   let notFound = false;
   try {
@@ -53,8 +50,7 @@ export async function POST(
         alreadyApproved = true;
       } else {
         userEmail = app.email || null;
-        username = app.username || null;
-        requestedHandle = app.requested_handle || null;
+        appUserId = app.user_id;
 
         await client.query("BEGIN");
         await client.query(
@@ -120,25 +116,8 @@ export async function POST(
     return NextResponse.json({ error: "already_approved" }, { status: 409 });
   }
 
-  if (userEmail) {
-    try {
-      const handleStr = requestedHandle || username || "creator";
-      await sendEmail({
-        to: userEmail,
-        subject: "Aplicatia ta de creator a fost aprobata!",
-        html: `
-          <div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;padding:24px;color:#111">
-            <h1 style="margin:0 0 12px;font-size:22px">Felicitari, @${handleStr}!</h1>
-            <p>Aplicatia ta de creator pe Swypik a fost <strong>aprobata</strong>.</p>
-            <p>Acum poti publica videoclipuri, primi urmaritori si accesa panoul de creator.</p>
-            <p style="margin-top:16px"><a href="${APP_URL}/creator" style="background:#0D0D0D;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Deschide panoul de creator</a></p>
-            <p style="margin-top:24px;color:#666;font-size:12px">Daca nu ai cerut acest lucru, ignora acest email.</p>
-          </div>
-        `,
-      });
-    } catch (err) {
-      logger.warn({ err }, "[admin/applications/approve] email send failed");
-    }
+  if (appUserId) {
+    await notifyApplicationDecision({ userId: appUserId, decision: "approved" });
   }
 
   await logAdminAction({

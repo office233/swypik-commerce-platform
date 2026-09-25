@@ -4,6 +4,7 @@ import { dbQuery } from "@/lib/db";
 import { getCreatorUserIdWithRoleCheck } from "@/lib/creator/session";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { applyVideoMissionField, type MissionFieldOutcome } from "@/lib/missions/video-field";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ type PatchBody = {
   ai_hook_selected?: string | null;
   ai_caption_used?: boolean;
   collection_hint?: string | null;
+  /** Misiunea la care participă clipul (uuid) sau null = retrage. Vezi GET /api/missions/active. */
+  missionId?: string | null;
 };
 
 function sanitizeString(value: unknown, maxLen: number): string | undefined {
@@ -67,7 +70,7 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     return NextResponse.json({ video: v, status: v.status });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "[creator/videos/:id GET] error");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
@@ -243,7 +246,18 @@ export async function PATCH(
       values.push(body.collection_hint);
     }
 
+    // Legătura cu misiunea se aplică după ce restul câmpurilor au trecut validarea.
+    let mission: Extract<MissionFieldOutcome, { ok: true }> | undefined;
+    if (body.missionId !== undefined) {
+      const outcome = await applyVideoMissionField({ userId: owner.creator_id, videoId, missionId: body.missionId });
+      if (!outcome.ok) {
+        return NextResponse.json({ error: outcome.code }, { status: outcome.status });
+      }
+      mission = outcome;
+    }
+
     if (sets.length === 0) {
+      if (mission) return NextResponse.json({ success: true, mission: mission.value });
       return NextResponse.json({ error: "No updatable fields provided" }, { status: 400 });
     }
 
@@ -259,12 +273,13 @@ export async function PATCH(
       autoEmbedVideo(u.id, u.title, u.description);
     }
 
-    return NextResponse.json({ success: true, video: updated[0] });
-  } catch (err: any) {
+    return NextResponse.json({ success: true, video: updated[0], ...(mission ? { mission: mission.value } : {}) });
+  } catch (err) {
     logger.error({ err }, "[creator/videos/:id PATCH] error");
-    const status = typeof err?.status === "number" ? err.status : 500;
+    const e = err as { status?: unknown; message?: string };
+    const status = typeof e?.status === "number" ? e.status : 500;
     return NextResponse.json(
-      { error: status === 500 ? "Internal error" : err.message },
+      { error: status === 500 ? "Internal error" : e.message },
       { status },
     );
   }
@@ -307,7 +322,7 @@ export async function DELETE(
       [videoId],
     );
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "[creator/videos/:id DELETE] error");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }

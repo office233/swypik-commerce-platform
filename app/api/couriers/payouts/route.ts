@@ -32,7 +32,7 @@ export async function GET() {
     `SELECT id, amount_cents::int8 AS amount_cents, currency, status, iban,
             admin_note, requested_at, resolved_at
        FROM payout_requests
-      WHERE user_id = $1
+      WHERE user_id = $1 AND kind = 'courier'
       ORDER BY requested_at DESC
       LIMIT 50`,
     [session.userId],

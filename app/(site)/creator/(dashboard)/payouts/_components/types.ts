@@ -1,0 +1,22 @@
+import type { PayoutReadiness, PayoutRequestView } from "@/lib/creator/payouts";
+
+/** Forma răspunsului GET /api/creator/payouts. */
+export type PayoutsData = {
+  readiness: PayoutReadiness;
+  balanceCents: number;
+  payouts: PayoutRequestView[];
+};
+
+/** Codurile de eroare POST /api/creator/payouts cu mesaj dedicat (restul → `errors.generic`). */
+export const PAYOUT_ERROR_CODES = [
+  "below_minimum",
+  "iban_required",
+  "invalid_iban",
+  "open_request_exists",
+  "insufficient_funds",
+  "rate_limited",
+  "invalid_body",
+  "creator_required",
+] as const;
+
+export const OPEN_PAYOUT_STATUSES = ["pending", "processing"];

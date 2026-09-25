@@ -18,8 +18,15 @@ function bpsFromEnv(name: string, defaultBps: number): number {
 /** Comisionul platformei pe vânzările seller-ilor locali (default 10%). */
 export const PLATFORM_COMMISSION_BPS = bpsFromEnv("PLATFORM_COMMISSION_BPS", 1000);
 
-/** Comisionul creatorului din vânzările atribuite lui (default 5%). */
-export const CREATOR_COMMISSION_BPS = bpsFromEnv("CREATOR_COMMISSION_BPS_RATE", 500);
+/**
+ * Comisionul creatorului din vânzările atribuite lui (default 5%). O SINGURĂ
+ * variabilă: CREATOR_COMMISSION_BPS (înainte existau două — CREATOR_COMMISSION_BPS
+ * pentru pagina de câștiguri și CREATOR_COMMISSION_BPS_RATE pentru cron — care
+ * puteau diverge). Numele vechi e citit doar ca fallback.
+ */
+export const CREATOR_COMMISSION_BPS = process.env.CREATOR_COMMISSION_BPS
+  ? bpsFromEnv("CREATOR_COMMISSION_BPS", 500)
+  : bpsFromEnv("CREATOR_COMMISSION_BPS_RATE", 500);
 
 /** Aplică un comision exprimat în bps pe o sumă în cenți (rotunjire bancară simplă). */
 export function applyBps(amountCents: number, bps: number): number {

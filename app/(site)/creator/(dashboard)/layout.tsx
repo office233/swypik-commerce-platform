@@ -1,104 +1,57 @@
 import Link from "next/link";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
-import { useTranslations } from "next-intl";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { isEnabled } from "@/lib/feature-flags";
-import {
-  BarChart3,
-  Upload,
-  Clapperboard,
-  FileText,
-  TrendingUp,
-  Coins,
-  Banknote,
-  UserRound,
-} from "lucide-react";
+import { getCreatorUserId, getCreatorUserIdWithRoleCheck } from "@/lib/creator/session";
+import SidebarNav from "./_components/SidebarNav";
+import { creatorNavEntries } from "./nav";
 
-export default function CreatorLayout({ children }: { children: ReactNode }) {
-  const t = useTranslations("creatordashboard");
-  // Construit din traduceri (nu hardcodat) → meniul mobil urmează limba activă.
-  const creatorNavItems = [
-    { href: "/creator", icon: "barChart3", label: t("dashboard") },
-    { href: "/upload", icon: "upload", label: t("incarcaVideo") },
-    { href: "/creator/videos", icon: "clapperboard", label: t("clipurileMele") },
-    ...(isEnabled("movies") ? [{ href: "/creator/movies", icon: "clapperboard", label: t("movies") }] : []),
-    ...(isEnabled("music") ? [{ href: "/creator/music", icon: "music", label: t("music") }] : []),
-    { href: "/creator/drafts", icon: "fileText", label: t("schite") },
-    { href: "/creator/analytics", icon: "trendingUp", label: t("analytics") },
-    { href: "/creator/earnings", icon: "coins", label: t("castiguri") },
-    { href: "/creator/payouts", icon: "banknote", label: t("plati") },
-    { href: "/creator/live", icon: "circleDot", label: t("live") },
-  ];
+export default async function CreatorLayout({ children }: { children: ReactNode }) {
+  const session = await getCreatorUserIdWithRoleCheck();
+  if (!session) {
+    const userId = await getCreatorUserId();
+    redirect(userId ? "/become-a-creator" : "/auth/login?next=/creator");
+  }
+
+  const t = await getTranslations("creatorStudio.nav");
+  const items = creatorNavEntries({ movies: isEnabled("movies"), music: isEnabled("music") }).map((e) => ({
+    href: e.href,
+    icon: e.icon,
+    label: t(e.labelKey),
+  }));
+
   return (
-    <div className="min-h-screen bg-[#F7F7F8] flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-[#E5E5E5] flex flex-col hidden md:flex">
-        <div className="p-6 border-b border-[#E5E5E5]">
-          <Link href="/" className="text-xl font-black text-[#0D0D0D]">
-            Swypik <span className="text-[#0D0D0D]">Creators</span>
+    <div className="flex min-h-dvh bg-canvas text-fg">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-subtle bg-surface md:flex">
+        <div className="flex h-header items-center border-b border-subtle px-5">
+          <Link href="/creator" className="text-lg font-bold text-fg">
+            {t("studio")}
           </Link>
         </div>
-
-        <nav className="flex-1 p-4 space-y-2">
-          <Link href="/creator" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#0D0D0D] transition">
-            <BarChart3 size={18} /> {t("dashboard")}
-          </Link>
-          <Link href="/creator/videos" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Clapperboard size={18} /> {t("clipurileMele")}
-          </Link>
-          <Link href="/creator/drafts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <FileText size={18} />  {t("schite")}
-          </Link>
-          <Link href="/upload" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Upload size={18} />  {t("incarcaVideo")}
-          </Link>
-          <Link href="/creator/analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <TrendingUp size={18} /> {t("analytics")}
-          </Link>
-          <Link href="/creator/earnings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Coins size={18} />  {t("castiguri")}
-          </Link>
-          <Link href="/creator/payouts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Banknote size={18} />  {t("plati")}
-          </Link>
-        </nav>
-
-        <div className="p-4 border-t border-[#E5E5E5]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#0D0D0D]/10 flex items-center justify-center text-lg">
-              <UserRound size={18} />
-            </div>
-            <div>
-              <p className="text-xs font-black text-[#0D0D0D]">{t("contCreator")}</p>
-              <p className="text-[10px] text-[#6E6E80]">{t("statusAprobat")}</p>
-            </div>
-          </div>
-        </div>
+        <SidebarNav items={items} />
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Header */}
-        <header className="md:hidden bg-white border-b border-[#E5E5E5] p-4 flex items-center justify-between">
-          <Link href="/" className="text-lg font-black text-[#0D0D0D]">
-            Swypik <span className="text-[#0D0D0D]">Creators</span>
-          </Link>
-          <MobileDashboardNav
-            title="Swypik"
-            section="Creators"
-            accentClassName="text-[#0D0D0D]"
-            items={creatorNavItems}
-            openMenuLabel={t("deschideMeniul")}
-            closeMenuLabel={t("inchideMeniul")}
-            menuLabel={t("meniu")}
-          />
-        </header>
-
-        {/* Content Area */}
-        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-          {children}
-        </div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <PageHeader
+          className="md:hidden"
+          title={t("studio")}
+          actions={
+            <MobileDashboardNav
+              title={t("studio")}
+              section=""
+              accentClassName="text-brand"
+              items={items}
+              openMenuLabel={t("openMenu")}
+              closeMenuLabel={t("closeMenu")}
+              menuLabel={t("menu")}
+            />
+          }
+        />
+        <main className="mx-auto w-full max-w-5xl flex-1 px-gutter py-4 md:px-8 md:py-8">{children}</main>
+      </div>
     </div>
   );
 }

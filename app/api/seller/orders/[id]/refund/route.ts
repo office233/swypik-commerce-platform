@@ -16,6 +16,7 @@ import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
+import { reverseCreatorCommissionsForItems } from "@/lib/creator/commission";
 export const dynamic = "force-dynamic";
 
 function statusForPolicyCode(code: string): number {
@@ -287,8 +288,12 @@ export async function POST(
         "[refund-after-payout] seller payout already settled - manual Stripe clawback required",
       );
     }
+    // Comisioanele de creator maturate în portofel se retrag automat (ledger).
+    await reverseCreatorCommissionsForItems(creatorClawback.map((r) => r.id), "seller_refund").catch((err) =>
+      logger.error({ err, order_id: orderId }, "[Seller Refund] creator commission reversal failed"),
+    );
     for (const row of creatorClawback) {
-      logger.error(
+      logger.warn(
         {
           order_id: orderId,
           item_id: row.id,
@@ -297,7 +302,7 @@ export async function POST(
           transfer_id: row.transfer_id,
           refund_id: refundId,
         },
-        "[refund-after-payout] creator payout already settled - manual Stripe clawback required",
+        "[refund-after-payout] creator commission reversed from wallet",
       );
     }
 
