@@ -13,6 +13,15 @@ import { z } from "zod";
 export const LICENSE_TYPES = ["cc_by", "cc_by_sa", "public_domain", "owned", "distributor"] as const;
 export type LicenseType = (typeof LICENSE_TYPES)[number];
 
+/** Cheia i18n (namespace `movies`) a fiecărui tip de licență. */
+export const LICENSE_LABEL_KEY = {
+    cc_by: "licenseCcBy",
+    cc_by_sa: "licenseCcBySa",
+    public_domain: "licensePublicDomain",
+    owned: "licenseOwned",
+    distributor: "licenseDistributor",
+} as const satisfies Record<LicenseType, string>;
+
 export const TITLE_FORMATS = ["series", "film"] as const;
 export type TitleFormat = (typeof TITLE_FORMATS)[number];
 

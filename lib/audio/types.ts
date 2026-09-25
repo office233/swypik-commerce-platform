@@ -20,7 +20,13 @@ export interface AudioItemDto {
     stationCountry?: string;
     stationVotes?: number;
     externalUrl?: string;
+    /** Licența permite uz într-un context monetizat (feed cu reclame, reels) — vezi lib/audio/license.ts. */
+    licensedForCommercial?: boolean;
+    licenseUrl?: string | null;
 }
+
+/** Surse externe care au nevoie de o cheie; fără ea, API-ul le raportează ca neconfigurate (fără date false). */
+export type AudioSourceStatus = { source: AudioSourceType; configured: boolean };
 
 /** ID-uri stabile de secțiuni feed — clientul le traduce, serverul nu mai trimite text RO hardcodat. */
 export type AudioFeedSectionId =
@@ -37,7 +43,10 @@ export interface AudioFeedSection {
 }
 
 export interface AudioFeedResponse {
+    /** Doar secțiunile cu conținut — cele goale nu se trimit. */
     sections: AudioFeedSection[];
+    /** Sursele care cer cheie de API și nu sunt configurate (ex. Jamendo fără JAMENDO_CLIENT_ID). */
+    unconfigured: AudioSourceType[];
 }
 
 import type { TrackDto } from "@/lib/music/types";
@@ -62,12 +71,13 @@ export function audioItemToTrackDto(item: AudioItemDto): TrackDto {
             id: `artist-${item.source}-${item.artist.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
             slug: item.artist.toLowerCase().replace(/[^a-z0-9]/g, "-"),
             stageName: item.artist,
-            bio: item.isLive ? `Post de radio live (${item.stationCountry || "RO"})` : `Artist ${item.source}`,
+            bio: "",
             avatarUrl: item.coverUrl,
             coverUrl: item.coverUrl,
-            isOfficial: item.source === "radio",
+            isOfficial: false,
         },
-        plays7d: 100,
+        // Sursele externe nu au statistici Swypik — nu inventăm redări.
+        plays7d: 0,
         liked: false,
         source: item.source,
         streamUrl: item.streamUrl,

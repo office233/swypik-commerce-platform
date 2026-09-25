@@ -217,6 +217,7 @@ export const RATE_LIMITS = {
   moviesProgress: { limit: 60, window: 60 } as RateLimitConfig,
   moviesStream: { limit: 600, window: 60 } as RateLimitConfig,  // segmente HLS: ~1 req/2s + marjă
   moviesPublish: { limit: 5, window: 3600 } as RateLimitConfig,
+  moviesIngest: { limit: 60, window: 3600 } as RateLimitConfig,  // admin: ingest titluri licențiate (seed Open Cinema ≈ 15)
   musicCatalog: { limit: 60, window: 60 } as RateLimitConfig,
   musicPlay: { limit: 60, window: 60 } as RateLimitConfig,
   musicPlays: { limit: 120, window: 60 } as RateLimitConfig,

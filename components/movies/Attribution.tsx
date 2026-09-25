@@ -1,14 +1,7 @@
 import { useTranslations } from "next-intl";
 import { ExternalLink } from "lucide-react";
-import type { PublicAttribution } from "@/lib/movies/license";
+import { LICENSE_LABEL_KEY, type PublicAttribution } from "@/lib/movies/license";
 
-const LICENSE_KEY = {
-  cc_by: "licenseCcBy",
-  cc_by_sa: "licenseCcBySa",
-  public_domain: "licensePublicDomain",
-  owned: "licenseOwned",
-  distributor: "licenseDistributor",
-} as const;
 
 /**
  * Creditul cerut de licență (CC BY cere atribuire vizibilă, cu sursa).
@@ -20,7 +13,7 @@ export default function Attribution({ attribution }: { attribution: PublicAttrib
   return (
     <section aria-labelledby="movie-attribution" className="rounded-card border border-subtle bg-surface-2 p-4">
       <h2 id="movie-attribution" className="text-sm font-semibold text-fg">
-        {t("attributionTitle")} · {t(LICENSE_KEY[attribution.licenseType])}
+        {t("attributionTitle")} · {t(LICENSE_LABEL_KEY[attribution.licenseType])}
       </h2>
       {attribution.text && <p className="mt-1 whitespace-pre-line text-sm text-muted">{attribution.text}</p>}
       {attribution.sourceUrl && (

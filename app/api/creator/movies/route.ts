@@ -11,6 +11,10 @@ import { slugifySeriesTitle } from "@/lib/movies/slug";
 import { MOVIES_DEFAULT_EPISODE_PRICE_CENTS, MOVIES_DEFAULT_EPISODE_PRICE_UNITS, MOVIES_DEFAULT_FREE_EPISODES, MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
 import { LOCALES } from "@/lib/i18n/config";
 import { MOVIE_GENRES } from "@/lib/movies/genres";
+import { LicenseInputSchema, TERRITORY_WORLD } from "@/lib/movies/license";
+import { updateSeriesLicense } from "@/lib/movies/admin-repository";
+
+const CREATOR_LICENSE_TYPES = ["owned", "cc_by", "cc_by_sa"] as const;
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +29,12 @@ const CreateSchema = z.object({
     episodePriceCents: z.coerce.number().int().nullable().default(MOVIES_DEFAULT_EPISODE_PRICE_CENTS),
     isAdult: z.boolean().default(false),
     licenseNote: z.string().trim().max(1000).nullable().default(null),
+    /** Creatorii declară drepturile: producție proprie sau CC BY / BY-SA (NC nu poate sta în spatele unei plăți). */
+    license: LicenseInputSchema.extend({ type: z.enum(CREATOR_LICENSE_TYPES) }).default({
+        type: "owned", attributionText: null, sourceUrl: null, territories: [TERRITORY_WORLD], expiresAt: null,
+    }),
+    /** Bifa obligatorie: „dețin drepturile (inclusiv muzică, actori, locații)". */
+    rightsConfirmed: z.literal(true),
 });
 
 export const GET = withErrorHandling(async function GET() {
@@ -61,5 +71,6 @@ export const POST = withErrorHandling(async function POST(req: Request) {
         isAdult: d.isAdult,
         licenseNote: d.licenseNote,
     });
+    await updateSeriesLicense(series.id, d.license, userId);
     return NextResponse.json({ series }, { status: 201 });
 });

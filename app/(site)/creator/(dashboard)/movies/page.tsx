@@ -19,6 +19,12 @@ const STATUS_KEY: Record<SeriesStatus, StatusKey> = {
 };
 const INPUT = "w-full rounded-xl border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#0D0D0D]";
 const JSON_HEADERS = { "Content-Type": "application/json" };
+type CreatorLicense = "owned" | "cc_by" | "cc_by_sa";
+const CREATOR_LICENSES: Array<{ id: CreatorLicense; key: "licenseOwned" | "licenseCcBy" | "licenseCcBySa" }> = [
+  { id: "owned", key: "licenseOwned" },
+  { id: "cc_by", key: "licenseCcBy" },
+  { id: "cc_by_sa", key: "licenseCcBySa" },
+];
 
 export default function CreatorMoviesPage() {
   const t = useTranslations("movies");
@@ -30,7 +36,7 @@ export default function CreatorMoviesPage() {
   const [form, setForm] = useState({
     title: "", synopsis: "", genres: [] as MovieGenre[], posterUrl: "", coverUrl: "",
     freeEpisodes: MOVIES_DEFAULT_FREE_EPISODES, priceRon: MOVIES_DEFAULT_EPISODE_PRICE_CENTS / 100,
-    licenseNote: "", isAdult: false,
+    licenseNote: "", isAdult: false, licenseType: "owned" as CreatorLicense, attributionText: "", sourceUrl: "", rightsConfirmed: false,
   });
   const [episodeForm, setEpisodeForm] = useState({ videoId: "", title: "" });
 
@@ -63,6 +69,14 @@ export default function CreatorMoviesPage() {
         episodePriceCents: Math.round(form.priceRon * 100),
         licenseNote: form.licenseNote || null,
         isAdult: form.isAdult,
+        license: {
+          type: form.licenseType,
+          attributionText: form.attributionText.trim() || null,
+          sourceUrl: form.sourceUrl.trim() || null,
+          territories: ["WORLD"],
+          expiresAt: null,
+        },
+        rightsConfirmed: form.rightsConfirmed,
       }),
     });
     setMsg(res.ok ? t("saved") : t("error"));
@@ -164,6 +178,21 @@ export default function CreatorMoviesPage() {
           </label>
         </div>
         <textarea value={form.licenseNote} onChange={(e) => setForm({ ...form, licenseNote: e.target.value })} placeholder={t("licenseNote")} rows={2} className={INPUT} />
+        <label className="block text-xs">{t("licenseTypeField")}
+          <select value={form.licenseType} onChange={(e) => setForm({ ...form, licenseType: e.target.value as CreatorLicense })} className={INPUT}>
+            {CREATOR_LICENSES.map((l) => <option key={l.id} value={l.id}>{t(l.key)}</option>)}
+          </select>
+        </label>
+        {form.licenseType !== "owned" && (
+          <>
+            <textarea required value={form.attributionText} onChange={(e) => setForm({ ...form, attributionText: e.target.value })} placeholder={t("attributionField")} rows={2} className={INPUT} />
+            <input required type="url" value={form.sourceUrl} onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })} placeholder={t("sourceUrlField")} className={INPUT} />
+          </>
+        )}
+        <label className="flex min-h-11 items-start gap-2 text-sm">
+          <input type="checkbox" required checked={form.rightsConfirmed} onChange={(e) => setForm({ ...form, rightsConfirmed: e.target.checked })} className="mt-1" /> {t("rightsConfirm")}
+        </label>
+        <p className="rounded-xl bg-neutral-100 p-3 text-xs text-neutral-700">{t("cnaCreatorNotice")}</p>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={form.isAdult} onChange={(e) => setForm({ ...form, isAdult: e.target.checked })} /> {t("isAdultField")}
         </label>

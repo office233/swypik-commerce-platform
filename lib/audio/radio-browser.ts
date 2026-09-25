@@ -5,6 +5,7 @@
  */
 
 import type { AudioItemDto } from "./types";
+import { isSecureStreamUrl } from "./license";
 
 const RADIO_SERVERS = [
     "https://de1.api.radio-browser.info",
@@ -196,12 +197,12 @@ export async function getLiveRadioStations(country = "romania", limit = 40): Pro
 
             // Filtrare: doar stream-uri active (lastcheckok === 1) cu URL valid
             const activeStations = stations
-                .filter((s) => s.lastcheckok === 1 && s.url_resolved && s.name)
+                .filter((s) => s.lastcheckok === 1 && isSecureStreamUrl(s.url_resolved) && s.name)
                 .map((s): AudioItemDto => {
                     const slug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
                     // Folosește fallback cover dacă favicon lipsește
                     const cover =
-                        s.favicon && s.favicon.startsWith("http")
+                        isSecureStreamUrl(s.favicon)
                             ? s.favicon
                             : CURATED_ROMANIAN_STATIONS.find((c) => c.title.toLowerCase() === s.name.toLowerCase())?.coverUrl ||
                               null;
@@ -256,13 +257,13 @@ export async function getTopGlobalRadios(limit = 12): Promise<AudioItemDto[]> {
             const stations = (await res.json()) as RawRadioStation[];
             if (!Array.isArray(stations) || stations.length === 0) continue;
             return stations
-                .filter((s) => s.lastcheckok === 1 && s.url_resolved && s.name)
+                .filter((s) => s.lastcheckok === 1 && isSecureStreamUrl(s.url_resolved) && s.name)
                 .map((s): AudioItemDto => ({
                     id: `radio_${s.stationuuid}`,
                     slug: s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
                     title: s.name.trim(),
                     artist: s.country || "Global Radio",
-                    coverUrl: s.favicon && s.favicon.startsWith("http") ? s.favicon : null,
+                    coverUrl: isSecureStreamUrl(s.favicon) ? s.favicon : null,
                     streamUrl: s.url_resolved,
                     durationMs: 0,
                     genre: s.tags?.split(",")?.[0]?.trim() || "Hits",
@@ -292,13 +293,13 @@ export async function searchRadioStations(query: string, limit = 10): Promise<Au
             const stations = (await res.json()) as RawRadioStation[];
             if (!Array.isArray(stations) || stations.length === 0) continue;
             return stations
-                .filter((s) => s.url_resolved && s.name)
+                .filter((s) => isSecureStreamUrl(s.url_resolved) && s.name)
                 .map((s): AudioItemDto => ({
                     id: `radio_${s.stationuuid}`,
                     slug: s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
                     title: s.name.trim(),
                     artist: s.country || "Radio Live",
-                    coverUrl: s.favicon && s.favicon.startsWith("http") ? s.favicon : null,
+                    coverUrl: isSecureStreamUrl(s.favicon) ? s.favicon : null,
                     streamUrl: s.url_resolved,
                     durationMs: 0,
                     genre: s.tags?.split(",")?.[0]?.trim() || "Radio",
