@@ -23,8 +23,14 @@ export function useOptimisticToggle(
   const seq = useRef(0);
   const { onSettled, onError, resetKey } = opts;
 
-  // Componenta poate fi refolosită pentru altă țintă (feed virtualizat).
+  // Componenta poate fi refolosită pentru altă țintă (feed virtualizat). Ecoul
+  // propriului onSettled (părintele re-trimite aceleași valori) nu resetează nimic.
+  const lastKey = useRef(opts.resetKey);
   useEffect(() => {
+    const sameTarget = lastKey.current === resetKey;
+    lastKey.current = resetKey;
+    const c = confirmed.current;
+    if (sameTarget && c.active === initial.active && c.count === initial.count) return;
     confirmed.current = initial;
     setState(initial);
     seq.current += 1;

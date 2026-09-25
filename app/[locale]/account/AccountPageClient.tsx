@@ -7,12 +7,10 @@ import Image from "next/image";
 import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, Compass, User, MoreVertical, Trash2, Eye, EyeOff } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
 import MyModes from "@/components/account/MyModes";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 import { VideoGrid } from "@/components/social/profile/VideoGrid";
-import { formatCount } from "@/lib/social/format";
-import { profilePath } from "@/lib/social/links";
-import type { ProfileStats } from "@/lib/social/profile/stats";
+import { AccountSocialSummary } from "@/components/account/AccountSocialSummary";
 
 type AccountPageClientProps = {
   redirectTo: string;
@@ -21,8 +19,6 @@ type AccountPageClientProps = {
 export default function AccountPageClient({ redirectTo }: AccountPageClientProps) {
   const t = useTranslations("account");
   const ts = useTranslations("social.profile");
-  const locale = useLocale();
-  const [stats, setStats] = useState<ProfileStats | null>(null);
   const [view, setView] = useState<"loading" | "login" | "verify" | "account">("loading");
   const [customer, setCustomer] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -84,12 +80,6 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
 
   const loadData = useCallback(async () => {
     try {
-      // Statistici reale (același modul ca /u/<username>).
-      fetch("/api/users/me/stats", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d: { stats?: ProfileStats } | null) => d?.stats && setStats(d.stats))
-        .catch(() => undefined);
-
       // Load orders
       const resOrders = await fetch("/api/auth/orders");
       const dataOrders = await resOrders.json();
@@ -310,30 +300,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           </div>
           <h2 className="text-xl font-black">{customer?.display_name || t("defaultCreatorName")}</h2>
           <p className="text-sm text-white/60 mb-1">@{customer?.username || "user"}</p>
-          {customer?.username ? (
-            <Link href={profilePath(customer.username)} className="mb-4 inline-flex min-h-11 items-center text-sm font-semibold text-white/80 underline-offset-2 hover:underline">
-              {ts("viewPublicProfile")}
-            </Link>
-          ) : null}
-
-          <div className="flex items-center justify-center gap-8 w-full px-8 mb-6">
-            {customer?.username ? (
-              <>
-                <Link href={profilePath(customer.username)} className="text-center min-h-11">
-                  <p className="text-lg font-black">{stats ? formatCount(stats.following, locale) : "–"}</p>
-                  <p className="text-xs text-white/60">{t("urmariri")}</p>
-                </Link>
-                <Link href={profilePath(customer.username)} className="text-center min-h-11">
-                  <p className="text-lg font-black">{stats ? formatCount(stats.followers, locale) : "–"}</p>
-                  <p className="text-xs text-white/60">{t("urmaritori")}</p>
-                </Link>
-              </>
-            ) : null}
-            <div className="text-center">
-              <p className="text-lg font-black">{stats ? formatCount(stats.likes, locale) : "–"}</p>
-              <p className="text-xs text-white/60">{ts("likes")}</p>
-            </div>
-          </div>
+          <AccountSocialSummary username={customer?.username ?? null} />
 
           <div className="flex gap-3 w-full">
             <Link
