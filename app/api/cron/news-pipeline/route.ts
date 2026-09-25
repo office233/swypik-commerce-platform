@@ -1,3 +1,4 @@
+import { cronLockKey, cronSkippedResponse, withAdvisoryLock } from "@/lib/cron/lock";
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { runNewsIngestionPipeline } from "@/lib/news/rss-ingester";
@@ -71,8 +72,12 @@ async function handle(req: NextRequest) {
       if (typeof body?.category === "string") targetCategory = body.category.slice(0, 40);
     }
 
-    const res = await runNewsIngestionPipeline(targetCategory);
     const triggeredBy = isCron ? "cron" : "admin";
+    // Exact-once între replici: o rulare concurentă (cron + admin, sau două
+    // declanșări) ar dubla apelurile Gemini — a doua iese cu 200 skipped.
+    const locked = await withAdvisoryLock(cronLockKey("news-pipeline"), () => runNewsIngestionPipeline(targetCategory));
+    if (!locked.acquired) return cronSkippedResponse("news-pipeline");
+    const res = locked.value;
 
     if (res.reason === "ai_not_configured") {
       // Vizibil în logurile cron-worker (FAIL status=503) până se setează cheia + modelul.

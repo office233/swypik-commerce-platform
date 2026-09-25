@@ -21,6 +21,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { tick } from "@/lib/dispatch/engine";
 import { logger } from "@/lib/logger";
+import { withCronLock } from "@/lib/cron/lock";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,13 +43,19 @@ async function handle(req: Request) {
   if (!authorizeCronRequest(req)) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
-  try {
-    const result = await tick();
-    return NextResponse.json({ success: true, ...result });
-  } catch (err) {
-    logger.error({ err }, "[cron/dispatch-tick] failed");
-    return NextResponse.json({ success: false, error: "tick_failed" }, { status: 500 });
-  }
+  // Singleton global: dispatch-worker poate rula pe mai multe VM-uri (sau
+  // cron-worker + dispatch-worker simultan) — un singur tick avansează valurile
+  // la un moment dat, restul primesc 200 skipped. Fără audit în cron_runs
+  // (un tick la 10 s ar umple tabela).
+  return withCronLock("dispatch-tick", async () => {
+    try {
+      const result = await tick();
+      return NextResponse.json({ success: true, ...result });
+    } catch (err) {
+      logger.error({ err }, "[cron/dispatch-tick] failed");
+      return NextResponse.json({ success: false, error: "tick_failed" }, { status: 500 });
+    }
+  });
 }
 
 export async function GET(req: Request) {

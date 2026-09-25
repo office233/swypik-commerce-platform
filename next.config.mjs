@@ -1,4 +1,6 @@
 import createNextIntlPlugin from "next-intl/plugin";
+import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
 const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
 
@@ -65,9 +67,36 @@ const cspReportOnly = `
 `.replace(/\s{2,}/g, " ").trim();
 
 
+// ─── Replici web identice, fără stare (docs/infra/stateless-checklist.md) ───
+// 1) BUILD_ID determinist = commitul: toate replicile construite din același
+//    commit servesc aceleași URL-uri /_next/static/<buildId>/…, deci un client
+//    încărcat de replica A găsește chunk-urile și pe replica B. Fără BUILD_COMMIT
+//    (dev/CI local) Next generează un id aleator, ca înainte.
+//    Hash-ul variabilelor coapte în bundle (NEXT_PUBLIC_* / FEATURE_*) intră în
+//    id: același commit reconstruit cu alte flag-uri (`deploy.sh --flags`) are
+//    alte chunk-uri, deci trebuie alt id (și alt prefix în cache-ul partajat).
+const BUILD_COMMIT = (process.env.BUILD_COMMIT || "").trim();
+const bakedEnv = Object.keys(process.env)
+  .filter((k) => k.startsWith("NEXT_PUBLIC_") || k.startsWith("FEATURE_"))
+  .sort()
+  .map((k) => `${k}=${process.env[k]}`)
+  .join(";");
+const DETERMINISTIC_BUILD_ID = /^[0-9a-zA-Z._-]{7,64}$/.test(BUILD_COMMIT) && BUILD_COMMIT !== "unknown"
+  ? `${BUILD_COMMIT.slice(0, 40)}-${createHash("sha256").update(bakedEnv).digest("hex").slice(0, 8)}`
+  : null;
+// 2) Cache-ul Next (ISR, unstable_cache, fetch cache, revalidatePath/Tag)
+//    partajat prin Redis; memoria locală a lui Next e oprită (cacheMaxMemorySize 0)
+//    ca o replică să nu servească o intrare invalidată de pe altă replică.
+//    Fallback grațios pe memorie când Redis lipsește (lib/next-cache/store.cjs).
+//    `NEXT_CACHE_HANDLER=off` revine la cache-ul implicit pe disc (o singură replică).
+const useSharedCache = !isDev && process.env.NEXT_CACHE_HANDLER !== "off";
+const CACHE_HANDLER_PATH = fileURLToPath(new URL("./lib/next-cache/redis-cache-handler.cjs", import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: process.env.NEXT_BUILD_STANDALONE === "1" ? "standalone" : undefined,
+  generateBuildId: async () => DETERMINISTIC_BUILD_ID,
+  ...(useSharedCache ? { cacheHandler: CACHE_HANDLER_PATH, cacheMaxMemorySize: 0 } : {}),
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   eslint: {

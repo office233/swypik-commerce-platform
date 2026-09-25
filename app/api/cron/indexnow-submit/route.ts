@@ -1,3 +1,4 @@
+import { withCronLock } from "@/lib/cron/lock";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "node:crypto";
@@ -44,10 +45,19 @@ async function submitBatch(key: string, keyLoc: string, urlList: string[]) {
   return { ok: res.ok, status: res.status, body: text.slice(0, 400) };
 }
 
-export async function POST(req: Request) {
+function bearer(req: Request): string | null {
   const auth = req.headers.get("authorization") || "";
-  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
-  if (!authOk(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+}
+
+/** Exact-once între replici: autentificare întâi, apoi lock (o rulare concurentă → 200 skipped). */
+export async function POST(req: Request) {
+  if (!authOk(bearer(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withCronLock("indexnow-submit", () => submitUrls(req));
+}
+
+/** Rulează doar sub lock, după autentificarea din POST. */
+async function submitUrls(req: Request): Promise<Response> {
   const key = process.env.INDEXNOW_KEY;
   if (!key) return NextResponse.json({ error: "no_key" }, { status: 500 });
   const keyLoc = `${BASE}/${key}.txt`;

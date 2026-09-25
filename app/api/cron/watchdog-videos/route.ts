@@ -7,6 +7,7 @@ import type { ProcessVideoJobPayload } from "@/lib/video/upload-session";
 import { timingSafeEqual } from "crypto";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { expireAbandonedUploads } from "@/lib/video/upload/expire";
+import { reapExhaustedJobs, trimLegacyVideoStream, videoQueueBackend, wakeVideoWorkers } from "@/lib/queue/video-jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,17 @@ async function authorize(req: Request) {
 }
 
 async function runWatchdog() {
-  // 1) Reset jobs that have been running too long back to queued so they get
-  //    picked up again; bump attempt_count so we can stop them eventually.
-  const resetRunning = await dbQuery<{ id: string }>(
+  const pgQueue = videoQueueBackend() === "postgres";
+  // 0) Coada Postgres (implicită): lease-urile expirate sunt reluate direct de
+  //    workeri la revendicare; aici doar mutăm în dead-letter joburile care și-au
+  //    epuizat încercările (lib/queue/video-jobs.ts).
+  const deadLettered = pgQueue ? await reapExhaustedJobs(STALE_RUNNING_MIN) : 0;
+  const legacyStreamTrimmed = pgQueue ? await trimLegacyVideoStream() : 0;
+
+  // 1) [doar coada Redis veche] Reset jobs that have been running too long back
+  //    to queued so they get picked up again; bump attempt_count so we can stop
+  //    them eventually. Cu lease-uri, un worker viu nu e „furat” niciodată.
+  const resetRunning = pgQueue ? { rows: [] as { id: string }[], rowCount: 0 } : await dbQuery<{ id: string }>(
     `UPDATE video_processing_jobs
         SET status = 'queued',
             attempt_count = COALESCE(attempt_count, 0) + 1,
@@ -76,7 +85,9 @@ async function runWatchdog() {
 
   let reenqueued = 0;
   let reenqueueFailed = 0;
-  for (const row of stale.rows) {
+  // Coada Postgres: rândurile 'queued' SUNT coada — un singur semnal de trezire ajunge.
+  if (pgQueue && stale.rows.length > 0 && (await wakeVideoWorkers("watchdog"))) reenqueued = stale.rows.length;
+  for (const row of pgQueue ? [] : stale.rows) {
     const payload = row.payload;
     if (!payload || typeof payload !== "object" || !payload.video_id) {
       reenqueueFailed += 1;
@@ -135,6 +146,9 @@ async function runWatchdog() {
   const expiredUploads = await expireAbandonedUploads();
 
   return {
+    queueBackend: pgQueue ? "postgres" : "stream",
+    deadLettered,
+    legacyStreamTrimmed,
     resetRunning: resetRunning.rowCount ?? resetRunning.rows.length,
     failedExceeded: failedExceeded.rowCount ?? failedExceeded.rows.length,
     candidatesReenqueue: stale.rows.length,

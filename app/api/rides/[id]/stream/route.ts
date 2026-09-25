@@ -8,15 +8,15 @@
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
-import { createSubscriber } from "@/lib/redis";
+import { createSseResponse } from "@/lib/realtime/sse";
+import { realtimeChannels } from "@/lib/realtime";
 import { loadRide, resolveRole } from "@/lib/rides/service";
-import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -34,81 +34,25 @@ export async function GET(
   const role = await resolveRole(ride, session.userId, Boolean(authUser?.isAdmin));
   if (!role) return new Response("Forbidden", { status: 403 });
 
-  const channel = ride.job_id ? `dispatch:job:${ride.job_id}` : null;
-  const encoder = new TextEncoder();
-  const subscriber = channel ? createSubscriber() : null;
-
-  let heartbeat: ReturnType<typeof setInterval> | null = null;
-  let closed = false;
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      const safeEnqueue = (chunk: string) => {
-        if (closed) return;
-        try {
-          controller.enqueue(encoder.encode(chunk));
-        } catch (err) {
-          // controller închis — marcăm stream-ul ca oprit ca să nu mai încercăm
-          // (evită bucle de enqueue pe controller mort). Nu logăm (zgomot).
-          closed = true;
-        }
-      };
-
-      if (subscriber && channel) {
-        subscriber.on("message", (chan: string, message: string) => {
-          if (chan !== channel) return;
-          safeEnqueue(`data: ${message}\n\n`);
-        });
-        subscriber.on("error", (err) => {
-          logger.error({ err: err instanceof Error ? err.message : err }, "[rides/stream] subscriber error:");
-        });
-        try {
-          await subscriber.subscribe(channel);
-        } catch (err) {
-          logger.error({ err: err instanceof Error ? err.message : err }, "[rides/stream] subscribe failed:");
-        }
-      }
-
-      // Snapshot inițial: status cursă + poziția curentă a șoferului.
-      try {
-        const fresh = await loadRide(id);
-        let driverPos: { lat: number | null; lng: number | null } | null = null;
-        if (fresh?.driver_id) {
-          const { rows } = await dbQuery<{ current_lat: number | null; current_lng: number | null }>(
-            `SELECT current_lat, current_lng FROM couriers WHERE id = $1`,
-            [fresh.driver_id],
-          );
-          if (rows[0]?.current_lat != null) {
-            driverPos = { lat: rows[0].current_lat, lng: rows[0].current_lng };
-          }
-        }
-        safeEnqueue(
-          `data: ${JSON.stringify({
-            type: "snapshot",
-            status: fresh?.status,
-            driver_id: fresh?.driver_id,
-            driver_position: driverPos,
-          })}\n\n`,
+  return createSseResponse({
+    logTag: "rides/stream",
+    channels: ride.job_id ? [realtimeChannels.dispatchJob(ride.job_id)] : [],
+    signal: req.signal,
+    // Snapshot inițial: status cursă + poziția curentă a șoferului (din DB —
+    // sursa de adevăr, deci corect indiferent pe ce replică se reconectează clientul).
+    onOpen: async (send) => {
+      const fresh = await loadRide(id);
+      let driverPos: { lat: number | null; lng: number | null } | null = null;
+      if (fresh?.driver_id) {
+        const { rows } = await dbQuery<{ current_lat: number | null; current_lng: number | null }>(
+          `SELECT current_lat, current_lng FROM couriers WHERE id = $1`,
+          [fresh.driver_id],
         );
-      } catch {
-        // best-effort
+        if (rows[0]?.current_lat != null) {
+          driverPos = { lat: rows[0].current_lat, lng: rows[0].current_lng };
+        }
       }
-
-      heartbeat = setInterval(() => safeEnqueue(`: ping\n\n`), 25_000);
-    },
-    cancel() {
-      closed = true;
-      if (heartbeat) clearInterval(heartbeat);
-      subscriber?.quit().catch(() => undefined);
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
+      send({ type: "snapshot", status: fresh?.status, driver_id: fresh?.driver_id, driver_position: driverPos });
     },
   });
 }

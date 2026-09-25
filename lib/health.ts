@@ -1,5 +1,6 @@
 import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
 import { dbQuery } from "@/lib/db";
+import { videoQueueBackend } from "@/lib/queue/video-jobs";
 
 export type HealthStatus = "ok" | "degraded" | "error";
 
@@ -105,6 +106,8 @@ export async function checkR2(): Promise<HealthResult> {
 }
 
 export async function checkQueue(): Promise<HealthResult> {
+  // Coada video implicită e în Postgres (lib/queue/video-jobs.ts).
+  if (videoQueueBackend() === "postgres") return (await import("@/lib/queue/video-queue-health")).checkPgQueue();
   return _checkQueue();
 }
 

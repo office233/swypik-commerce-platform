@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { dbQuery, dbQueryLong } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { withCronLock } from "@/lib/cron/lock";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,11 @@ async function handle(request: NextRequest) {
   if (!authorizeCronRequest(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  // Exact-once între replici: o a doua declanșare concurentă iese imediat (200 skipped).
+  return withCronLock("refresh-rank", refreshRank);
+}
 
+async function refreshRank(): Promise<Response> {
   const startedAt = Date.now();
   try {
     // Try CONCURRENTLY first (zero downtime), fallback to plain REFRESH if not possible.

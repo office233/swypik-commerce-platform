@@ -21,6 +21,7 @@ import { NextResponse } from "next/server";
 import { demoteInactiveFoundingDrivers } from "@/lib/drivers/tiers";
 import { privatizeExpiredMovieTitles } from "@/lib/movies/visibility";
 import { logger } from "@/lib/logger";
+import { withCronLock } from "@/lib/cron/lock";
 import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,11 @@ async function handle(req: Request) {
     if (!got || got.length !== secret.length || !timingSafeEqual(Buffer.from(got), Buffer.from(secret))) {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
+    // Exact-once între replici: o a doua declanșare concurentă iese imediat (200 skipped).
+    return withCronLock("daily-maintenance", () => runDailyMaintenance(secret));
+}
 
+async function runDailyMaintenance(secret: string): Promise<Response> {
     const results: Record<string, unknown> = {};
 
     // 1. Job istoric, inline.

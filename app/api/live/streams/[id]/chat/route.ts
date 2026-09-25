@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { isUuid } from "@/lib/validation/uuid";
 import { LiveChatMessageSchema, parseBody } from "@/lib/validation/schemas";
+import { listRecentChat, liveChatSseResponse, parseLastEventId, postLiveChatMessage } from "@/lib/live/chat-stream";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-// Numele autorului (înainte chatul afișa literal „user” — audit live §2.8).
-type ChatRow = { id: number; user_id: string; message: string; created_at: string; username: string | null; display_name: string | null };
-const CHAT_COLUMNS = "m.id, m.user_id, m.message, m.created_at, u.username, u.display_name";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,16 +26,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const rawBody = await req.json().catch(() => null);
   const parsedBody = parseBody(LiveChatMessageSchema, rawBody);
   if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
-  const message = parsedBody.data.message;
-  const { rows } = await dbQuery<{ id: number; created_at: string }>(
-    `INSERT INTO live_chat_messages (stream_id, user_id, message)
-     SELECT id, $2, $3 FROM live_streams WHERE id = $1 AND status = 'live'
-     RETURNING id, created_at`,
-    [id, session.userId, message],
-  );
+  const row = await postLiveChatMessage(id, session.userId, parsedBody.data.message);
   // Stream inexistent sau care nu e live: 404 (înainte: FK error → 500).
-  if (!rows[0]) return NextResponse.json({ error: "stream_not_live" }, { status: 404 });
-  return NextResponse.json({ id: rows[0].id, created_at: rows[0].created_at });
+  if (!row) return NextResponse.json({ error: "stream_not_live" }, { status: 404 });
+  return NextResponse.json({ id: row.id, created_at: row.created_at });
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -47,60 +37,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!isUuid(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   const url = new URL(req.url);
   const accept = req.headers.get("accept") || "";
-  // SSE long-poll mode
+  // SSE: realtime prin Redis pub/sub (orice replică) + catch-up din DB.
   if (accept.includes("text/event-stream")) {
-    const lastEventId = req.headers.get("last-event-id") || url.searchParams.get("lastEventId");
-    const encoder = new TextEncoder();
-    const streamId = id;
-    const parsedLastId = lastEventId ? Number(lastEventId) : 0;
-    let lastId = Number.isSafeInteger(parsedLastId) && parsedLastId > 0 ? parsedLastId : 0;
-    let closed = false;
-    const stream = new ReadableStream({
-      async start(controller) {
-        controller.enqueue(encoder.encode(":ok\n\n"));
-        const tick = async () => {
-          if (closed) return;
-          try {
-            const { rows } = await dbQuery<ChatRow>(
-              `SELECT ${CHAT_COLUMNS} FROM live_chat_messages m
-                 LEFT JOIN users u ON u.id::text = m.user_id
-                WHERE m.stream_id = $1 AND m.id > $2 ORDER BY m.id ASC LIMIT 100`,
-              [streamId, lastId],
-            );
-            for (const r of rows) {
-              lastId = r.id;
-              const data = JSON.stringify(r);
-              controller.enqueue(encoder.encode(`id: ${r.id}\nevent: chat\ndata: ${data}\n\n`));
-            }
-          } catch (e) {
-            // ignore
-          }
-        };
-        const interval = setInterval(tick, 1500);
-        await tick();
-        req.signal.addEventListener("abort", () => {
-          closed = true;
-          clearInterval(interval);
-          try { controller.close(); } catch {}
-        });
-      },
-    });
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
-        "X-Accel-Buffering": "no",
-      },
-    });
+    const lastEventId = parseLastEventId(req.headers.get("last-event-id") || url.searchParams.get("lastEventId"));
+    return liveChatSseResponse(id, lastEventId, req.signal);
   }
   // Plain JSON list (recent)
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 200);
-  const { rows } = await dbQuery<ChatRow>(
-    `SELECT ${CHAT_COLUMNS} FROM live_chat_messages m
-       LEFT JOIN users u ON u.id::text = m.user_id
-      WHERE m.stream_id = $1 ORDER BY m.id DESC LIMIT $2`,
-    [id, limit],
-  );
-  return NextResponse.json({ items: rows.reverse() });
+  return NextResponse.json({ items: await listRecentChat(id, limit) });
 }

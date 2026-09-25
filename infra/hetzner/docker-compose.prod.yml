@@ -65,6 +65,12 @@ services:
 
         # Build Next.js in standalone mode for deploy images only.
         ENV NEXT_BUILD_STANDALONE=1
+        # BUILD_COMMIT la BUILD: next.config.mjs derivă din el BUILD_ID-ul
+        # determinist (commit + hash flag-uri) — toate replicile din aceeași
+        # imagine servesc aceleași /_next/static/<buildId>. Construiește imaginea
+        # O SINGURĂ DATĂ și rulează aceeași imagine pe toate VM-urile.
+        ARG BUILD_COMMIT=unknown
+        ENV BUILD_COMMIT=$BUILD_COMMIT
         # NEXT_PUBLIC_* se inlineaza in bundle la BUILD, nu la runtime —
         # fara ARG aici cheia Stripe ajunge "" si checkout-ul crapa.
         ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -150,12 +156,18 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
+      # /api/ready: DB + Redis (partajate) și replica nu e în oprire. Mai ieftin
+      # decât /api/health (care verifică și R2 + email) — potrivit la 30 s × N replici.
       # nosemgrep: trailofbits.generic.wget-unencrypted-url.wget-unencrypted-url - container-local healthcheck over loopback.
-      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:3000/api/health"]
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:3000/api/ready"]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 90s
+    # SIGTERM → Next închide serverul și așteaptă cererile în curs; stream-urile
+    # SSE sunt închise imediat cu `event: reconnect` (lib/runtime/shutdown.ts),
+    # clienții se reconectează la altă replică. 30 s acoperă cererile lungi normale.
+    stop_grace_period: 30s
     mem_limit: 2g
     cpus: 1.5
     security_opt:
@@ -301,7 +313,16 @@ services:
         CMD ["python", "-m", "video_worker.main"]
     env_file:
       - .env.production
+    # Coada = tabela video_processing_jobs (Postgres, FOR UPDATE SKIP LOCKED +
+    # lease/heartbeat). Workerii sunt „competing consumers” identici: scalează
+    # cu `--scale video-worker=N` sau pornește-i pe alt host — au nevoie doar de
+    # DATABASE_URL + credențiale S3/R2 (Redis doar pentru trezire, opțional).
+    # SIGTERM în timpul unui job → ffmpeg oprit, jobul eliberat înapoi în coadă
+    # (VIDEO_SHUTDOWN_MODE=release) — 30 s ajung. Cu VIDEO_SHUTDOWN_MODE=finish
+    # stop_grace_period trebuie să depășească FFMPEG_TIMEOUT_SECONDS.
+    stop_grace_period: 30s
     volumes:
+      # Doar scratch (sursa + randările în lucru); nimic durabil — rezultatele merg în R2.
       - /tmp/video-processing:/tmp/video-processing
     depends_on:
       redis:
@@ -309,9 +330,9 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test:
-        - CMD-SHELL
-        - python -c 'import os,redis; redis.from_url(os.environ["REDIS_URL"]).ping()' || exit 1
+      # Fișierul e atins la fiecare iterație a buclei și la fiecare heartbeat de
+      # lease (≤ 40 s în timpul unui transcode lung).
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(cut -d. -f1 /tmp/video-worker-heartbeat 2>/dev/null || echo 0) )) -lt 180 || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -354,6 +375,33 @@ services:
       - CHOWN
       - SETUID
       - SETGID
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
+  # 6b. dispatch-worker — tick-ul de dispecerat la 10 s (Go/Food)
+  # ──────────────────────────────────────────────
+  # Înlocuiește serviciul systemd `swypik-dispatch` (activează cu
+  # `--profile dispatch`, apoi `systemctl disable --now swypik-dispatch`).
+  # Rularea dublă e inofensivă: /api/cron/dispatch-tick ia un advisory lock
+  # Postgres, deci un singur tick avansează valurile la un moment dat.
+  dispatch-worker:
+    profiles: [dispatch]
+    image: node:20.19.0-alpine
+    command: ["node", "/app/dispatch-worker.mjs"]
+    env_file:
+      - .env.production
+    environment:
+      DISPATCH_TICK_URL: ${DISPATCH_TICK_URL:-http://web-next:3000/api/cron/dispatch-tick}
+    volumes:
+      - ../../scripts/dispatch-worker.mjs:/app/dispatch-worker.mjs:ro
+    depends_on:
+      web-next:
+        condition: service_healthy
+    user: "node"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
 
   # ──────────────────────────────────────────────

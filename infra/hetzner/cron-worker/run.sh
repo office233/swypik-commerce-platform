@@ -13,7 +13,12 @@ echo "🕐 Swypik cron-worker started (pid=$$)"
 
 HEARTBEAT=/tmp/cron-heartbeat
 LASTOK_PREFIX=/tmp/cron-last-success
-WEB=http://web-next:3000
+# Orice replică web poate executa jobul: fiecare rută de cron ia un advisory
+# lock în Postgres (lib/cron/lock.ts), deci un al doilea cron-worker pornit din
+# greșeală (sau un retry) produce doar „200 skipped”, nu dublă execuție.
+# În topologia cu mai multe VM-uri, CRON_TARGET_URL = URL-ul intern
+# load-balansat al replicilor (implicit serviciul compose local).
+WEB="${CRON_TARGET_URL:-http://web-next:3000}"
 
 run_job() {
   job="$1"
