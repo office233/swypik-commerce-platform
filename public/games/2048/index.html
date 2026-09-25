@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -110,11 +110,11 @@
     <div class="title">2048</div>
     <div class="scores">
       <div class="score-box">
-        <div class="score-title">SCOR</div>
+        <div class="score-title" data-str="score">Score</div>
         <div class="score-val" id="score">0</div>
       </div>
       <div class="score-box">
-        <div class="score-title">RECORD</div>
+        <div class="score-title" data-str="best">Best</div>
         <div class="score-val" id="best">0</div>
       </div>
     </div>
@@ -122,18 +122,33 @@
 
   <div class="grid-container" id="grid">
     <div class="game-over-overlay" id="overlay">
-      <div class="game-over-title">JOC TERMINAT!</div>
-      <p style="color:#94a3b8; margin-bottom: 16px;">Ai acumulat XP și SWYP Coins!</p>
-      <button class="btn" onclick="initGame()">Joacă din nou</button>
+      <div class="game-over-title" data-str="gameOver">Game over</div>
+      <button class="btn" onclick="initGame()" data-str="playAgain">Play again</button>
     </div>
   </div>
 
   <div class="controls">
-    <button class="btn" onclick="initGame()">Restart</button>
-    <div style="font-size: 12px; color: #94a3b8; align-self: center;">Swipe sau Tastele Săgeți</div>
+    <button class="btn" onclick="initGame()" data-str="restart">Restart</button>
+    <div style="font-size: 12px; color: #94a3b8; align-self: center;" data-str="controls">Swipe or arrow keys</div>
   </div>
 
   <script>
+    // Swypik bridge: textele vin de la pagina-părinte (SWYPIK_GAME_STRINGS, traduse),
+    // iar fiecare (re)start anunță SWYPIK_GAME_START ca să primească o sesiune nouă de scor.
+    const GAME_ID = 'game_2048';
+    function post(msg) {
+      if (window.parent && window.parent !== window) window.parent.postMessage(msg, window.location.origin);
+    }
+    window.addEventListener("message", e => {
+      if (e.origin !== window.location.origin) return;
+      const d = e.data;
+      if (!d || d.type !== 'SWYPIK_GAME_STRINGS' || !d.strings || typeof d.strings !== 'object') return;
+      document.querySelectorAll('[data-str]').forEach(el => {
+        const v = d.strings[el.getAttribute('data-str')];
+        if (typeof v === 'string') el.textContent = v;
+      });
+    });
+
     let board = [];
     let score = 0;
     let best = localStorage.getItem("swypik_2048_best") || 0;
@@ -149,6 +164,7 @@
       spawnRandom();
       spawnRandom();
       render();
+      post({ type: 'SWYPIK_GAME_START', gameId: GAME_ID });
     }
 
     function spawnRandom() {
@@ -235,16 +251,12 @@
         render();
 
         // Notificare live către containerul părinte Swypik
-        if(window.parent) {
-          window.parent.postMessage({ type: 'SWYPIK_SCORE_UPDATE', gameId: 'game_2048', score }, window.location.origin);
-        }
+        post({ type: 'SWYPIK_SCORE_UPDATE', gameId: GAME_ID, score });
 
         if(checkGameOver()) {
           document.getElementById("overlay").style.display = "flex";
           const durationMs = Date.now() - startTime;
-          if(window.parent) {
-            window.parent.postMessage({ type: 'SWYPIK_GAME_OVER', gameId: 'game_2048', score, durationMs }, window.location.origin);
-          }
+          post({ type: 'SWYPIK_GAME_OVER', gameId: GAME_ID, score, durationMs });
         }
       }
     }
