@@ -1,42 +1,16 @@
 /**
- * Cloud Storage Upload Service
- * Uses @aws-sdk/client-s3 for S3-compatible stores (Cloudflare R2, AWS S3, MinIO).
- *
- * Required env vars:
- *   S3_ENDPOINT      — e.g. https://xxx.r2.cloudflarestorage.com
- *   S3_BUCKET        — e.g. swypik-media
- *   S3_ACCESS_KEY    — access key ID
- *   S3_SECRET_KEY    — secret access key
- *   S3_PUBLIC_URL    — public CDN prefix, e.g. https://cdn.swypik.com
+ * Upload server-side de imagini mici (avatar, poze produs, dovezi) în storage-ul
+ * S3-compatibil (MinIO local, R2 în producție). Configurația: `lib/storage/config.ts`.
+ * Totul în memorie (Buffer) — nimic pe discul replicii web.
  */
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import crypto from "crypto";
+import { isStorageConfigured as storageConfigured, mediaPublicUrl } from "./config";
+import { getS3Client, getStorageBucket } from "./s3-client";
 
-let _client: S3Client | null = null;
-
-function getS3Client(): S3Client | null {
-  if (_client) return _client;
-
-  const endpoint = firstEnv("S3_ENDPOINT", "S3_ENDPOINT_URL", "R2_ENDPOINT", "R2_ENDPOINT_URL");
-  const accessKeyId = firstEnv("S3_ACCESS_KEY", "S3_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID");
-  const secretAccessKey = firstEnv("S3_SECRET_KEY", "S3_SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY");
-
-  if (!endpoint || !accessKeyId || !secretAccessKey) {
-    return null;
-  }
-
-  _client = new S3Client({
-    region: "auto",
-    endpoint,
-    credentials: { accessKeyId, secretAccessKey },
-    // MinIO și majoritatea store-urilor self-hosted nu suportă virtual-host
-    // style (bucket.host). R2/S3 acceptă și path style, deci e sigur global.
-    forcePathStyle: true,
-  });
-
-  return _client;
-}
+/** Imaginile au nume unic (UUID) → imutabile, cache lung pe CDN și în browser. */
+export const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
@@ -132,14 +106,7 @@ export async function uploadFile(
   }
 
   const client = getS3Client();
-  if (!client) {
-    throw new Error("S3 storage is not configured. Set S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY.");
-  }
-
-  const bucket = firstEnv("S3_BUCKET", "S3_MEDIA_BUCKET", "R2_BUCKET");
-  if (!bucket) {
-    throw new Error("S3_BUCKET is not configured.");
-  }
+  const bucket = getStorageBucket();
 
   // Generate unique filename. Default prefix: products/YYYY/MM. Override via options.keyPrefix.
   const now = new Date();
@@ -155,34 +122,16 @@ export async function uploadFile(
       Key: key,
       Body: file,
       ContentType: mimeType,
-      CacheControl: "public, max-age=31536000, immutable",
+      CacheControl: IMMUTABLE_CACHE_CONTROL,
     })
   );
 
-  const publicBase =
-    firstEnv("S3_PUBLIC_URL", "S3_PUBLIC_BASE_URL", "R2_PUBLIC_URL", "R2_PUBLIC_BASE_URL")?.replace(/\/$/, "") ||
-    `${firstEnv("S3_ENDPOINT", "S3_ENDPOINT_URL", "R2_ENDPOINT", "R2_ENDPOINT_URL")}/${bucket}`;
-  const url = `${publicBase}/${key}`;
-
-  return { url, key, size: file.length };
+  return { url: mediaPublicUrl(key), key, size: file.length };
 }
 
 /**
  * Check if storage is configured (useful for UI to show/hide upload buttons).
  */
 export function isStorageConfigured(): boolean {
-  return Boolean(
-    firstEnv("S3_ENDPOINT", "S3_ENDPOINT_URL", "R2_ENDPOINT", "R2_ENDPOINT_URL") &&
-    firstEnv("S3_ACCESS_KEY", "S3_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID") &&
-    firstEnv("S3_SECRET_KEY", "S3_SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY") &&
-    firstEnv("S3_BUCKET", "S3_MEDIA_BUCKET", "R2_BUCKET")
-  );
-}
-
-function firstEnv(...keys: string[]): string {
-  for (const key of keys) {
-    const value = process.env[key]?.trim();
-    if (value) return value;
-  }
-  return "";
+  return storageConfigured();
 }

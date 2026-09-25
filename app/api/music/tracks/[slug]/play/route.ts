@@ -11,6 +11,8 @@ import { MUSIC_STREAM_TOKEN_TTL_S } from "@/lib/music/config";
 import { signStreamToken } from "@/lib/media/stream-token";
 import { getStreamSecret } from "@/lib/media/stream-secret";
 import { MUSIC_STREAM_FILE, MUSIC_STREAM_ROUTE_PREFIX } from "@/lib/media/stream-path";
+import { isServerMediaProxyAllowed, signedMediaUrl } from "@/lib/media/signed-media";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +46,17 @@ export const GET = withErrorHandling(async function GET(req: Request, { params }
     }
 
     const expiresAt = Date.now() + MUSIC_STREAM_TOKEN_TTL_S * 1000;
-    const token = signStreamToken({ userId: user.userId ?? "admin", scope: "music", mediaId: track.id, expiresAt }, getStreamSecret());
+    const subject = user.userId ?? "admin";
+    // Producție: URL semnat pe CDN (Worker + R2); token-ul e criptat, deci cheia
+    // reală (basename aleator) nu ajunge la client.
+    const signed = signedMediaUrl({ key: track.object_key, scope: "object", expiresAtMs: expiresAt, userId: subject, displayName: MUSIC_STREAM_FILE });
+    if (signed) return NextResponse.json({ url: signed, expiresAt });
+    if (!isServerMediaProxyAllowed()) {
+        logger.error({ trackId: track.id }, "[music] private media signing unavailable (MEDIA_SIGNING_SECRET)");
+        return NextResponse.json({ error: "media_unavailable" }, { status: 503 });
+    }
+    // Dezvoltare (MinIO local, fără Worker): proxy-ul cu token HMAC din aplicație.
+    const token = signStreamToken({ userId: subject, scope: "music", mediaId: track.id, expiresAt }, getStreamSecret());
     // Segment constant: numele real al fișierului nu pleacă niciodată la client.
     const url = `${MUSIC_STREAM_ROUTE_PREFIX}/${token}/${MUSIC_STREAM_FILE}`;
     return NextResponse.json({ url, expiresAt });

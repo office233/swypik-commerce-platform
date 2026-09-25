@@ -8,7 +8,7 @@
  * Env required:
  *   DATABASE_URL
  *   JAMENDO_CLIENT_ID
- *   R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL
+ *   R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, MEDIA_PUBLIC_BASE_URL (sau R2_PUBLIC_URL)
  */
 
 import { Pool } from "pg";
@@ -225,8 +225,8 @@ async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const s3 = getS3();
   const bucket = process.env.R2_BUCKET || process.env.S3_BUCKET;
-  const publicBase = process.env.R2_PUBLIC_URL || process.env.S3_PUBLIC_URL;
-  if (!bucket || !publicBase) throw new Error("R2_BUCKET / R2_PUBLIC_URL missing");
+  const publicBase = process.env.MEDIA_PUBLIC_BASE_URL || process.env.R2_PUBLIC_URL || process.env.S3_PUBLIC_URL;
+  if (!bucket || !publicBase) throw new Error("R2_BUCKET / MEDIA_PUBLIC_BASE_URL missing");
 
   const stats = { fetched: 0, dbWritten: 0, audioUploaded: 0, audioSkipped: 0, imageUploaded: 0, skipped: 0 };
   let offset = 0;

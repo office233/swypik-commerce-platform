@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { autoEmbedVideo } from "@/lib/ai/auto-embed";
 import { dbQuery } from "@/lib/db";
+import { mediaPublicBaseUrl } from "@/lib/storage/config";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
 import { notifyVideoApproved, notifyVideoRejected } from "@/lib/email/creator-notifications";
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
   if (__auth instanceof NextResponse) return __auth;
 
   try {
-    const publicUrl = process.env.S3_PUBLIC_URL?.replace(/\/$/, "") || "";
+    const publicUrl = mediaPublicBaseUrl();
     const url = new URL(req.url);
     const rawLimit = Number(url.searchParams.get("limit") || 50);
     const rawOffset = Number(url.searchParams.get("offset") || 0);

@@ -4,6 +4,7 @@ import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/lib/i18n/routing";
 import { LOCALES } from "@/lib/i18n/config";
 import { APP_URL } from "@/lib/app-url";
+import { mediaCspOrigins } from "@/lib/storage/config";
 
 const ONBOARDING_PATH = "/onboarding";
 
@@ -273,6 +274,8 @@ function wantsStrictCsp(canonicalPath: string): boolean {
 }
 
 function buildStrictCsp(nonce: string): string {
+  // Originile de media din env (CDN R2, URL-uri semnate, endpoint de upload direct).
+  const media = mediaCspOrigins().map((origin) => ` ${origin}`).join("");
   return [
     "default-src 'self'",
     // strict-dynamic: scripturile cu nonce pot încărca alte scripturi (Next chunks);
@@ -281,11 +284,11 @@ function buildStrictCsp(nonce: string): string {
     `script-src 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline'`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
-    "media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com",
+    `media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com${media}`,
     // `https://*.ingest.sentry.io`: fără el, browserul blochează raportarea
     // erorilor chiar cu DSN valid, iar eșecul e tăcut. A se ține sincronizat cu
     // cele două CSP-uri din `next.config.mjs` (SENTRY_CONNECT_SRC).
-    "connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com https://*.ingest.sentry.io",
+    `connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com${media} https://api.stripe.com https://*.stripe.com https://*.ingest.sentry.io`,
     "frame-src https://js.stripe.com https://hooks.stripe.com",
     "font-src 'self' data:",
     "object-src 'none'",

@@ -1,5 +1,7 @@
-import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
+import { HeadBucketCommand } from "@aws-sdk/client-s3";
 import { dbQuery } from "@/lib/db";
+import { readStorageSettings } from "@/lib/storage/config";
+import { getS3Client } from "@/lib/storage/s3-client";
 
 export type HealthStatus = "ok" | "degraded" | "error";
 
@@ -79,24 +81,14 @@ export async function checkRedis(): Promise<HealthResult> {
 }
 
 export async function checkR2(): Promise<HealthResult> {
-  const endpoint = firstEnv("S3_ENDPOINT", "S3_ENDPOINT_URL", "R2_ENDPOINT", "R2_ENDPOINT_URL");
-  const accessKeyId = firstEnv("S3_ACCESS_KEY", "S3_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID");
-  const secretAccessKey = firstEnv("S3_SECRET_KEY", "S3_SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY");
-  const bucket = firstEnv("S3_BUCKET", "S3_MEDIA_BUCKET", "R2_BUCKET");
-
-  if (!endpoint || !accessKeyId || !secretAccessKey || !bucket) {
+  const settings = readStorageSettings();
+  if (!settings) {
     return { status: "degraded", latency_ms: 0, detail: { reason: "not_configured" } };
   }
 
   try {
-    const client = new S3Client({
-      region: firstEnv("S3_REGION", "R2_REGION", "AWS_REGION") || "auto",
-      endpoint,
-      credentials: { accessKeyId, secretAccessKey },
-      forcePathStyle: true,
-    });
     const { latency_ms } = await withLatency(() =>
-      withTimeout(client.send(new HeadBucketCommand({ Bucket: bucket })), 2_000)
+      withTimeout(getS3Client().send(new HeadBucketCommand({ Bucket: settings.bucket })), 2_000)
     );
     return { status: "ok", latency_ms, detail: { bucket_configured: true } };
   } catch (error) {
@@ -290,12 +282,4 @@ function parseReply(buffer: string, index: number): { value: unknown; next: numb
 
 function redisCommand(parts: string[]): string {
   return `*${parts.length}\r\n${parts.map((part) => `$${Buffer.byteLength(part)}\r\n${part}\r\n`).join("")}`;
-}
-
-function firstEnv(...keys: string[]): string {
-  for (const key of keys) {
-    const value = process.env[key]?.trim();
-    if (value) return value;
-  }
-  return "";
 }

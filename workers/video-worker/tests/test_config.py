@@ -80,6 +80,17 @@ def test_settings_accepts_production_s3_aliases():
     assert settings.aws_secret_access_key == "secret"
 
 
+def test_media_public_base_url_wins_over_legacy_aliases():
+    settings = Settings.from_env(
+        {
+            "MEDIA_PUBLIC_BASE_URL": "https://media.example.test/",
+            "S3_PUBLIC_URL": "https://legacy-cdn.example.test",
+        }
+    )
+
+    assert settings.public_base_url == "https://media.example.test"
+
+
 def test_settings_parses_encoder_limits_and_retries():
     settings = Settings.from_env(
         {
