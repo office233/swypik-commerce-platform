@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { checkDb, checkQueue, checkR2, checkRedis, type HealthResult } from "@/lib/health";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 import HealthRefresh from "./HealthRefresh";
+import WebVitalsCard from "./WebVitalsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function AdminHealthPage() {
         </p>
       </div>
       <HealthRefresh initial={initial} checkedAt={checkedAt} meta={meta} />
+      <WebVitalsCard />
     </div>
   );
 }
