@@ -38,6 +38,7 @@ const ZoneSchema = z.object({
   platform_commission_pct: z.number().min(0).max(100).default(20),
   courier_share_pct: z.number().min(0).max(100).default(80),
   currency: z.string().trim().length(3).toUpperCase().default("RON"),
+  max_passengers: z.number().int().min(1).max(20).nullable().optional(),
 });
 
 const ActionSchema = z.discriminatedUnion("action", [
@@ -99,14 +100,14 @@ export async function POST(req: Request) {
           `INSERT INTO pricing_zones
              (city, country, kind, vehicle_class, base_cents, per_km_cents, per_min_cents,
               min_fare_cents, booking_fee_cents, cancel_fee_cents,
-              platform_commission_pct, courier_share_pct, currency, active)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,true)
+              platform_commission_pct, courier_share_pct, currency, max_passengers, active)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true)
            RETURNING id`,
           [
             z_.city, z_.country, z_.kind, z_.vehicle_class, z_.base_cents,
             z_.per_km_cents, z_.per_min_cents, z_.min_fare_cents,
             z_.booking_fee_cents, z_.cancel_fee_cents,
-            z_.platform_commission_pct, z_.courier_share_pct, z_.currency,
+            z_.platform_commission_pct, z_.courier_share_pct, z_.currency, z_.max_passengers ?? null,
           ],
         );
         await logAdminAction({
@@ -131,7 +132,7 @@ export async function POST(req: Request) {
           action: "pricing.update_zone",
           targetType: "pricing_zone",
           targetId: data.id,
-          details: { fields: keys },
+          details: { fields: keys, values: allowed },
           req,
         });
         return NextResponse.json({ ok: true });

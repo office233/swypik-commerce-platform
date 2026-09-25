@@ -20,6 +20,7 @@ import { sendPushToUser } from "@/lib/push/send";
 import { logger } from "@/lib/logger";
 import { OFFER_TTL_SECONDS, MAX_COURIERS_PER_WAVE, WAVE_RADII_KM } from "./constants";
 import { COURIER_AVAILABLE_SQL, sweepStaleCouriers } from "./lifecycle";
+import { cancelRideAuthorization } from "@/lib/payments/mobility-stripe";
 
 // Re-exportate din lib/dispatch/constants pentru compatibilitate cu importatorii actuali.
 export { VEHICLE_SPEED_KMH } from "./constants";
@@ -384,9 +385,19 @@ export async function tick(): Promise<TickResult> {
                 );
             }
             if (job.ride_id) {
-                await dbQuery(`UPDATE rides SET status = 'cancelled' WHERE id = $1 AND driver_id IS NULL`, [
-                    job.ride_id,
-                ]);
+                // Audit go.md §2.8: anularea „no driver" nu avea cancelled_at /
+                // cancelled_by / expirarea share-link-ului, iar hold-ul pe card rămânea.
+                await dbQuery(
+                    `UPDATE rides
+                        SET status = 'cancelled', cancelled_at = now(), cancelled_by = 'system',
+                            cancel_reason = 'no_driver', cancel_fee_cents = 0,
+                            share_expires_at = now() + interval '1 hour', updated_at = now()
+                      WHERE id = $1 AND driver_id IS NULL AND status IN ('requested', 'searching')`,
+                    [job.ride_id],
+                );
+                await cancelRideAuthorization(job.ride_id).catch((err) =>
+                    logger.warn({ err, rideId: job.ride_id }, "[dispatch] release ride hold failed"),
+                );
             }
             await publishJobEvent(job.id, { type: "status", status: "no_courier" });
             result.noCourier += 1;
