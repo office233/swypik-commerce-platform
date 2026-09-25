@@ -127,3 +127,34 @@ describe("GET /api/movies/[slug]/episodes/[n]/play", () => {
     expect(body.playbackUrl).toMatch(/^\/api\/movies\/stream\//);
   });
 });
+
+describe("producție: media plătită direct de pe CDN, fără bytes prin server", () => {
+  const callPlay = () => playGET(new Request("https://swypik.test/api/movies/s/episodes/5/play"), { params: Promise.resolve({ slug: "s", n: "5" }) });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("cu MEDIA_SIGNING_SECRET → URL semnat pe CDN pentru directorul episodului, fără proxy", async () => {
+    vi.stubEnv("MEDIA_SIGNING_SECRET", "cdn-secret");
+    vi.stubEnv("MEDIA_SIGNED_BASE_URL", "https://media.example.test");
+    const res = await callPlay();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.playbackUrl).toMatch(/^https:\/\/media\.example\.test\/s\/[A-Za-z0-9_-]+\/master\.m3u8$/);
+    expect(body.playbackUrl).not.toContain("private/");
+    expect(body.videoId).toBeUndefined();
+    const token = new URL(body.playbackUrl).pathname.split("/")[2];
+    const { openMediaToken } = await import("@/lib/media/signed-media");
+    expect(openMediaToken(token, "cdn-secret")).toMatchObject({ prefix: "private/videos/hls/vid-paid/", userId: "viewer-1" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fără semnare în producție → 503, iar ruta de proxy răspunde 404", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("MEDIA_SIGNING_SECRET", "");
+    vi.stubEnv("MEDIA_SERVER_PROXY", "");
+    const res = await callPlay();
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "media_unavailable" });
+    expect((await callStream(token(), ["master.m3u8"])).status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

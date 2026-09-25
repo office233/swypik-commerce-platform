@@ -1,5 +1,8 @@
 /**
- * Proxy-ul comun Movies + Music pentru media plătită.
+ * Proxy-ul comun Movies + Music pentru media plătită — DOAR DEZVOLTARE
+ * (MinIO local, fără Worker-ul de CDN). În producție rutele de stream răspund
+ * 404 (`isServerMediaProxyAllowed`), iar media plătită se servește direct de
+ * pe CDN prin URL-uri semnate (`lib/media/signed-media.ts`).
  *
  * Clientul vede doar `/api/<vertical>/stream/<token>/<cale relativă>`; serverul
  * citește obiectul din bucket printr-un URL GET presemnat cu durată de

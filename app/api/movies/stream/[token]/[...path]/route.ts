@@ -6,6 +6,7 @@ import { verifyStreamToken } from "@/lib/media/stream-token";
 import { getStreamSecret } from "@/lib/media/stream-secret";
 import { resolveEpisodeMediaUrl, STREAM_ROUTE_PREFIX } from "@/lib/media/stream-path";
 import { proxyMediaResponse } from "@/lib/media/stream-proxy";
+import { isServerMediaProxyAllowed } from "@/lib/media/signed-media";
 import { getEpisodeById } from "@/lib/movies/repository";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,8 @@ export const dynamic = "force-dynamic";
  */
 export const GET = withErrorHandling(async function GET(req: Request, { params }: { params: Promise<{ token: string; path: string[] }> }) {
     if (!isEnabled("movies")) return frozenResponse("movies");
+    // Proxy de bytes doar în dezvoltare; în producție media vine semnată de pe CDN.
+    if (!isServerMediaProxyAllowed()) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const { token, path } = await params;
     const payload = verifyStreamToken(token, getStreamSecret());
     if (!payload || payload.scope !== "movies") return NextResponse.json({ error: "forbidden" }, { status: 403 });

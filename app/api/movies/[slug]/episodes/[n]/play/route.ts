@@ -11,6 +11,9 @@ import { MOVIES_STREAM_TOKEN_TTL_S } from "@/lib/movies/config";
 import { getStreamSecret } from "@/lib/media/stream-secret";
 import { mediaBasename, STREAM_ROUTE_PREFIX } from "@/lib/media/stream-path";
 import { isPrivateMediaUrl } from "@/lib/media/stream-proxy";
+import { isServerMediaProxyAllowed, signedMediaUrl } from "@/lib/media/signed-media";
+import { objectKeyFromAssetUrl } from "@/lib/storage/video-storage";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +25,10 @@ const ANON_STREAM_SUBJECT = "anon";
  *
  * - episod blocat pentru viewer → 402 cu prețurile (fără nimic despre media);
  * - episod gratuit, stocat public → URL-ul public direct (identic cu feed-ul);
- * - orice episod plătit (sau gratuit stocat în prefixul privat) → DOAR prin
- *   proxy-ul cu token HMAC legat de user + episod, expirabil. Răspunsul nu
- *   conține `videoId`, ca un cumpărător să nu poată deriva URL-ul permanent.
+ * - orice episod plătit (sau gratuit stocat în prefixul privat) → URL semnat pe
+ *   CDN (token criptat, legat de user + directorul episodului, expirabil; bytes
+ *   direct din R2, nu prin server). Doar în dezvoltare: proxy-ul cu token HMAC.
+ *   Răspunsul nu conține `videoId`, ca un cumpărător să nu poată deriva URL-ul permanent.
  */
 export const GET = withErrorHandling(async function GET(_req: Request, { params }: { params: Promise<{ slug: string; n: string }> }) {
     if (!isEnabled("movies")) return frozenResponse("movies");
@@ -59,6 +63,15 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
     // Token-ul trebuie să acopere redarea întregului episod (segmentele se cer pe parcurs).
     const expiresAt = Date.now() + (full.duration_ms ?? 0) + MOVIES_STREAM_TOKEN_TTL_S * 1000;
     const subject = user.userId ?? ANON_STREAM_SUBJECT;
+    // Producție: URL semnat pe CDN (Worker + R2) care acoperă directorul episodului.
+    const key = objectKeyFromAssetUrl(full.playback_url);
+    const signed = key ? signedMediaUrl({ key, scope: "directory", expiresAtMs: expiresAt, userId: subject }) : null;
+    if (signed) return NextResponse.json({ playbackUrl: signed, poster: full.thumbnail_url, expiresAt });
+    if (!isServerMediaProxyAllowed()) {
+        logger.error({ episodeId: episode.id, inBucket: key !== null }, "[movies] private media signing unavailable (MEDIA_SIGNING_SECRET / bucket URL)");
+        return NextResponse.json({ error: "media_unavailable" }, { status: 503 });
+    }
+    // Dezvoltare (MinIO local, fără Worker): proxy-ul cu token HMAC din aplicație.
     const token = signStreamToken({ userId: subject, scope: "movies", mediaId: episode.id, expiresAt }, getStreamSecret());
     return NextResponse.json({
         playbackUrl: `${STREAM_ROUTE_PREFIX}/${token}/${mediaBasename(full.playback_url)}`,
