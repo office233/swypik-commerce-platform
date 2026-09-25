@@ -6,6 +6,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { issueGamingToken, hashToken } from "@/lib/gaming/tokens";
 import { TRIVIA_ROUND_TTL_SECONDS } from "@/lib/gaming/config";
+import { xpDay } from "@/lib/gaming/level-math";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,12 @@ export async function GET() {
     const tokenHash = hashToken(token);
     await dbQuery(`UPDATE gaming_trivia_rounds SET token_hash = $1 WHERE id = $2`, [tokenHash, roundId]);
 
+    // Daily trivia: XP only for the first completed round of the (UTC) day.
+    const { rows: claimed } = await dbQuery<{ id: string }>(
+      `SELECT id FROM gaming_xp_events WHERE user_id = $1 AND action = 'trivia_daily' AND ref = $2 LIMIT 1`,
+      [userId, xpDay()],
+    );
+
     const sanitized = questions.map(({ id, category, difficulty, question, options }) => ({
       id,
       category,
@@ -60,6 +67,7 @@ export async function GET() {
       ok: true,
       roundToken: token,
       questions: sanitized,
+      xpAvailableToday: claimed.length === 0,
     });
   } catch (err) {
     logger.error({ err }, "[gaming.trivia] failed to issue round");

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -37,13 +37,27 @@
   </style>
 </head>
 <body>
-  <div class="hud" id="hud">Apasă oriunde pentru a zbura!</div>
+  <div class="hud" id="hud"></div>
   <canvas id="gameCanvas" width="360" height="560"></canvas>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const hud = document.getElementById("hud");
+
+    // Swypik bridge: textele vin de la pagina-părinte (SWYPIK_GAME_STRINGS, traduse),
+    // iar fiecare (re)start anunță SWYPIK_GAME_START ca să primească o sesiune nouă de scor.
+    const GAME_ID = 'game_flappy';
+    const STR = { score: "Score", best: "Best", gameOver: "Game over", tapToRestart: "Tap to restart", tapToStart: "Tap to start" };
+    function post(msg) {
+      if (window.parent && window.parent !== window) window.parent.postMessage(msg, window.location.origin);
+    }
+    window.addEventListener("message", e => {
+      if (e.origin !== window.location.origin) return;
+      const d = e.data;
+      if (!d || d.type !== 'SWYPIK_GAME_STRINGS' || !d.strings || typeof d.strings !== 'object') return;
+      for (const k of Object.keys(STR)) if (typeof d.strings[k] === 'string') STR[k] = d.strings[k];
+    });
 
     let bird = { x: 60, y: 250, radius: 14, velocity: 0, gravity: 0.35, jump: -6.5 };
     let pipes = [];
@@ -61,7 +75,8 @@
       frames = 0;
       startTime = Date.now();
       gameState = "PLAYING";
-      hud.innerText = "Scor: 0";
+      hud.innerText = STR.score + ": 0";
+      post({ type: 'SWYPIK_GAME_START', gameId: GAME_ID });
     }
 
     function flap() {
@@ -100,10 +115,8 @@
         if(!p.passed && p.x + 45 < bird.x) {
           p.passed = true;
           score++;
-          hud.innerText = "Scor: " + score;
-          if(window.parent) {
-            window.parent.postMessage({ type: 'SWYPIK_SCORE_UPDATE', gameId: 'game_flappy', score }, window.location.origin);
-          }
+          hud.innerText = STR.score + ": " + score;
+          post({ type: 'SWYPIK_SCORE_UPDATE', gameId: GAME_ID, score });
         }
 
         // Coliziune țevi
@@ -126,16 +139,15 @@
     }
 
     function gameOver() {
+      if (gameState !== "PLAYING") return;
       gameState = "GAMEOVER";
       if(score > highScore) {
         highScore = score;
         localStorage.setItem("swypik_flappy_high", highScore);
       }
-      hud.innerText = "Joc Terminat! Scor: " + score + " (Record: " + highScore + ")";
+      hud.innerText = STR.best + ": " + highScore;
       const durationMs = Date.now() - startTime;
-      if(window.parent) {
-        window.parent.postMessage({ type: 'SWYPIK_GAME_OVER', gameId: 'game_flappy', score, durationMs }, window.location.origin);
-      }
+      post({ type: 'SWYPIK_GAME_OVER', gameId: GAME_ID, score, durationMs });
     }
 
     function draw() {
@@ -209,20 +221,20 @@
         ctx.fillText("FLAPPY SWYP", canvas.width / 2, 220);
         ctx.fillStyle = "#f8fafc";
         ctx.font = "16px sans-serif";
-        ctx.fillText("Apasă oriunde pentru START", canvas.width / 2, 260);
+        ctx.fillText(STR.tapToStart, canvas.width / 2, 260);
       } else if(gameState === "GAMEOVER") {
         ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#ef4444";
         ctx.font = "bold 28px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("JOC TERMINAT", canvas.width / 2, 220);
+        ctx.fillText(STR.gameOver, canvas.width / 2, 220);
         ctx.fillStyle = "#f8fafc";
         ctx.font = "18px sans-serif";
-        ctx.fillText("Scor: " + score, canvas.width / 2, 260);
+        ctx.fillText(STR.score + ": " + score, canvas.width / 2, 260);
         ctx.fillStyle = "#38bdf8";
         ctx.font = "14px sans-serif";
-        ctx.fillText("Atinge ecranul pentru Restart", canvas.width / 2, 300);
+        ctx.fillText(STR.tapToRestart, canvas.width / 2, 300);
       }
 
       requestAnimationFrame(() => {

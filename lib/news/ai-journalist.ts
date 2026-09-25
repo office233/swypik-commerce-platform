@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { NEWS_CATEGORY_SLUGS, isNewsCategory } from "./categories";
+import { getNewsAiConfig, getNewsLimits } from "./config";
 
 export interface GeneratedArticle {
   title: string;
@@ -16,12 +18,6 @@ export interface GeneratedArticle {
   fact_check_notes: string;
 }
 
-const ALLOWED_CATEGORIES = ["tech-ai", "gaming", "business", "science"] as const;
-
-// Gemini generation timeout — a hung call must not stall the whole cron run.
-const GEMINI_TIMEOUT_MS = Number(process.env.NEWS_GEMINI_TIMEOUT_MS) > 0
-  ? Math.trunc(Number(process.env.NEWS_GEMINI_TIMEOUT_MS))
-  : 20_000;
 
 // Text that looks like the model was hijacked by content inside the
 // untrusted RSS block (ignore previous instructions, act as, etc).
@@ -35,7 +31,7 @@ const GeneratedArticleSchema = z.object({
   slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9-]+$/, "slug must be lowercase kebab-case"),
   summary_tldr: z.string().trim().min(20).max(1200),
   content_markdown: z.string().trim().min(200).max(20000),
-  category_slug: z.enum(ALLOWED_CATEGORIES),
+  category_slug: z.enum(NEWS_CATEGORY_SLUGS),
   tags: z.array(z.string().trim().min(1).max(40)).max(10).default([]),
   image_search_keywords: z.string().trim().max(200).default(""),
   reading_time_minutes: z.number().int().min(1).max(30).default(3),
@@ -124,16 +120,15 @@ export async function generateAutonomousNewsArticle(rawTopic: {
   url?: string;
   categoryHint?: string;
 }): Promise<GeneratedArticle | null> {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
-  const categoryHint = (ALLOWED_CATEGORIES as readonly string[]).includes(rawTopic.categoryHint || "")
-    ? (rawTopic.categoryHint as (typeof ALLOWED_CATEGORIES)[number])
-    : "tech-ai";
+  // Model din env (NEWS_GEMINI_MODEL / GEMINI_MODEL), fără default hardcodat.
+  const ai = getNewsAiConfig();
+  const categoryHint = isNewsCategory(rawTopic.categoryHint) ? rawTopic.categoryHint : NEWS_CATEGORY_SLUGS[0];
 
-  if (apiKey) {
+  if (ai) {
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
+      const genAI = new GoogleGenerativeAI(ai.apiKey);
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: ai.model,
         generationConfig: {
           responseMimeType: "application/json",
           temperature: 0.25,
@@ -169,7 +164,7 @@ REGULI STRICTE DE REDACTARE:
    - Include un citat cheie sintetizat în format blockquote: > **Concluzia analiștilor:** ...
    - Fără clișee sau texte generice. Factual, documentat, profesional.
 7. **Format Slug**: slug curat URL în română, doar litere mici, cifre și cratime (ex: 'noul-model-ai-proceseaza-video-in-timp-real').
-8. **Categorie**: Strict una din: "tech-ai", "gaming", "business", "science".
+8. **Categorie**: Strict una din: ${NEWS_CATEGORY_SLUGS.map((c) => `"${c}"`).join(", ")}.
 
 Răspunde STRICT în format JSON valid, fără text în afara JSON-ului:
 {
@@ -184,7 +179,7 @@ Răspunde STRICT în format JSON valid, fără text în afara JSON-ului:
   "is_breaking": false
 }`;
 
-      const res = await model.generateContent(prompt, { timeout: GEMINI_TIMEOUT_MS });
+      const res = await model.generateContent(prompt, { timeout: getNewsLimits().geminiTimeoutMs });
       const text = res.response.text();
       const parsedJson = JSON.parse(text);
 

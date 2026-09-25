@@ -8,8 +8,6 @@ const QUESTIONS = [
 ];
 
 let userId: string | null = "user-1";
-let roundRow: { id: string; questions: typeof QUESTIONS } | null = null;
-let xpDailyEarned = 0;
 
 vi.mock("@/lib/feature-flags", () => ({
   isEnabled: () => true,
@@ -25,25 +23,15 @@ vi.mock("@/lib/security/rate-limit", () => ({
   getClientIP: () => "127.0.0.1",
 }));
 
-vi.mock("@/lib/db", () => {
-  const dbQuery = vi.fn(async (sql: string) => {
-    if (sql.includes("UPDATE gaming_trivia_rounds") && sql.includes("used_at = now()")) {
-      if (!roundRow) return { rows: [], rowCount: 0 };
-      const row = roundRow;
-      roundRow = null; // single-use
-      return { rows: [row], rowCount: 1 };
-    }
-    if (sql.includes("UPDATE gaming_trivia_rounds SET score")) return { rows: [], rowCount: 1 };
-    if (sql.includes("INSERT INTO gaming_scores")) return { rows: [], rowCount: 1 };
-    if (sql.includes("INSERT INTO gaming_xp_daily")) return { rows: [], rowCount: 1 };
-    if (sql.includes("SELECT xp_earned FROM gaming_xp_daily")) return { rows: [{ xp_earned: xpDailyEarned }], rowCount: 1 };
-    if (sql.includes("UPDATE gaming_xp_daily SET xp_earned")) return { rows: [], rowCount: 1 };
-    if (sql.includes("INSERT INTO gaming_user_profiles")) return { rows: [], rowCount: 1 };
-    return { rows: [], rowCount: 0 };
-  });
-  return { dbQuery, withTransaction: async <T,>(fn: (q: typeof dbQuery) => Promise<T>) => fn(dbQuery) };
-});
+vi.mock("@/lib/gaming/opentdb", () => ({
+  getDailyTriviaQuestions: async () => QUESTIONS,
+}));
 
+vi.mock("@/lib/db", async () => (await import("./helpers/gaming-fake-db")).dbModule);
+
+import { fake } from "./helpers/gaming-fake-db";
+import { xpDay } from "@/lib/gaming/level-math";
+import { TRIVIA_GAME_ID } from "@/lib/gaming/config";
 import { POST } from "@/app/api/gaming/trivia/answer/route";
 import { issueGamingToken } from "@/lib/gaming/tokens";
 
@@ -57,8 +45,8 @@ function req(body: unknown): Request {
 
 beforeEach(() => {
   userId = "user-1";
-  roundRow = { id: "round-1", questions: QUESTIONS };
-  xpDailyEarned = 0;
+  fake.reset();
+  fake.rounds.push({ id: "round-1", questions: QUESTIONS });
 });
 
 describe("POST /api/gaming/trivia/answer", () => {
@@ -113,7 +101,7 @@ describe("POST /api/gaming/trivia/answer", () => {
   });
 
   it("caps earned XP at the daily limit", async () => {
-    xpDailyEarned = 295;
+    fake.daily.set(`user-1|${xpDay()}`, 295);
     const token = issueGamingToken("trivia", "user-1", "round-1", 600);
     const res = await POST(
       req({ roundToken: token, answers: [{ questionId: "q1", answer: "A" }, { questionId: "q2", answer: "B" }] }) as any,
@@ -122,5 +110,57 @@ describe("POST /api/gaming/trivia/answer", () => {
     expect(json.ok).toBe(true);
     expect(json.correctCount).toBe(2);
     expect(json.earnedXp).toBeLessThanOrEqual(5);
+  });
+
+  it("records the score against the trivia_daily system game (FK fix)", async () => {
+    const token = issueGamingToken("trivia", "user-1", "round-1", 600);
+    const res = await POST(req({ roundToken: token, answers: [{ questionId: "q1", answer: "A" }] }) as any);
+    expect(res.status).toBe(200);
+    expect(fake.scores).toHaveLength(1);
+    expect(fake.scores[0][1]).toBe(TRIVIA_GAME_ID);
+  });
+});
+
+describe("daily trivia", () => {
+  const answerAll = (roundId: string) => {
+    const token = issueGamingToken("trivia", "user-1", roundId, 600);
+    return POST(req({ roundToken: token, answers: [{ questionId: "q1", answer: "A" }, { questionId: "q2", answer: "B" }] }) as any);
+  };
+
+  it("first completed round of the day earns XP and starts the streak", async () => {
+    const json = await (await answerAll("round-1")).json();
+    expect(json.earnedXp).toBe(40); // 2 correct × 20
+    expect(json.dailyXpAlreadyClaimed).toBe(false);
+    expect(json.streakDays).toBe(1);
+    expect(fake.profiles.get("user-1")?.xp).toBe(40);
+  });
+
+  it("a replay the same day is graded but earns no XP and doesn't move the streak", async () => {
+    await answerAll("round-1");
+    fake.rounds.push({ id: "round-2", questions: QUESTIONS });
+    const json = await (await answerAll("round-2")).json();
+    expect(json.ok).toBe(true);
+    expect(json.correctCount).toBe(2);
+    expect(json.earnedXp).toBe(0);
+    expect(json.dailyXpAlreadyClaimed).toBe(true);
+    expect(json.streakDays).toBeNull();
+    expect(fake.profiles.get("user-1")?.xp).toBe(40);
+  });
+
+  it("continues the streak from yesterday", async () => {
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    fake.profiles.set("user-1", { xp: 0, level: 1, streak: 4, lastDay: yesterday });
+    const json = await (await answerAll("round-1")).json();
+    expect(json.streakDays).toBe(5);
+  });
+
+  it("GET /api/gaming/trivia reports whether today's XP is still available", async () => {
+    const { GET } = await import("@/app/api/gaming/trivia/route");
+    const before = await (await GET()).json();
+    expect(before.xpAvailableToday).toBe(true);
+    expect(JSON.stringify(before.questions)).not.toContain("correctAnswer");
+    await answerAll("round-1");
+    const after = await (await GET()).json();
+    expect(after.xpAvailableToday).toBe(false);
   });
 });

@@ -26,3 +26,16 @@ export function isGameOverMessage(data: unknown): data is GameOverMessage {
   if (typeof d.score !== "number" || !Number.isFinite(d.score)) return false;
   return true;
 }
+
+export type GameStartMessage = { type: "SWYPIK_GAME_START"; gameId: string };
+
+/** Sent by a game on every (re)start so the parent opens a fresh scoring session (audit G3). */
+export function isGameStartMessage(data: unknown): data is GameStartMessage {
+  if (!data || typeof data !== "object") return false;
+  const d = data as Record<string, unknown>;
+  return d.type === "SWYPIK_GAME_START" && typeof d.gameId === "string" && d.gameId.length > 0;
+}
+
+/** UI strings the parent sends into the game iframe (the games carry no hardcoded copy). */
+export const GAME_STRING_KEYS = ["score", "best", "gameOver", "playAgain", "restart", "tapToStart", "tapToRestart", "controls"] as const;
+export type GameStrings = Record<(typeof GAME_STRING_KEYS)[number], string>;

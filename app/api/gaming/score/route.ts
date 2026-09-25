@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAccountUserId } from "@/lib/social/session";
 import { dbQuery } from "@/lib/db";
-import { grantDailyCappedXp } from "@/lib/gaming/xp";
+import { awardXp } from "@/lib/gaming/xp";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { verifyGamingToken, hashToken } from "@/lib/gaming/tokens";
-import { getGameCap } from "@/lib/gaming/config";
+import { arcadeXp, getGameCap } from "@/lib/gaming/config";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 const ScorePayloadSchema = z.object({
   gameId: z.string().min(1).max(64),
   score: z.number().int().nonnegative(),
-  sessionToken: z.string().min(1),
+  sessionToken: z.string().min(1).max(2000),
 });
 
 /**
@@ -58,12 +58,12 @@ export async function POST(req: NextRequest) {
 
     // Atomically consume the session row (single-use).
     const tokenHash = hashToken(sessionToken);
-    const { rows: sessionRows } = await dbQuery<{ started_at: string }>(
+    const { rows: sessionRows } = await dbQuery<{ id: string; started_at: string }>(
       `UPDATE gaming_game_sessions
          SET used_at = now()
        WHERE token_hash = $1 AND user_id = $2 AND game_id = $3
          AND used_at IS NULL AND expires_at > now()
-       RETURNING started_at`,
+       RETURNING id, started_at`,
       [tokenHash, userId, gameId],
     );
     const startedRow = sessionRows[0];
@@ -88,18 +88,9 @@ export async function POST(req: NextRequest) {
       [userId, gameId, score, durationMs],
     );
 
-    // XP with a hard daily cap per user.
-    const rawXp = Math.min(100, Math.floor(score / 50) + 10);
-    const earnedXp = await grantDailyCappedXp(
-      userId,
-      rawXp,
-      `INSERT INTO gaming_user_profiles (user_id, xp_points, level)
-         VALUES ($1, $2, 1)
-         ON CONFLICT (user_id) DO UPDATE
-         SET xp_points = gaming_user_profiles.xp_points + $2,
-             level = FLOOR(SQRT((gaming_user_profiles.xp_points + $2) / 100)) + 1,
-             updated_at = now()`,
-    );
+    // XP once per session (ledger ref = session id), bounded by the daily cap.
+    const award = await awardXp(userId, "arcade_round", startedRow.id, arcadeXp(score));
+    const earnedXp = award.awarded;
 
     return NextResponse.json({
       ok: true,

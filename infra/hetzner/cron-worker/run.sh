@@ -103,6 +103,15 @@ while true; do
     # in checkout_audit_log; lipsea doar cine s-o citeasca.
     run_job checkout-health GET
   fi
+  # Every 2 hours — Swypik News: citeste feed-urile RSS active si rezuma
+  # stirile noi (2026-09-26). Idempotent: fiecare URL e revendicat o singura
+  # data (news_raw_items.url UNIQUE) + advisory lock pe rulare, deci o rulare
+  # repetata/suprapusa nu dubleaza articole. Plafoane: NEWS_MAX_ARTICLES_PER_RUN
+  # / _PER_DAY. 410 = FEATURE_NEWS oprit (SKIP); 503 = lipsesc
+  # GEMINI_API_KEY / NEWS_GEMINI_MODEL; 502 = toate feed-urile/rezumatele au esuat.
+  if [ $((TICK % 7200)) -lt 60 ]; then
+    run_job news-pipeline POST
+  fi
   # Every 4 hours
   if [ $((TICK % 14400)) -lt 60 ]; then
     run_job abandoned-cart POST

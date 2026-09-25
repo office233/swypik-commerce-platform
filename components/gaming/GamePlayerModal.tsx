@@ -1,153 +1,144 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X, Maximize2, Minimize2, RotateCcw, Trophy, Sparkles } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
+import { IconButton } from "@/components/ui/IconButton";
+import { useToast } from "@/components/ui/Toast";
+import ImmersiveSurface from "@/components/theme/ImmersiveSurface";
 import { logger } from "@/lib/logger";
-import { isSafeGameUrl, isGameOverMessage } from "@/lib/gaming/postmessage";
+import { GAME_STRING_KEYS, isGameOverMessage, isGameStartMessage, isSafeGameUrl, type GameStrings } from "@/lib/gaming/postmessage";
 
-interface GamePlayerModalProps {
-  game: {
-    id: string;
-    title: string;
-    embed_url: string;
-  } | null;
+type Game = { id: string; title: string; embed_url: string };
+
+type Props = {
+  game: Game | null;
+  /** Signed-in account: rounds are scored and earn XP. Guests just play. */
+  canEarn: boolean;
   onClose: () => void;
-  /** Called after a score submission changes the user's XP, so the
-   *  header profile widget can refresh. */
+  /** Called after a score submission changed the user's XP. */
   onScoreChanged?: () => void;
-}
+};
 
-export default function GamePlayerModal({ game, onClose, onScoreChanged }: GamePlayerModalProps) {
+/** A START within this window of an unused token reuses it (2048 posts START on load). */
+const START_DEDUPE_MS = 1500;
+
+/**
+ * Full-screen game player. Every (re)start inside the game posts
+ * SWYPIK_GAME_START, which opens a fresh signed scoring session — so replays
+ * after "game over" score too (audit G3), not just the first round.
+ */
+export default function GamePlayerModal({ game, canEarn, onClose, onScoreChanged }: Props) {
   const t = useTranslations("gaming");
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [scoreAlert, setScoreAlert] = useState<{ score: number; xp: number } | null>(null);
+  const { toast } = useToast();
   const [iframeKey, setIframeKey] = useState(0);
-  const sessionTokenRef = useRef<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const session = useRef<{ token: string | null; issuedAt: number; pending: boolean }>({ token: null, issuedAt: 0, pending: false });
 
-  // Start a fresh signed session (server-side duration measurement) every
-  // time a game is opened or restarted.
-  useEffect(() => {
-    if (!game) {
-      sessionTokenRef.current = null;
-      return;
+  const strings = useMemo(
+    () => Object.fromEntries(GAME_STRING_KEYS.map((k) => [k, t(`game.${k}`)])) as GameStrings,
+    [t],
+  );
+
+  const startSession = useCallback(async (gameId: string) => {
+    const s = session.current;
+    if (!canEarn || s.pending) return;
+    if (s.token && Date.now() - s.issuedAt < START_DEDUPE_MS) return;
+    s.pending = true;
+    try {
+      const res = await fetch("/api/gaming/session/start", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId }),
+      });
+      const d = await res.json();
+      session.current = { token: d.ok ? d.sessionToken : null, issuedAt: Date.now(), pending: false };
+    } catch (err) {
+      logger.warn({ err }, "[gaming.modal] session start failed");
+      session.current = { token: null, issuedAt: 0, pending: false };
     }
-    sessionTokenRef.current = null;
-    fetch("/api/gaming/session/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ gameId: game.id }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.ok) sessionTokenRef.current = d.sessionToken;
-      })
-      .catch((e) => logger.warn({ err: e }, "[gaming.modal] session start failed"));
-  }, [game, iframeKey]);
+  }, [canEarn]);
+
+  const submitScore = useCallback(async (gameId: string, score: number) => {
+    const token = session.current.token;
+    session.current.token = null; // single-use server-side regardless of outcome
+    if (!token) return;
+    try {
+      const res = await fetch("/api/gaming/score", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId, score: Math.max(0, Math.floor(score)), sessionToken: token }),
+      });
+      const d = await res.json();
+      if (d.ok) {
+        toast({ title: t("modal.scoreSaved", { score: d.score, xp: d.earnedXp }), tone: "success" });
+        if (d.earnedXp > 0) onScoreChanged?.();
+      }
+    } catch (err) {
+      logger.warn({ err }, "[gaming.modal] score submit failed");
+    }
+  }, [onScoreChanged, t, toast]);
+
+  // Fresh scoring state per opened game (not per re-render of the callbacks below).
+  useEffect(() => {
+    session.current = { token: null, issuedAt: 0, pending: false };
+  }, [game?.id]);
 
   useEffect(() => {
     if (!game) return;
-
-    const handleMessage = async (e: MessageEvent) => {
-      // Only trust postMessage events from this same origin — the iframe is
-      // same-origin (served from /games/ on this domain), so a legitimate
-      // score message always carries our own origin.
-      if (e.origin !== window.location.origin) return;
-      if (!isGameOverMessage(e.data)) return;
-      if (e.data.gameId !== game.id) return;
-
-      const sessionToken = sessionTokenRef.current;
-      if (!sessionToken) return;
-
-      try {
-        const res = await fetch("/api/gaming/score", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            gameId: game.id,
-            score: Math.max(0, Math.floor(e.data.score)),
-            sessionToken,
-          }),
-        });
-        const data = await res.json();
-        if (data.ok) {
-          setScoreAlert({ score: data.score, xp: data.earnedXp });
-          setTimeout(() => setScoreAlert(null), 4000);
-          onScoreChanged?.();
-        }
-        // Token is single-use server-side regardless of outcome.
-        sessionTokenRef.current = null;
-      } catch (err) {
-        logger.warn({ err }, "[gaming.modal] score submit failed");
-      }
+    const onMessage = (e: MessageEvent) => {
+      // The iframe is same-origin (/games/…); anything else is ignored.
+      if (e.origin !== window.location.origin || e.source !== iframeRef.current?.contentWindow) return;
+      if (isGameStartMessage(e.data) && e.data.gameId === game.id) void startSession(game.id);
+      else if (isGameOverMessage(e.data) && e.data.gameId === game.id) void submitScore(game.id, e.data.score);
     };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [game, onScoreChanged]);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("message", onMessage);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [game, onClose, startSession, submitScore]);
 
   if (!game) return null;
   if (!isSafeGameUrl(game.embed_url)) {
-    logger.error({ gameId: game.id, embedUrl: game.embed_url }, "[gaming.modal] refusing to load unsafe game url");
+    logger.error({ gameId: game.id }, "[gaming.modal] refusing to load unsafe game url");
     return null;
   }
 
+  const sendStrings = () => {
+    iframeRef.current?.contentWindow?.postMessage({ type: "SWYPIK_GAME_STRINGS", strings }, window.location.origin);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4">
-      <div
-        className={`relative flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${
-          isFullscreen ? "w-screen h-screen rounded-none" : "w-full max-w-lg h-[85vh]"
-        }`}
-      >
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-950/80 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <span className="flex h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-            <h3 className="font-bold text-white text-base truncate">{game.title}</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIframeKey((k) => k + 1)}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-              title={t("modalRestart")}
-            >
-              <RotateCcw size={16} />
-            </button>
-            <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-              title={isFullscreen ? t("modalExitFullscreen") : t("modalFullscreen")}
-            >
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 transition"
-              title={t("modalClose")}
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-
-        {scoreAlert && (
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-emerald-500 text-slate-950 font-bold text-sm rounded-full shadow-lg animate-bounce">
-            <Trophy size={16} />
-            <span>{t("modalScoreSaved", { score: scoreAlert.score, xp: scoreAlert.xp })}</span>
-            <Sparkles size={16} />
-          </div>
-        )}
-
-        <div className="flex-1 w-full h-full relative bg-slate-950">
+    <div className="fixed inset-0 z-overlay" role="dialog" aria-modal="true" aria-label={game.title}>
+      <ImmersiveSurface fullscreen className="flex h-dvh flex-col">
+        <header className="flex items-center gap-2 border-b border-subtle px-gutter pb-2 pt-safe-t">
+          <h2 className="min-w-0 flex-1 truncate py-3 text-base font-semibold text-fg">{game.title}</h2>
+          <IconButton label={t("modal.restart")} onClick={() => setIframeKey((k) => k + 1)}>
+            <RotateCcw className="h-5 w-5" aria-hidden />
+          </IconButton>
+          <IconButton label={t("modal.close")} onClick={onClose}>
+            <X className="h-5 w-5" aria-hidden />
+          </IconButton>
+        </header>
+        {!canEarn && <p className="bg-warning-soft px-gutter py-2 text-center text-xs text-warning">{t("modal.guest")}</p>}
+        <div className="relative flex-1 pb-safe-b">
           <iframe
             key={iframeKey}
+            ref={iframeRef}
             src={game.embed_url}
+            onLoad={sendStrings}
             sandbox="allow-scripts allow-same-origin"
             allow="autoplay; fullscreen"
-            className="w-full h-full border-0"
+            className="h-full w-full border-0"
             title={game.title}
           />
         </div>
-      </div>
+      </ImmersiveSurface>
     </div>
   );
 }

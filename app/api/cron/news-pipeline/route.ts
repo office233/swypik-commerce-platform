@@ -68,17 +68,32 @@ async function handle(req: NextRequest) {
       targetCategory = urlCat;
     } else {
       const body = await req.json().catch(() => ({}));
-      if (body?.category) targetCategory = String(body.category).slice(0, 40);
+      if (typeof body?.category === "string") targetCategory = body.category.slice(0, 40);
     }
 
     const res = await runNewsIngestionPipeline(targetCategory);
+    const triggeredBy = isCron ? "cron" : "admin";
+
+    if (res.reason === "ai_not_configured") {
+      // Vizibil în logurile cron-worker (FAIL status=503) până se setează cheia + modelul.
+      logger.error("[news-pipeline] GEMINI_API_KEY / NEWS_GEMINI_MODEL missing — nothing ingested");
+      return NextResponse.json({ ok: false, error: "news_ai_not_configured", triggeredBy }, { status: 503 });
+    }
+    if (res.ingested === 0 && res.errors > 0) {
+      // Totul a eșuat (feed-uri sau AI) — alertă, nu un „0 articole” tăcut.
+      logger.error({ errors: res.errors, duplicates: res.duplicates }, "[news-pipeline] run produced nothing and had errors");
+      return NextResponse.json({ ok: false, error: "pipeline_all_failed", ...res, triggeredBy }, { status: 502 });
+    }
 
     return NextResponse.json({
       ok: true,
       ingested: res.ingested,
+      status: res.status,
       categories: res.categoriesProcessed,
       capped: res.capped,
-      triggeredBy: isCron ? "cron" : "admin",
+      duplicates: res.duplicates,
+      errors: res.errors,
+      triggeredBy,
     });
   } catch (err: unknown) {
     logger.error({ err }, "[news-pipeline] run failed");

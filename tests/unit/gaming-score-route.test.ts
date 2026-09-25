@@ -3,9 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 process.env.APP_ENCRYPTION_KEY = process.env.APP_ENCRYPTION_KEY || "test-secret-key-for-gaming-tests";
 
 let userId: string | null = "user-1";
-let sessionRow: { started_at: string } | null = null;
-let xpDailyEarned = 0;
-const inserted: Record<string, unknown[][]> = {};
 
 vi.mock("@/lib/feature-flags", () => ({
   isEnabled: () => true,
@@ -21,25 +18,10 @@ vi.mock("@/lib/security/rate-limit", () => ({
   getClientIP: () => "127.0.0.1",
 }));
 
-vi.mock("@/lib/db", () => {
-  const dbQuery = vi.fn(async (sql: string, params: unknown[] = []) => {
-    (inserted[sql.slice(0, 30)] ??= []).push(params);
-    if (sql.includes("UPDATE gaming_game_sessions")) {
-      if (!sessionRow) return { rows: [], rowCount: 0 };
-      const row = sessionRow;
-      sessionRow = null; // single-use
-      return { rows: [row], rowCount: 1 };
-    }
-    if (sql.includes("INSERT INTO gaming_scores")) return { rows: [], rowCount: 1 };
-    if (sql.includes("INSERT INTO gaming_xp_daily")) return { rows: [], rowCount: 1 };
-    if (sql.includes("SELECT xp_earned FROM gaming_xp_daily")) return { rows: [{ xp_earned: xpDailyEarned }], rowCount: 1 };
-    if (sql.includes("UPDATE gaming_xp_daily SET xp_earned")) return { rows: [], rowCount: 1 };
-    if (sql.includes("INSERT INTO gaming_user_profiles")) return { rows: [], rowCount: 1 };
-    return { rows: [], rowCount: 0 };
-  });
-  return { dbQuery, withTransaction: async <T,>(fn: (q: typeof dbQuery) => Promise<T>) => fn(dbQuery) };
-});
+vi.mock("@/lib/db", async () => (await import("./helpers/gaming-fake-db")).dbModule);
 
+import { fake } from "./helpers/gaming-fake-db";
+import { xpDay } from "@/lib/gaming/level-math";
 import { POST } from "@/app/api/gaming/score/route";
 import { issueGamingToken } from "@/lib/gaming/tokens";
 
@@ -51,11 +33,14 @@ function req(body: unknown): Request {
   });
 }
 
+let sessionSeq = 0;
+function queueSession(msAgo: number) {
+  fake.sessions.push({ id: `sess-${++sessionSeq}`, started_at: new Date(Date.now() - msAgo).toISOString() });
+}
+
 beforeEach(() => {
   userId = "user-1";
-  sessionRow = null;
-  xpDailyEarned = 0;
-  for (const k of Object.keys(inserted)) delete inserted[k];
+  fake.reset();
 });
 
 describe("POST /api/gaming/score", () => {
@@ -89,7 +74,7 @@ describe("POST /api/gaming/score", () => {
 
   it("rejects a reused/expired session row (DB says already used)", async () => {
     const token = issueGamingToken("session", "user-1", "game_2048", 600);
-    sessionRow = null; // simulates UPDATE finding no matching unused row
+    // no queued session row = UPDATE finds no matching unused row
     const res = await POST(req({ gameId: "game_2048", score: 100, sessionToken: token }) as any);
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -98,7 +83,7 @@ describe("POST /api/gaming/score", () => {
 
   it("rejects a submission that is too fast for the game's min duration", async () => {
     const token = issueGamingToken("session", "user-1", "game_2048", 600);
-    sessionRow = { started_at: new Date(Date.now() - 100).toISOString() }; // 100ms ago, cap is 8000ms
+    queueSession(100); // 100ms ago, cap is 8000ms
     const res = await POST(req({ gameId: "game_2048", score: 100, sessionToken: token }) as any);
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -107,7 +92,7 @@ describe("POST /api/gaming/score", () => {
 
   it("rejects a score above the plausible cap", async () => {
     const token = issueGamingToken("session", "user-1", "game_2048", 600);
-    sessionRow = { started_at: new Date(Date.now() - 20_000).toISOString() };
+    queueSession(20_000);
     const res = await POST(req({ gameId: "game_2048", score: 999_999_999, sessionToken: token }) as any);
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -116,7 +101,7 @@ describe("POST /api/gaming/score", () => {
 
   it("accepts a plausible score and awards XP", async () => {
     const token = issueGamingToken("session", "user-1", "game_2048", 600);
-    sessionRow = { started_at: new Date(Date.now() - 20_000).toISOString() };
+    queueSession(20_000);
     const res = await POST(req({ gameId: "game_2048", score: 500, sessionToken: token }) as any);
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -126,11 +111,26 @@ describe("POST /api/gaming/score", () => {
 
   it("caps earned XP at the daily limit even for a big score", async () => {
     const token = issueGamingToken("session", "user-1", "game_2048", 600);
-    sessionRow = { started_at: new Date(Date.now() - 20_000).toISOString() };
-    xpDailyEarned = 295; // 5 units of headroom left under the 300 cap
+    queueSession(20_000);
+    fake.daily.set(`user-1|${xpDay()}`, 295); // 5 units of headroom left under the 300 cap
     const res = await POST(req({ gameId: "game_2048", score: 500, sessionToken: token }) as any);
     const json = await res.json();
     expect(json.ok).toBe(true);
     expect(json.earnedXp).toBeLessThanOrEqual(5);
+  });
+
+  it("restart: every new session (replay after game over) scores and earns XP once", async () => {
+    const first = issueGamingToken("session", "user-1", "game_2048", 600);
+    queueSession(20_000);
+    const r1 = await (await POST(req({ gameId: "game_2048", score: 500, sessionToken: first }) as any)).json();
+
+    const second = issueGamingToken("session", "user-1", "game_2048", 600);
+    queueSession(20_000);
+    const r2 = await (await POST(req({ gameId: "game_2048", score: 500, sessionToken: second }) as any)).json();
+
+    expect(r1.earnedXp).toBeGreaterThan(0);
+    expect(r2.earnedXp).toBe(r1.earnedXp);
+    expect(fake.profiles.get("user-1")?.xp).toBe(r1.earnedXp + r2.earnedXp);
+    expect(fake.scores).toHaveLength(2);
   });
 });
