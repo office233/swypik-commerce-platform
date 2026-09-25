@@ -8,6 +8,7 @@
  * Anti-abuz: rate limit pe IP + sume rezonabile + campanie activă verificată.
  */
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { createHash } from "node:crypto";
 import { dbQuery, withTransaction } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
@@ -29,6 +30,7 @@ function ipHash(req: Request): string {
 }
 
 export async function POST(req: Request) {
+  if (!isEnabled("cares")) return frozenResponse("cares");
   try {
     const hash = ipHash(req);
     const rl = await rateLimit("donations", hash);

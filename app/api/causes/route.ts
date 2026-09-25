@@ -6,6 +6,7 @@
  * GET  /api/causes → cauzele userului logat (pentru panoul de cauze).
  */
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { randomBytes } from "node:crypto";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
@@ -28,6 +29,7 @@ function slugify(name: string): string {
 }
 
 async function GET_impl(): Promise<Response> {
+  if (!isEnabled("cares")) return frozenResponse("cares");
   const session = await getAuthSession();
   if (!session) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -44,6 +46,7 @@ async function GET_impl(): Promise<Response> {
 }
 
 async function POST_impl(req: Request): Promise<Response> {
+  if (!isEnabled("cares")) return frozenResponse("cares");
   const session = await getAuthSession();
   if (!session) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

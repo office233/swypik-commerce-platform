@@ -5,6 +5,7 @@
  * GET /api/campaigns?slug=...     → o campanie cu payouts (transparență)
  */
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
@@ -12,6 +13,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  if (!isEnabled("cares")) return frozenResponse("cares");
   try {
     const url = new URL(req.url);
     const slug = url.searchParams.get("slug")?.trim();
