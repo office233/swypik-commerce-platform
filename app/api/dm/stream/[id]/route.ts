@@ -2,6 +2,8 @@ import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { assertParticipant } from "@/lib/dm/repository";
 import { createSubscriber } from "@/lib/redis";
+import { dmChannel } from "@/lib/dm/config";
+import { isUuidParam } from "@/lib/validation/params";
 
 import { logger } from "@/lib/logger";
 export const runtime = "nodejs";
@@ -23,14 +25,22 @@ export async function GET(
     return new Response("Unauthorized", { status: 401 });
   }
   const { id: conversationId } = await params;
+  if (!isUuidParam(conversationId)) return new Response("Bad Request", { status: 400 });
   const ok = await assertParticipant(conversationId, userId);
   if (!ok) {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const channel = `dm:conv:${conversationId}`;
+  const channel = dmChannel(conversationId);
   const encoder = new TextEncoder();
-  const subscriber = createSubscriber();
+  // Fără Redis: 503 explicit (înainte, excepția de aici dădea 500 și reconectări fără sfârșit).
+  let subscriber: ReturnType<typeof createSubscriber>;
+  try {
+    subscriber = createSubscriber();
+  } catch (err: unknown) {
+    logger.error({ err: err instanceof Error ? err.message : err }, "[dm/stream] redis unavailable");
+    return new Response("Service Unavailable", { status: 503, headers: { "Retry-After": "30" } });
+  }
 
   let heartbeat: ReturnType<typeof setInterval> | null = null;
   let closed = false;

@@ -20,7 +20,8 @@ export type NotificationType =
   | "commission"
   | "system"
   | "upload_processed"
-  | "new_post";
+  | "new_post"
+  | "message";
 
 export type NotifyInput = {
   type: NotificationType;
@@ -42,6 +43,8 @@ const TITLES: Record<NotificationType, string> = {
   system: "Notificare",
   upload_processed: "Videoclipul tău este gata",
   new_post: "Clip nou de la un creator urmărit",
+  // Titlul real e tradus în limba destinatarului (lib/dm/notify.ts).
+  message: "Swypik",
 };
 
 export async function notifyUser(
@@ -97,6 +100,7 @@ export async function notifyUser(
     follow: "push_follows",
     new_post: "push_follows",
     commission: "push_sales",
+    message: "push_messages",
   };
   const prefCol = prefMap[input.type];
   let pushAllowed = true;

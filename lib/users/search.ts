@@ -33,6 +33,11 @@ export async function searchUsers(
        LEFT JOIN creator_profiles cpr ON cpr.user_id = u.id
       WHERE u.id <> $1
         AND COALESCE(u.status, 'active') NOT IN ('suspended', 'banned', 'deleted')
+        AND NOT EXISTS (
+          SELECT 1 FROM user_blocks b
+           WHERE (b.blocker_user_id = $1 AND b.blocked_user_id = u.id)
+              OR (b.blocker_user_id = u.id AND b.blocked_user_id = $1)
+        )
         AND (
           u.username ILIKE $2 ESCAPE '\\'
           OR u.display_name ILIKE $2 ESCAPE '\\'

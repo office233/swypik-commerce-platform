@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { OrderPrice } from "@/components/shop/OrderPrice";
 import { OrderReviewButton } from "@/components/shop/reviews/OrderReviewButton";
+import { MessageButton } from "@/components/messenger/MessageButton";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { Link } from "@/lib/i18n/navigation";
 import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/config";
@@ -134,6 +135,8 @@ export default async function OrderDetailPage({ params }: Props) {
             </a>
           </Button>
         ) : null}
+
+        <MessageButton entry={{ kind: "order", id: order.id }} labelKey="contactSeller" block />
 
         {RETURNABLE.has(order.status) ? (
           order.lookupToken ? (

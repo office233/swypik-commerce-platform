@@ -30,8 +30,8 @@ export default function ActiveCallOverlay({
     <div
       className={
         isPip
-          ? "fixed bottom-5 right-5 z-50 h-72 w-96 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
-          : "fixed inset-0 z-50 flex flex-col bg-[#0b141a] text-white"
+          ? "fixed bottom-[calc(var(--bottom-inset)+1rem)] right-4 z-50 h-72 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
+          : "fixed inset-0 z-50 flex flex-col bg-black text-white"
       }
     >
       {/* Top action bar */}

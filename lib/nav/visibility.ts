@@ -87,6 +87,9 @@ export const BOTTOM_NAV_HIDDEN_ROUTES: readonly string[] = [
   "/product",
   "/courier",
   "/onboarding",
+  // Ecranul de chat (/messages/<id>): compozitorul stă jos, fără BottomNav peste el.
+  // `/messages` simplu doar redirecționează în /inbox.
+  "/messages",
 ];
 
 export function isBottomNavHidden(pathname: string): boolean {
