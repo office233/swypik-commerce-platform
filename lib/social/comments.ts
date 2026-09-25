@@ -17,6 +17,8 @@ export type CommentAuthor = {
   username: string | null;
   displayName: string;
   avatarUrl: string | null;
+  /** Autorul e proprietarul clipului (etichetă „Creator" în foaie). */
+  isVideoOwner: boolean;
 };
 
 export type CommentView = {
@@ -33,9 +35,23 @@ export type CommentView = {
   replies: CommentView[];
   /** true dacă viewerul curent a apreciat comentariul (seed pentru CommentsSheet). */
   viewerLiked: boolean;
+  isPinned: boolean;
+  /** Calculate pe server pentru viewerul curent (inclusiv autori anonimi). */
+  canDelete: boolean;
+  canPin: boolean;
+  /** Cursorul după ultimul răspuns livrat inline („vezi mai multe răspunsuri"). */
+  repliesCursor: string | null;
 };
 
-const MAX_COMMENT_LENGTH = 500;
+/** Cine vede comentariul — decide `canDelete` / `canPin`. */
+export type CommentViewerContext = {
+  viewerId: string | null;
+  /** Viewerul are cont real (nu shell anonim) — necesar pentru fixare. */
+  viewerIsAccount: boolean;
+  videoOwnerId: string | null;
+};
+
+export const MAX_COMMENT_LENGTH = 500;
 const FLAGGED_TERMS = [
   "scam",
   "fake",
@@ -97,14 +113,14 @@ export type CommentRow = {
   like_count?: unknown;
   reply_count?: unknown;
   created_at?: unknown;
+  pinned_at?: unknown;
   viewer_liked?: unknown;
   username?: unknown;
   display_name?: unknown;
   avatar_url?: unknown;
 };
 
-/** Locale-uri suportate pentru fallback-ul numelui de autor. Default `"ro"` —
- * apelantul din `app/api/videos/[id]/comments` încă nu trece locale-ul cererii. */
+/** Locale-uri suportate pentru fallback-ul numelui de autor. */
 export type CommentLocale = "ro" | "en" | "es" | "fr" | "de" | "pt" | "it";
 
 const ANONYMOUS_AUTHOR_FALLBACK: Record<CommentLocale, string> = {
@@ -117,36 +133,66 @@ const ANONYMOUS_AUTHOR_FALLBACK: Record<CommentLocale, string> = {
   it: "Community",
 };
 
-export function mapCommentRow(row: CommentRow, locale: CommentLocale = "ro"): CommentView {
+const NO_VIEWER: CommentViewerContext = { viewerId: null, viewerIsAccount: false, videoOwnerId: null };
+
+/** Reguli de permisiuni, pure (testate în tests/unit/social-comments-thread.test.ts). */
+export function commentPermissions(
+  comment: { userId: string | null; parentCommentId: string | null },
+  ctx: CommentViewerContext,
+): { canDelete: boolean; canPin: boolean } {
+  const viewer = ctx.viewerId;
+  const isOwner = Boolean(viewer && ctx.videoOwnerId && viewer === ctx.videoOwnerId);
+  return {
+    canDelete: Boolean(viewer && (comment.userId === viewer || isOwner)),
+    canPin: isOwner && ctx.viewerIsAccount && comment.parentCommentId === null,
+  };
+}
+
+export function mapCommentRow(
+  row: CommentRow,
+  locale: CommentLocale = "ro",
+  ctx: CommentViewerContext = NO_VIEWER,
+): CommentView {
   const displayName = String(row.display_name || row.username || ANONYMOUS_AUTHOR_FALLBACK[locale] || ANONYMOUS_AUTHOR_FALLBACK.ro);
+  const userId = row.user_id ? String(row.user_id) : null;
+  const parentCommentId = row.parent_comment_id ? String(row.parent_comment_id) : null;
 
   return {
     id: String(row.id),
     videoId: String(row.video_id),
-    userId: row.user_id ? String(row.user_id) : null,
-    parentCommentId: row.parent_comment_id ? String(row.parent_comment_id) : null,
+    userId,
+    parentCommentId,
     text: String(row.body || ""),
     status: (row.status || "visible") as CommentStatus,
     likeCount: toNonNegativeNumber(row.like_count),
     replyCount: toNonNegativeNumber(row.reply_count),
     createdAt: toIsoString(row.created_at),
     viewerLiked: Boolean(row.viewer_liked),
+    isPinned: Boolean(row.pinned_at),
+    ...commentPermissions({ userId, parentCommentId }, ctx),
+    repliesCursor: null,
     author: {
-      id: row.user_id ? String(row.user_id) : null,
+      id: userId,
       username: row.username ? String(row.username) : null,
       displayName,
       avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
+      isVideoOwner: Boolean(userId && ctx.videoOwnerId && userId === ctx.videoOwnerId),
     },
     replies: [],
   };
 }
 
-export function attachReplies(topLevelRows: CommentRow[], replyRows: CommentRow[], locale: CommentLocale = "ro"): CommentView[] {
-  const comments = topLevelRows.map((row) => mapCommentRow(row, locale));
+export function attachReplies(
+  topLevelRows: CommentRow[],
+  replyRows: CommentRow[],
+  locale: CommentLocale = "ro",
+  ctx: CommentViewerContext = NO_VIEWER,
+): CommentView[] {
+  const comments = topLevelRows.map((row) => mapCommentRow(row, locale, ctx));
   const byId = new Map(comments.map((comment) => [comment.id, comment]));
 
   for (const row of replyRows) {
-    const reply = mapCommentRow(row, locale);
+    const reply = mapCommentRow(row, locale, ctx);
     const parent = reply.parentCommentId ? byId.get(reply.parentCommentId) : null;
     if (parent) parent.replies.push(reply);
   }

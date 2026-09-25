@@ -14,6 +14,7 @@ import { logger } from "@/lib/logger";
 export type NotificationType =
   | "comment"
   | "reply"
+  | "mention"
   | "like"
   | "follow"
   | "share"
@@ -35,6 +36,7 @@ export type NotifyInput = {
 const TITLES: Record<NotificationType, string> = {
   comment: "Comentariu nou",
   reply: "Răspuns nou la comentariul tău",
+  mention: "Te-a menționat cineva",
   like: "Cineva ți-a dat like",
   follow: "Ai un nou follower",
   share: "Cineva a distribuit ceva ce ai postat",
@@ -94,6 +96,7 @@ export async function notifyUser(
     like: "push_likes",
     comment: "push_comments",
     reply: "push_comments",
+    mention: "push_comments",
     follow: "push_follows",
     new_post: "push_follows",
     commission: "push_sales",

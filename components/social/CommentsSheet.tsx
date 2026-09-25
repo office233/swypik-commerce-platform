@@ -1,491 +1,196 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Heart, Loader2, MessageCircle, RefreshCw, Reply, Send, Trash2, X } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MessageCircle } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Sheet } from "@/components/ui/Sheet";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { formatCount } from "@/lib/social/format";
+import { CommentActions } from "./comments/CommentActions";
+import { CommentComposer } from "./comments/CommentComposer";
+import { CommentItem } from "./comments/CommentItem";
+import type { CommentErrorCode, CommentItemData } from "./comments/types";
+import { useComments } from "./comments/useComments";
+import { useAuthRedirect } from "./useAuthRedirect";
 
-type CommentAuthor = {
-  id: string | null;
-  username: string | null;
-  displayName: string;
-  avatarUrl: string | null;
-};
-
-type CommentItem = {
-  id: string;
-  videoId: string;
-  userId: string | null;
-  parentCommentId: string | null;
-  text: string;
-  status: "visible" | "hidden" | "deleted" | "flagged";
-  likeCount: number;
-  replyCount: number;
-  createdAt: string;
-  author: CommentAuthor;
-  replies: CommentItem[];
-  viewerLiked?: boolean;
-};
-
-type Props = {
+export type CommentsSheetProps = {
   open: boolean;
   videoId: string | null;
+  /** Contorul afișat de feed până la primul răspuns al API-ului. */
   initialCount?: string | number | null;
   onClose: () => void;
+  /** Contorul real (include răspunsurile) după încărcare/creare/ștergere. */
   onCountChange?: (nextCount: number) => void;
 };
 
-function parseCount(value: Props["initialCount"]): number {
+function parseCount(value: CommentsSheetProps["initialCount"]): number {
   const count = Number(value);
   return Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0;
 }
 
+const ERROR_KEYS: Record<CommentErrorCode, string> = {
+  rate_limited: "rateLimitedError",
+  comment_text_required: "emptyError",
+  comment_text_too_long: "tooLongError",
+  comment_rejected: "rejectedError",
+  comments_disabled: "disabledError",
+  blocked: "blockedError",
+  unauthorized: "unauthorizedError",
+  forbidden: "unauthorizedError",
+  video_not_found: "notFoundError",
+  parent_comment_not_found: "notFoundError",
+  comment_not_found: "notFoundError",
+  generic: "submitError",
+};
+/** Chei noi (namespace social.comments); restul sunt în commentsSheet. */
+const NEW_KEYS = new Set(["rejectedError", "disabledError", "blockedError"]);
+
 /**
- * Maps stable API error codes (app/api/videos/[id]/comments/route.ts,
- * lib/social/comments.ts) to a translated message. Anything unrecognized
- * (including a raw Zod validation sentence from lib/validation/schemas.ts'
- * `parseBody`) falls back to a generic translated message — never shown raw.
- * Audit 2026-09-24 (wave2-misc).
+ * Foaia de comentarii reutilizabilă (Sheet primitive): fire cu 1 nivel de
+ * răspunsuri, like, ștergere/raportare/fixare, @mențiuni, paginare prin cursor.
  */
-function translateApiError(
-  code: unknown,
-  t: ReturnType<typeof useTranslations>,
-  fallbackKey: "loadError" | "submitError" | "deleteError",
-): string {
-  switch (code) {
-    case "rate_limited":
-      return t("rateLimitedError");
-    case "comment_text_required":
-      return t("emptyError");
-    case "comment_text_too_long":
-      return t("tooLongError");
-    case "unauthorized":
-    case "forbidden":
-      return t("unauthorizedError");
-    case "video_not_found":
-    case "parent_comment_not_found":
-    case "comment_not_found":
-      return t("notFoundError");
-    default:
-      return t(fallbackKey);
-  }
-}
-
-function displayName(author: CommentAuthor): string {
-  return author.displayName || author.username || "@user";
-}
-
-function relativeTime(value: string, nowLabel: string): string {
-  const created = new Date(value).getTime();
-  if (!Number.isFinite(created)) return "";
-
-  const diffSeconds = Math.max(1, Math.floor((Date.now() - created) / 1000));
-  if (diffSeconds < 60) return nowLabel;
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) return `${diffMinutes}m`;
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h`;
-  return `${Math.floor(diffHours / 24)}d`;
-}
-
-export default function CommentsSheet({ open, videoId, initialCount, onClose, onCountChange }: Props) {
+export default function CommentsSheet({ open, videoId, initialCount, onClose, onCountChange }: CommentsSheetProps) {
   const t = useTranslations("commentsSheet");
-  const [comments, setComments] = useState<CommentItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const ts = useTranslations("social.comments");
+  const locale = useLocale();
+  const { toast } = useToast();
+  const toAuth = useAuthRedirect();
+  const c = useComments(videoId, open, onCountChange);
+  const [replyTo, setReplyTo] = useState<CommentItemData | null>(null);
+  const [actionsFor, setActionsFor] = useState<CommentItemData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [text, setText] = useState("");
-  const [replyTo, setReplyTo] = useState<CommentItem | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [count, setCount] = useState(() => parseCount(initialCount));
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
-  const [likePending, setLikePending] = useState<Set<string>>(new Set());
-  const [viewerId, setViewerId] = useState<string | null>(null);
-  const [deletePending, setDeletePending] = useState<Set<string>>(new Set());
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const message = useCallback(
+    (code: CommentErrorCode) => {
+      const key = ERROR_KEYS[code];
+      return NEW_KEYS.has(key) ? ts(key) : t(key);
+    },
+    [t, ts],
+  );
 
   useEffect(() => {
-    if (!open) return;
-    fetch("/api/auth", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => setViewerId(d?.customer?.id ?? d?.user?.id ?? null))
-      .catch(() => setViewerId(null));
-  }, [open]);
-
-  const deleteComment = useCallback(async (comment: CommentItem) => {
-    if (!videoId || deletePending.has(comment.id)) return;
-    setDeletePending((s) => { const n = new Set(s); n.add(comment.id); return n; });
-    try {
-      const res = await fetch(`/api/videos/${videoId}/comments?comment_id=${comment.id}`, { method: "DELETE" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(translateApiError(data?.error, t, "deleteError"));
-      setComments((list) =>
-        list
-          .filter((c) => c.id !== comment.id)
-          .map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== comment.id) })),
-      );
-      const nextCount = Number(data.comment_count);
-      if (Number.isFinite(nextCount)) {
-        setCount(nextCount);
-        onCountChange?.(nextCount);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("deleteError"));
-    } finally {
-      setDeletePending((s) => { const n = new Set(s); n.delete(comment.id); return n; });
-    }
-  }, [videoId, deletePending, onCountChange, t]);
-
-  const toggleCommentLike = useCallback(async (commentId: string) => {
-    if (likePending.has(commentId)) return;
-    setLikePending((s) => { const n = new Set(s); n.add(commentId); return n; });
-    const wasLiked = likedIds.has(commentId);
-    setLikedIds((s) => { const n = new Set(s); if (wasLiked) n.delete(commentId); else n.add(commentId); return n; });
-    setComments((list) => list.map((c) => {
-      if (c.id === commentId) return { ...c, likeCount: Math.max(0, c.likeCount + (wasLiked ? -1 : 1)) };
-      return { ...c, replies: c.replies.map((r) => r.id === commentId ? { ...r, likeCount: Math.max(0, r.likeCount + (wasLiked ? -1 : 1)) } : r) };
-    }));
-    try {
-      const res = await fetch(`/api/comments/${commentId}/like`, { method: 'POST' });
-      if (!res.ok) throw new Error('Like failed');
-      const data = await res.json();
-      setLikedIds((s) => { const n = new Set(s); if (data.liked) n.add(commentId); else n.delete(commentId); return n; });
-      setComments((list) => list.map((c) => {
-        if (c.id === commentId) return { ...c, likeCount: data.like_count };
-        return { ...c, replies: c.replies.map((r) => r.id === commentId ? { ...r, likeCount: data.like_count } : r) };
-      }));
-    } catch {
-      setLikedIds((s) => { const n = new Set(s); if (wasLiked) n.add(commentId); else n.delete(commentId); return n; });
-      setComments((list) => list.map((c) => {
-        if (c.id === commentId) return { ...c, likeCount: Math.max(0, c.likeCount + (wasLiked ? 1 : -1)) };
-        return { ...c, replies: c.replies.map((r) => r.id === commentId ? { ...r, likeCount: Math.max(0, r.likeCount + (wasLiked ? 1 : -1)) } : r) };
-      }));
-    } finally {
-      setLikePending((s) => { const n = new Set(s); n.delete(commentId); return n; });
-    }
-  }, [likedIds, likePending]);
-
-  const sheetRef = useRef<HTMLElement | null>(null);
-
-  // Body scroll lock
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
-
-  // Escape close + focus trap
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
-      if (e.key === 'Tab' && sheetRef.current) {
-        const focusable = sheetRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"]), input, select, textarea'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    setTimeout(() => sheetRef.current?.querySelector<HTMLElement>('button, a[href], input, textarea')?.focus(), 50);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (open) setCount(parseCount(initialCount));
-  }, [initialCount, open]);
-
-  const loadComments = useCallback(async () => {
-    if (!open || !videoId) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/videos/${videoId}/comments?limit=30`, { cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(translateApiError(data?.error, t, "loadError"));
-
-      const list: CommentItem[] = Array.isArray(data.comments) ? data.comments : [];
-      setComments(list);
-      // Seed din server: fara asta inima aparea mereu gri la redeschidere si
-      // al doilea tap facea de fapt unlike (audit 2026-08-24).
-      const liked = new Set<string>();
-      for (const c of list) {
-        if (c.viewerLiked) liked.add(c.id);
-        for (const r of c.replies || []) if (r.viewerLiked) liked.add(r.id);
-      }
-      setLikedIds(liked);
-      if (typeof data.totalCount === "number") setCount(data.totalCount);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("loadError"));
-    } finally {
-      setLoading(false);
-    }
-  }, [open, videoId, t]);
-
-  useEffect(() => {
-    if (!open) return;
-    setText("");
-    setReplyTo(null);
-    setNotice(null);
-    loadComments();
-  }, [loadComments, open]);
-
-  const remaining = useMemo(() => 500 - text.trim().length, [text]);
-
-  const submitComment = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!videoId || submitting) return;
-
-    const trimmed = text.trim();
-    if (!trimmed) {
-      setError(t("emptyError"));
-      return;
-    }
-    if (trimmed.length > 500) {
-      setError(t("tooLongError"));
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-    setNotice(null);
-
-    try {
-      const res = await fetch(`/api/videos/${videoId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: trimmed,
-          parent_comment_id: replyTo?.id || null,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(translateApiError(data?.error, t, "submitError"));
-
-      const posted = data.comment as CommentItem | undefined;
-      const nextCount = Number(data.comment_count);
-      if (Number.isFinite(nextCount)) {
-        setCount(nextCount);
-        onCountChange?.(nextCount);
-      }
-
-      if (posted?.status === "visible") {
-        if (posted.parentCommentId) {
-          setComments((current) =>
-            current.map((comment) =>
-              comment.id === posted.parentCommentId
-                ? {
-                  ...comment,
-                  replyCount: comment.replyCount + 1,
-                  replies: [...comment.replies, posted],
-                }
-                : comment,
-            ),
-          );
-        } else {
-          setComments((current) => [posted, ...current]);
-        }
-      } else {
-        setNotice(t("sentToModeration"));
-      }
-
-      setText("");
+    if (!open) {
       setReplyTo(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("submitError"));
-    } finally {
-      setSubmitting(false);
+      setError(null);
     }
+  }, [open]);
+
+  // Paginare la derulare: sentinela de la finalul listei cere pagina următoare.
+  const { loadMore, nextCursor } = c;
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !nextCursor) return;
+    const io = new IntersectionObserver((entries) => entries[0]?.isIntersecting && void loadMore(), { rootMargin: "200px" });
+    io.observe(node);
+    return () => io.disconnect();
+  }, [loadMore, nextCursor]);
+
+  const startReply = useCallback((comment: CommentItemData) => {
+    setReplyTo(comment);
+    inputRef.current?.focus();
+  }, []);
+
+  async function handleSubmit(text: string): Promise<boolean> {
+    setError(null);
+    const result = await c.submit(text, replyTo);
+    if (result.ok) {
+      setReplyTo(null);
+      if ("hidden" in result && result.hidden) toast({ title: t("sentToModeration"), tone: "info" });
+      return true;
+    }
+    if (result.status === 401) toAuth();
+    setError(message(result.code));
+    return false;
+  }
+
+  const count = c.totalCount ?? parseCount(initialCount);
+  const handlers = {
+    onReply: startReply,
+    onMore: setActionsFor,
+    onLoadReplies: (comment: CommentItemData) => void c.loadReplies(comment),
+    onLiked: c.setLiked,
   };
 
-  if (!open || !videoId || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col justify-end">
-      <button type="button" className="absolute inset-0 bg-black/60" onClick={onClose} aria-label={t("close")} />
-      <section ref={sheetRef} role="dialog" aria-modal="true" aria-labelledby="comments-title" tabIndex={-1} className="relative flex h-[68vh] max-h-[720px] flex-col rounded-t-3xl bg-white text-[#0D0D0D] shadow-2xl animate-feed-slide">
-        <header className="flex items-center justify-between border-b border-[#E5E5E5] px-5 py-4">
-          <div>
-            <h2 id="comments-title" className="text-base font-black">{t("title")}</h2>
-            <p className="text-xs font-semibold text-[#6E6E80]">{t("total", { count })}</p>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-full bg-[#F7F7F8] p-2 text-[#6E6E80]" aria-label={t("close")}>
-            <X size={20} />
-          </button>
-        </header>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {loading ? (
-            <div className="flex h-full flex-col items-center justify-center text-[#6E6E80]">
-              <Loader2 className="mb-3 animate-spin" size={28} />
-              <p className="text-sm font-bold">{t("loading")}</p>
-            </div>
-          ) : error && comments.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center text-[#6E6E80]">
-              <MessageCircle size={42} className="mb-3 text-[#D1D1D6]" />
-              <p className="text-sm font-bold">{error}</p>
-              <button type="button" onClick={loadComments} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white">
-                <RefreshCw size={16} />
-                {t("retry")}
-              </button>
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center text-[#6E6E80]">
-              <MessageCircle size={48} className="mb-4 text-[#D1D1D6]" />
-              <p className="text-base font-black text-[#0D0D0D]">{t("emptyTitle")}</p>
-              <p className="mt-1 text-sm">{t("emptySubtitle")}</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <CommentBlock key={comment.id} comment={comment} onReply={setReplyTo} onLike={toggleCommentLike} likedIds={likedIds} likingIds={likePending} viewerId={viewerId} onDelete={deleteComment} deletingIds={deletePending} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {(error && comments.length > 0) || notice ? (
-          <div className="mx-5 mb-2 rounded-xl bg-[#F7F7F8] px-3 py-2 text-xs font-semibold text-[#6E6E80]">
-            {notice || error}
-          </div>
-        ) : null}
-
-        {replyTo && (
-          <div className="mx-5 mb-2 flex items-center justify-between rounded-xl bg-[#F7F7F8] px-3 py-2 text-xs font-bold text-[#6E6E80]">
-            <span>{t("replyingTo", { name: displayName(replyTo.author) })}</span>
-            <button type="button" onClick={() => setReplyTo(null)} className="text-[#0D0D0D]">
-              {t("cancel")}
-            </button>
-          </div>
-        )}
-
-        <form onSubmit={submitComment} className="border-t border-[#E5E5E5] px-4 py-3" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-          <div className="flex items-end gap-2">
-            <div className="min-w-0 flex-1">
-              <textarea
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                rows={1}
-                maxLength={520}
-                placeholder={replyTo ? t("replyPlaceholder") : t("commentPlaceholder")}
-                className="max-h-28 min-h-[44px] w-full resize-none rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm font-semibold outline-none focus:border-[#0D0D0D]"
-              />
-              <p className={`mt-1 text-right text-[11px] font-semibold ${remaining < 0 ? "text-[#EF4444]" : "text-[#8E8E93]"}`}>{remaining}</p>
-            </div>
-            <button
-              type="submit"
-              disabled={submitting || text.trim().length === 0 || remaining < 0}
-              className="grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] text-white disabled:bg-[#C7C7CC]"
-              aria-label={t("send")}
-            >
-              {submitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>,
-    document.body
-  );
-}
-
-function CommentBlock({ comment, onReply, onLike, likedIds, likingIds, viewerId, onDelete, deletingIds }: { comment: CommentItem; onReply: (comment: CommentItem) => void; onLike: (id: string) => void; likedIds: Set<string>; likingIds: Set<string>; viewerId: string | null; onDelete: (comment: CommentItem) => void; deletingIds: Set<string> }) {
-  const t = useTranslations("commentsSheet");
   return (
-    <article>
-      <div className="flex gap-3">
-        <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-[#0D0D0D] text-sm font-black text-white">
-          {displayName(comment.author).slice(0, 1).toUpperCase()}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-black">{displayName(comment.author)}</p>
-            <span className="text-xs font-semibold text-[#8E8E93]">{relativeTime(comment.createdAt, t("now"))}</span>
+    <>
+      <Sheet
+        open={open}
+        onOpenChange={(o) => !o && onClose()}
+        title={`${t("title")} · ${formatCount(count, locale)}`}
+        className="max-h-[85dvh]"
+        footer={
+          c.allowComments ? (
+            <CommentComposer
+              ref={inputRef}
+              replyTo={replyTo}
+              onCancelReply={() => setReplyTo(null)}
+              onSubmit={handleSubmit}
+              error={error}
+            />
+          ) : (
+            <p className="text-center text-sm text-muted">{ts("disabledError")}</p>
+          )
+        }
+      >
+        {c.status === "loading" || c.status === "idle" ? (
+          <div className="flex flex-col gap-4 py-3" aria-busy="true" aria-label={t("loading")}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex flex-1 flex-col gap-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-5 text-[#1D1D1F]">{comment.text}</p>
-          <div className="mt-2 flex items-center gap-4">
-            <button
-              type="button"
-              aria-label={likedIds.has(comment.id) ? t("unlike") : t("likeComment")}
-              aria-pressed={likedIds.has(comment.id)}
-              disabled={likingIds.has(comment.id)}
-              onClick={() => onLike(comment.id)}
-              className={"inline-flex items-center gap-1 text-xs font-black disabled:opacity-60 " + (likedIds.has(comment.id) ? "text-[#FE2C55]" : "text-[#6E6E80]")}
-            >
-              <Heart size={13} fill={likedIds.has(comment.id) ? "#FE2C55" : "none"} />
-              {comment.likeCount > 0 ? comment.likeCount : ""}
-            </button>
-            <button type="button" onClick={() => onReply(comment)} className="inline-flex items-center gap-1 text-xs font-black text-[#6E6E80]">
-              <Reply size={13} />
-              {t("reply")}
-            </button>
-            {viewerId && comment.userId === viewerId && (
-              <button
-                type="button"
-                aria-label={t("delete")}
-                disabled={deletingIds.has(comment.id)}
-                onClick={() => onDelete(comment)}
-                className="inline-flex items-center gap-1 text-xs font-black text-[#6E6E80] disabled:opacity-60"
-              >
-                <Trash2 size={13} />
-                {t("delete")}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+        ) : c.status === "error" ? (
+          <ErrorState description={t("loadError")} onRetry={() => void c.reload()} />
+        ) : !c.pinned && c.comments.length === 0 ? (
+          <EmptyState icon={MessageCircle} title={t("emptyTitle")} description={t("emptySubtitle")} />
+        ) : (
+          <>
+            <ul className="divide-y divide-subtle">
+              {c.pinned ? <CommentItem comment={c.pinned} {...handlers} /> : null}
+              {c.comments.map((comment) => (
+                <CommentItem key={comment.id} comment={comment} {...handlers} />
+              ))}
+            </ul>
+            {c.nextCursor ? (
+              <div ref={sentinelRef} className="flex justify-center py-3">
+                <Button variant="ghost" size="sm" loading={c.loadingMore} onClick={() => void c.loadMore()}>
+                  {ts("loadMore")}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </Sheet>
 
-      {comment.replies.length > 0 && (
-        <div className="ml-12 mt-3 space-y-3 border-l border-[#E5E5E5] pl-3">
-          {comment.replies.map((reply) => (
-            <div key={reply.id} className="flex gap-2">
-              <div className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-[#F7F7F8] text-xs font-black text-[#6E6E80]">
-                {displayName(reply.author).slice(0, 1).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-xs font-black">{displayName(reply.author)}</p>
-                  <span className="text-[11px] font-semibold text-[#8E8E93]">{relativeTime(reply.createdAt, t("now"))}</span>
-                </div>
-                <p className="mt-1 break-words text-sm leading-5 text-[#1D1D1F]">{reply.text}</p>
-                <div className="mt-1 flex items-center gap-4">
-                  <button
-                    type="button"
-                    aria-label={likedIds.has(reply.id) ? t("unlike") : t("likeReply")}
-                    aria-pressed={likedIds.has(reply.id)}
-                    disabled={likingIds.has(reply.id)}
-                    onClick={() => onLike(reply.id)}
-                    className={"inline-flex items-center gap-1 text-xs font-black disabled:opacity-60 " + (likedIds.has(reply.id) ? "text-[#FE2C55]" : "text-[#6E6E80]")}
-                  >
-                    <Heart size={12} fill={likedIds.has(reply.id) ? "#FE2C55" : "none"} />
-                    {reply.likeCount > 0 ? reply.likeCount : ""}
-                  </button>
-                  <button type="button" onClick={() => onReply(reply)} className="text-xs font-black text-[#6E6E80]">
-                    {t("reply")}
-                  </button>
-                  {viewerId && reply.userId === viewerId && (
-                    <button
-                      type="button"
-                      aria-label={t("delete")}
-                      disabled={deletingIds.has(reply.id)}
-                      onClick={() => onDelete(reply)}
-                      className="inline-flex items-center gap-1 text-xs font-black text-[#6E6E80] disabled:opacity-60"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </article>
+      <CommentActions
+        comment={actionsFor}
+        viewer={c.viewer}
+        onClose={() => setActionsFor(null)}
+        onReply={startReply}
+        onTogglePin={async (comment) => {
+          const r = await c.togglePin(comment);
+          if (!r.ok) toast({ title: message(r.code), tone: "danger" });
+          return r.ok;
+        }}
+        onDelete={async (comment) => {
+          const r = await c.remove(comment);
+          if (!r.ok) toast({ title: t("deleteError"), tone: "danger" });
+          return r.ok;
+        }}
+      />
+    </>
   );
 }
 
+export { CommentsSheet };

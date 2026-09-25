@@ -15,6 +15,7 @@ import { dbQuery, withTransaction } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { UserProfilePatchSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { checkUsernameAvailable, normalizeUsername, recordUsernameAlias } from "@/lib/social/username";
 
 export const dynamic = "force-dynamic";
 
@@ -79,10 +80,7 @@ async function handlePatch(request: Request) {
     window: 600,
   });
   if (!success) {
-    return NextResponse.json(
-      { error: "Prea multe modificări. Încearcă din nou peste câteva minute." },
-      { status: 429 }
-    );
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const rawBody = await request.json().catch(() => null);
@@ -106,10 +104,7 @@ async function handlePatch(request: Request) {
         reasons: mDn.reasons,
         signals: mDn.signals as Record<string, unknown>,
       });
-      return NextResponse.json(
-        { error: mDn.message ?? "Nume respins de moderare.", reasons: mDn.reasons },
-        { status: 422 },
-      );
+      return NextResponse.json({ error: "display_name_rejected", reasons: mDn.reasons }, { status: 422 });
     }
     updates.push({ col: "display_name", val: v });
   }
@@ -127,36 +122,30 @@ async function handlePatch(request: Request) {
           reasons: m.reasons,
           signals: m.signals as Record<string, unknown>,
         });
-        return NextResponse.json(
-          { error: m.message ?? "Bio respins de moderare.", reasons: m.reasons },
-          { status: 422 },
-        );
+        return NextResponse.json({ error: "bio_rejected", reasons: m.reasons }, { status: 422 });
       }
     }
     updates.push({ col: "bio", val: v.length === 0 ? null : v });
   }
 
+  let previousUsername: string | null = null;
   if (body.username !== undefined) {
-    const v = body.username;
-    // Uniqueness check (case-insensitive), excluding self.
-    const { rows: clash } = await dbQuery<{ id: string }>(
-      `SELECT id FROM users WHERE lower(username) = lower($1) AND id <> $2 LIMIT 1`,
-      [v, session.userId]
-    );
-    if (clash.length > 0) {
-      return NextResponse.json(
-        { error: "Acest username este deja folosit" },
-        { status: 409 }
-      );
+    const v = normalizeUsername(body.username);
+    // Format, nume rezervate, unicitate (inclusiv aliasurile altor conturi).
+    const problem = await checkUsernameAvailable(v, session.userId);
+    if (problem) {
+      return NextResponse.json({ error: problem }, { status: problem === "username_taken" ? 409 : 400 });
     }
-    updates.push({ col: "username", val: v });
+    const { rows: cur } = await dbQuery<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [session.userId]);
+    previousUsername = cur[0]?.username ?? null;
+    if (previousUsername !== v) updates.push({ col: "username", val: v });
   }
 
   const hasLinks = body.links !== undefined;
   const hasCategories = body.categories !== undefined;
 
   if (updates.length === 0 && !hasLinks && !hasCategories) {
-    return NextResponse.json({ error: "Nimic de actualizat" }, { status: 400 });
+    return NextResponse.json({ error: "nothing_to_update" }, { status: 400 });
   }
 
   // Links → creator_profiles.social_links (+website_url dacă există un link "website").
@@ -185,10 +174,7 @@ async function handlePatch(request: Request) {
       );
     } catch (err) {
       logger.error({ err }, "[users/me PATCH links]");
-      return NextResponse.json(
-        { error: "Eroare la salvarea linkurilor" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "links_save_failed" }, { status: 500 });
     }
   }
 
@@ -217,10 +203,7 @@ async function handlePatch(request: Request) {
       });
     } catch (err) {
       logger.error({ err }, "[users/me PATCH categories]");
-      return NextResponse.json(
-        { error: "Eroare la salvarea categoriilor" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "categories_save_failed" }, { status: 500 });
     }
   }
 
@@ -240,30 +223,32 @@ async function handlePatch(request: Request) {
   params.push(session.userId);
 
   try {
-    const { rows } = await dbQuery<UserRow>(
-      `UPDATE users
-       SET ${setSql}
-       WHERE id = $${updates.length + 1}
-       RETURNING id, email, username, display_name, bio, avatar_url`,
-      params
-    );
+    const rows = await withTransaction(async (q) => {
+      const res = await q<UserRow>(
+        `UPDATE users
+         SET ${setSql}
+         WHERE id = $${updates.length + 1}
+         RETURNING id, email, username, display_name, bio, avatar_url`,
+        params
+      );
+      const updated = res.rows[0];
+      // Linkurile vechi /u/<vechi> redirecționează spre noul username.
+      if (updated && previousUsername && previousUsername !== updated.username) {
+        await recordUsernameAlias(q, session.userId, previousUsername, updated.username);
+      }
+      return res.rows;
+    });
     if (rows.length === 0) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
     }
     return NextResponse.json({ user: rows[0] });
   } catch (err: unknown) {
     // Unique constraint race condition fallback.
     const code = (err as { code?: string })?.code;
     if (code === "23505") {
-      return NextResponse.json(
-        { error: "Acest username este deja folosit" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "username_taken" }, { status: 409 });
     }
     logger.error({ err }, "[users/me PATCH]");
-    return NextResponse.json(
-      { error: "Eroare la actualizarea profilului" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "profile_update_failed" }, { status: 500 });
   }
 }

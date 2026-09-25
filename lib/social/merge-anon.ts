@@ -10,9 +10,8 @@
  *
  * Reguli:
  *  - rândurile care NU există la contul real se mută (UPDATE user_id);
- *  - duplicatele (userul real apreciase deja același lucru) se ȘTERG, iar
- *    contoarele denormalizate scad corespunzător — altfel un like ar rămâne
- *    numărat de două ori;
+ *  - duplicatele (userul real apreciase deja același lucru) se ȘTERG; contoarele
+ *    de like scad prin triggere (20260926_0110), cel de salvări manual;
  *  - totul într-o singură tranzacție: ori migrează tot, ori nimic.
  */
 
@@ -28,21 +27,14 @@ export async function mergeAnonSocialToUser(
   try {
     await withTransaction(async (q) => {
       // ── LIKE-uri pe video ────────────────────────────────────────────────
-      // Duplicatele se șterg și decrementează videos.like_count (trigger-ul de
-      // total_likes pe creator scade și el la DELETE — corect, era dublă
-      // numărare). Restul se mută.
+      // Duplicatele se șterg (triggerele scad contoarele), restul se mută.
+      // Contoarele (videos.like_count, users.total_likes) scad prin triggere
+      // (20260926_0110) — aici NU se mai decrementează manual (era dublă scădere).
       await q(
-        `WITH dup AS (
-           DELETE FROM likes a
-           USING likes r
-           WHERE a.user_id = $1 AND a.video_id IS NOT NULL
-             AND r.user_id = $2 AND r.video_id = a.video_id
-           RETURNING a.video_id
-         )
-         UPDATE videos v
-            SET like_count = GREATEST(v.like_count - d.n, 0)
-           FROM (SELECT video_id, COUNT(*)::int AS n FROM dup GROUP BY video_id) d
-          WHERE v.id = d.video_id`,
+        `DELETE FROM likes a
+         USING likes r
+         WHERE a.user_id = $1 AND a.video_id IS NOT NULL
+           AND r.user_id = $2 AND r.video_id = a.video_id`,
         [anonUserId, realUserId],
       );
       await q(
@@ -52,17 +44,10 @@ export async function mergeAnonSocialToUser(
 
       // ── LIKE-uri pe comentarii ───────────────────────────────────────────
       await q(
-        `WITH dup AS (
-           DELETE FROM likes a
-           USING likes r
-           WHERE a.user_id = $1 AND a.comment_id IS NOT NULL
-             AND r.user_id = $2 AND r.comment_id = a.comment_id
-           RETURNING a.comment_id
-         )
-         UPDATE comments c
-            SET like_count = GREATEST(c.like_count - d.n, 0)
-           FROM (SELECT comment_id, COUNT(*)::int AS n FROM dup GROUP BY comment_id) d
-          WHERE c.id = d.comment_id`,
+        `DELETE FROM likes a
+         USING likes r
+         WHERE a.user_id = $1 AND a.comment_id IS NOT NULL
+           AND r.user_id = $2 AND r.comment_id = a.comment_id`,
         [anonUserId, realUserId],
       );
       await q(
@@ -123,6 +108,11 @@ export async function mergeAnonSocialToUser(
          WHERE a.follower_user_id = $1
            AND r.follower_user_id = $2
            AND r.following_user_id = a.following_user_id`,
+        [anonUserId, realUserId],
+      );
+      // Un follow către contul real însuși ar încălca follows_check.
+      await q(
+        `DELETE FROM follows WHERE follower_user_id = $1 AND following_user_id = $2`,
         [anonUserId, realUserId],
       );
       await q(

@@ -1,72 +1,55 @@
+/**
+ * GET /api/users/profile/[username]/videos?tab=videos|liked|saved&cursor=&limit=
+ *   → { items, nextCursor }
+ * „liked" doar pentru proprietar sau dacă users.liked_videos_public; „saved" doar proprietarul.
+ */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { SOCIAL_PAGE } from "@/lib/social/config";
+import { decodeCursor, pageLimit } from "@/lib/social/cursor";
+import { canViewTab, listProfileVideos, PROFILE_TABS, type ProfileTab } from "@/lib/social/profile/videos";
+import { getOptionalSocialUserId } from "@/lib/social/session";
+import { normalizeProfileUsername } from "@/lib/social/user-profile";
 
 export const dynamic = "force-dynamic";
 
-type RouteContext = {
-  params: Promise<{ username: string }>;
-};
+type RouteContext = { params: Promise<{ username: string }> };
+
+function isTab(value: string | null): value is ProfileTab {
+  return PROFILE_TABS.includes(value as ProfileTab);
+}
 
 export async function GET(req: Request, { params }: RouteContext) {
   try {
-    const { username } = await params;
+    const { username: raw } = await params;
+    const username = normalizeProfileUsername(raw);
+    if (!username) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
     const url = new URL(req.url);
-    const page = Math.max(1, Math.trunc(Number(url.searchParams.get("page")) || 1));
-    const limit = Math.min(60, Math.max(12, Number(url.searchParams.get("limit")) || 24));
-    const offset = (page - 1) * limit;
+    const tabParam = url.searchParams.get("tab") ?? "videos";
+    if (!isTab(tabParam)) return NextResponse.json({ error: "invalid_tab" }, { status: 400 });
+    const cursor = url.searchParams.get("cursor");
+    if (cursor && !decodeCursor(cursor)) return NextResponse.json({ error: "invalid_cursor" }, { status: 400 });
+    const limit = pageLimit(url.searchParams.get("limit"), SOCIAL_PAGE.videos, SOCIAL_PAGE.maxPage);
 
-    const userRes = await dbQuery<{ id: string }>(
-      `SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
-      [username.replace(/^@/, "")]
+    const { rows } = await dbQuery<{ id: string; liked_videos_public: boolean }>(
+      `SELECT id, liked_videos_public FROM users WHERE lower(username) = $1 AND status = 'active' LIMIT 1`,
+      [username],
     );
-    if (!userRes.rows.length) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-    const userId = userRes.rows[0].id;
+    const owner = rows[0];
+    if (!owner) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
 
-    const rows = await dbQuery<any>(
-      `SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.thumbnail_url,
-        v.duration_ms,
-        v.view_count,
-        v.like_count,
-        v.comment_count,
-        v.save_count,
-        v.share_count,
-        v.published_at
-      FROM videos v
-      WHERE v.creator_id = $1
-        AND v.status = 'ready'
-        AND v.visibility = 'public'
-        AND COALESCE(v.is_hidden, false) = false
-        AND v.effective_label = 'safe'
-      ORDER BY v.published_at DESC NULLS LAST, v.created_at DESC
-      LIMIT $2 OFFSET $3`,
-      [userId, limit + 1, offset]
-    );
+    const viewerId = tabParam === "videos" ? null : await getOptionalSocialUserId().catch(() => null);
+    const allowed = canViewTab(tabParam, {
+      isOwner: viewerId === owner.id,
+      likedVideosPublic: Boolean(owner.liked_videos_public),
+    });
+    if (!allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-    const hasMore = rows.rows.length > limit;
-    const videos = (hasMore ? rows.rows.slice(0, limit) : rows.rows).map((r: any) => ({
-      id: r.id,
-      title: r.title,
-      description: r.description,
-      thumbnailUrl: r.thumbnail_url,
-      durationMs: r.duration_ms,
-      viewCount: Number(r.view_count) || 0,
-      likeCount: Number(r.like_count) || 0,
-      commentCount: Number(r.comment_count) || 0,
-      saveCount: Number(r.save_count) || 0,
-      shareCount: Number(r.share_count) || 0,
-      publishedAt: r.published_at,
-    }));
-
-    return NextResponse.json({ videos, page, hasMore });
+    const page = await listProfileVideos(tabParam, owner.id, { cursor, limit });
+    return NextResponse.json(page, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     logger.error({ err }, "[User Videos API] GET");
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
