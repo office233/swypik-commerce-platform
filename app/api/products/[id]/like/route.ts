@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { anonSessionErrorResponse, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { logger } from "@/lib/logger";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
@@ -81,6 +81,8 @@ export async function POST(
         setAnonSessionCookie(response, anonSessionId);
         return response;
     } catch (error) {
+        const anonErr = anonSessionErrorResponse(error);
+        if (anonErr) return anonErr;
         logger.error({ error: String(error) }, "product like failed");
         return NextResponse.json({ error: "internal_error" }, { status: 500 });
     }

@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
-import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import {
+  getOptionalSocialUserId,
+  anonSessionErrorResponse,
+  getOrCreateSocialUser,
+  setAnonSessionCookie,
+} from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { ABUSE_LIMITS } from "@/lib/security/abuse-limits";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -12,14 +19,27 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: followingUserId } = await params;
+    if (!isUuidParam(followingUserId)) return invalidIdResponse();
+    // Limită per IP înainte de a crea identitatea anonimă (anti-umflare follower_count).
+    const ipRl = await rateLimit("follow_ip", getClientIP(request), ABUSE_LIMITS.followPerIp);
+    if (!ipRl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     const session = await getOrCreateSocialUser();
     const currentUserId = session.userId;
     const rl = await rateLimit("userFollow", currentUserId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
-    const { id: followingUserId } = await params;
 
     if (currentUserId === followingUserId) {
       return NextResponse.json({ error: "Cannot follow yourself" }, { status: 400 });
+    }
+
+    // Ținta trebuie să existe și să fie activă (altfel 404, nu FK error → 500).
+    const target = await dbQuery(
+      `SELECT 1 FROM users WHERE id = $1 AND COALESCE(status, 'active') = 'active' LIMIT 1`,
+      [followingUserId],
+    );
+    if (target.rows.length === 0) {
+      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
     }
 
     const pool = getDb();
@@ -61,7 +81,8 @@ export async function POST(
 
       await client.query("COMMIT");
 
-      if (following) {
+      // Fără notificări de la vizitatori anonimi („Guest" spam).
+      if (following && !session.isAnon) {
         void notifyUser(followingUserId, {
           type: "follow",
           actorUserId: currentUserId,
@@ -86,6 +107,8 @@ export async function POST(
       client.release();
     }
   } catch (error: any) {
+    const anonErr = anonSessionErrorResponse(error);
+    if (anonErr) return anonErr;
     logger.error({ err: error }, "[Follow API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -96,8 +119,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const currentUserId = await getOptionalSocialUserId();
     const { id: followingUserId } = await params;
+    if (!isUuidParam(followingUserId)) return invalidIdResponse();
+    const currentUserId = await getOptionalSocialUserId();
 
     const [followRes, countRes] = await Promise.all([
       currentUserId

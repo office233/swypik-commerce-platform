@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
-import { getOrCreateSocialUser } from "@/lib/social/session";
+import { getAccountUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { endCall, CallAuthError, CallNotFoundError } from "@/lib/messenger/calls";
 import { logger } from "@/lib/logger";
@@ -14,8 +14,8 @@ export async function POST(
 ) {
   if (!isEnabled("messenger")) return frozenResponse("messenger");
   try {
-    const session = await getOrCreateSocialUser();
-    const userId = session?.userId;
+    // Cont real obligatoriu: anonimii nu pot scrie DM / apela (audit messenger P0).
+    const userId = await getAccountUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

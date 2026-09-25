@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { anonSessionErrorResponse, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { logger } from "@/lib/logger";
 import { UUID_RE } from "@/lib/validation/uuid";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { ABUSE_LIMITS } from "@/lib/security/abuse-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export async function POST(
             return NextResponse.json({ error: "invalid_id" }, { status: 400 });
         }
 
+        const ipRl = await rateLimit("share_ip", getClientIP(request), ABUSE_LIMITS.sharePerIp);
+        if (!ipRl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
         const { userId, anonSessionId } = await getOrCreateSocialUser();
         const rl = await rateLimit("productShare", userId);
         if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
@@ -80,6 +83,8 @@ export async function POST(
         setAnonSessionCookie(response, anonSessionId);
         return response;
     } catch (error) {
+        const anonErr = anonSessionErrorResponse(error);
+        if (anonErr) return anonErr;
         logger.error({ error: String(error) }, "product share failed");
         return NextResponse.json({ error: "internal_error" }, { status: 500 });
     }

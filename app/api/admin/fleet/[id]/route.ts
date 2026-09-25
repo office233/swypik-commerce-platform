@@ -43,12 +43,12 @@ export async function PATCH(
                 RETURNING id, kind, full_name, email, verification_status`;
         } else if (action === "reject") {
             sql = `UPDATE couriers
-                      SET verification_status='rejected', active=false, updated_at=now()
+                      SET verification_status='rejected', active=false, is_online=false, updated_at=now()
                     WHERE id=$1
                 RETURNING id, kind, full_name, email, verification_status`;
         } else if (action === "suspend") {
             sql = `UPDATE couriers
-                      SET active=false, updated_at=now()
+                      SET active=false, is_online=false, updated_at=now()
                     WHERE id=$1
                 RETURNING id, kind, full_name, email, verification_status`;
         } else if (action === "reactivate") {

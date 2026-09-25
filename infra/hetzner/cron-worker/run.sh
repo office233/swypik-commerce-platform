@@ -62,13 +62,14 @@ while true; do
   # Every minute — trending aproape real-time (2026-08-11: era la 5 min;
   # REFRESH CONCURRENTLY pe video_rank_14d e ieftin la scara actuala).
   run_job refresh-rank POST
+  # Dispecerizarea curselor Go / livrarilor Food + sweep curieri fara heartbeat.
+  # 2026-09-26: mutat de la 5 min la fiecare minut (ofertele expira in 45s;
+  # scripts/dispatch-worker.mjs ramane varianta recomandata la 10s).
+  run_job dispatch-tick POST
 
   # Every 5 min
   if [ $((TICK % 300)) -lt 60 ]; then
     run_job publish-scheduled POST
-    # Dispecerizarea curselor Go / livrarilor Food — fara asta comenzile
-    # raman neatribuite. (Adaugat 2026-07-31: ruta exista dar nu era programata.)
-    run_job dispatch-tick POST
   fi
   # Every 10 min
   if [ $((TICK % 600)) -lt 60 ]; then

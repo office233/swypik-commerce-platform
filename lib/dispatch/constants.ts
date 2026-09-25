@@ -33,6 +33,9 @@ export const OFFER_TTL_SECONDS = intFromEnv("DISPATCH_OFFER_TTL_SECONDS", 45, 5,
 /** Câți curieri primesc oferta simultan într-un val (default 5). */
 export const MAX_COURIERS_PER_WAVE = intFromEnv("DISPATCH_MAX_COURIERS_PER_WAVE", 5, 1, 50);
 
+/** Un curier online fără heartbeat de atâtea secunde e considerat offline (default 120). */
+export const COURIER_STALE_SECONDS = intFromEnv("DISPATCH_COURIER_STALE_SECONDS", 120, 30, 3600);
+
 /** raza (km) per val; după ultimul val fără accept → no_courier */
 export const WAVE_RADII_KM: readonly number[] = radiiFromEnv("DISPATCH_SEARCH_RADII_KM", [2, 5, 10]);
 

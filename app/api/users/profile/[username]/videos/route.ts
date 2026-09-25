@@ -12,8 +12,8 @@ export async function GET(req: Request, { params }: RouteContext) {
   try {
     const { username } = await params;
     const url = new URL(req.url);
-    const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-    const limit = Math.min(60, Math.max(12, Number(url.searchParams.get("limit") || 24)));
+    const page = Math.max(1, Math.trunc(Number(url.searchParams.get("page")) || 1));
+    const limit = Math.min(60, Math.max(12, Number(url.searchParams.get("limit")) || 24));
     const offset = (page - 1) * limit;
 
     const userRes = await dbQuery<{ id: string }>(

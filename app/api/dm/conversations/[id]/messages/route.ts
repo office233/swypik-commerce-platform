@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import {
   getOptionalSocialUserId,
-  getOrCreateSocialUser,
-  setAnonSessionCookie,
+  getAccountUserId,
 } from "@/lib/social/session";
 import {
   listMessages,
@@ -12,7 +11,8 @@ import {
   isStatusError,
 } from "@/lib/dm/repository";
 import { notifyUser } from "@/lib/notifications/dispatch";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { ABUSE_LIMITS } from "@/lib/security/abuse-limits";
 import { DmMessageCreateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 
@@ -31,7 +31,7 @@ export async function GET(
     }
     const { id: conversationId } = await params;
     const url = new URL(request.url);
-    const limit = Number(url.searchParams.get("limit") || 30);
+    const limit = Number(url.searchParams.get("limit")) || 30;
     const before = url.searchParams.get("before");
 
     const messages = await listMessages(conversationId, userId, {
@@ -55,8 +55,8 @@ export async function POST(
 ) {
   if (!isEnabled("dm") && !isEnabled("messenger")) return frozenResponse("dm");
   try {
-    const session = await getOrCreateSocialUser();
-    const userId = session.userId;
+    // Cont real obligatoriu: anonimii nu pot scrie DM / apela (audit messenger P0).
+    const userId = await getAccountUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -64,6 +64,8 @@ export async function POST(
 
     const rl = await rateLimit("dmMessage", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    const ipRl = await rateLimit("dm_ip", getClientIP(request), ABUSE_LIMITS.dmPerIp);
+    if (!ipRl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const rawBody = await request.json().catch(() => ({}));
     const parsed = parseBody(DmMessageCreateSchema, rawBody);
@@ -97,7 +99,6 @@ export async function POST(
     }
 
     const response = NextResponse.json({ message });
-    setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (err: unknown) {
     if (isStatusError(err) && err.status === 400) {

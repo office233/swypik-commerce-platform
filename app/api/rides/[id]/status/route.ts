@@ -12,6 +12,7 @@
  */
 import { NextResponse } from "next/server";
 import { dbQuery, withTransaction } from "@/lib/db";
+import { releaseJobForRide } from "@/lib/dispatch/lifecycle";
 import { getAuthSession } from "@/lib/auth/session";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { findZone } from "@/lib/pricing/engine";
@@ -97,11 +98,7 @@ export async function PATCH(
           [fresh.driver_id],
         );
         // Eliberăm jobul de dispatch, ca șoferul să poată primi altă cursă.
-        await q(
-          `UPDATE dispatch_jobs SET status = 'cancelled', updated_at = now()
-            WHERE ride_id = $1 AND status = 'assigned'`,
-          [id],
-        );
+        await releaseJobForRide(q, id, "completed");
       }
       return {
         status: "completed",
@@ -125,11 +122,7 @@ export async function PATCH(
         WHERE id = $1`,
       [id, reasonText, role === "admin" ? "system" : role, fee],
     );
-    await q(
-      `UPDATE dispatch_jobs SET status = 'cancelled', updated_at = now()
-        WHERE ride_id = $1 AND status IN ('searching','assigned')`,
-      [id],
-    );
+    await releaseJobForRide(q, id, "cancelled");
     return { status: "cancelled", cancel_fee_cents: fee };
   });
 

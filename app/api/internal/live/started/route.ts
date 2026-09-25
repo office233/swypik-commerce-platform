@@ -33,13 +33,22 @@ export async function POST(req: NextRequest) {
   const streamKey = extractKey(path);
   if (!streamKey) return NextResponse.json({ error: "invalid_path" }, { status: 400 });
 
-  const { rows } = await dbQuery<{ id: string; creator_id: string; title: string }>(
-    `UPDATE live_streams SET status = 'live', started_at = COALESCE(started_at, now())
-       WHERE stream_key = $1 RETURNING id, creator_id, title`,
+  const { rows } = await dbQuery<{ id: string; creator_id: string; title: string; prev_status: string }>(
+    // Doar un stream programat/în curs poate (re)deveni live — nu și unul încheiat.
+    `WITH prev AS (
+       SELECT id, status AS prev_status FROM live_streams
+        WHERE stream_key = $1 AND status IN ('scheduled', 'live')
+        FOR UPDATE
+     )
+     UPDATE live_streams ls SET status = 'live', started_at = COALESCE(ls.started_at, now())
+       FROM prev WHERE ls.id = prev.id
+     RETURNING ls.id, ls.creator_id, ls.title, prev.prev_status`,
     [streamKey],
   );
   if (!rows[0]) return NextResponse.json({ error: "stream_not_found" }, { status: 404 });
   const stream = rows[0];
+  // Reconectare encoder (deja live): fără notificări duplicate către followeri.
+  if (stream.prev_status === "live") return NextResponse.json({ ok: true, stream_id: stream.id });
 
   // Notify followers
   try {

@@ -11,6 +11,14 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { safeFetch, UnsafeUrlError, assertPublicHttpsUrl } from "@/lib/security/ssrf";
+import { isErpKeyUsedByOtherSeller, saveSellerErpConnection } from "@/lib/seller/erp-credentials";
+import { z } from "zod";
+
+const ConnectSchema = z.object({
+    erp_api_url: z.string().trim().min(1).max(500),
+    erp_api_key: z.string().trim().min(16).max(256),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +29,8 @@ async function testERPConnection(
 ): Promise<{ ok: boolean; productCount?: number; error?: string }> {
     try {
         const url = new URL("/api/swypik/products?page=1&size=1", apiUrl).toString();
-        const res = await fetch(url, {
+        // Anti-SSRF: https + adrese publice (DNS re-verificat), fără redirect-uri.
+        const res = await safeFetch(url, {
             headers: { "X-Api-Key": apiKey },
             signal: AbortSignal.timeout(8000),
         });
@@ -47,25 +56,24 @@ export async function POST(req: Request) {
     const rl = await rateLimit("sellerProducts", sellerId);
     if (!rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-    let body: { erp_api_url: string; erp_api_key: string };
-    try {
-        body = await req.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-    }
-
-    const { erp_api_url, erp_api_key } = body;
-    if (!erp_api_url || !erp_api_key) {
+    const parsed = ConnectSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
         return NextResponse.json({ error: "erp_api_url si erp_api_key sunt obligatorii" }, { status: 400 });
     }
+    const { erp_api_url, erp_api_key } = parsed.data;
 
-    // Valideaza URL-ul.
+    // Valideaza URL-ul: doar https catre adrese publice (anti-SSRF).
     let parsedUrl: URL;
     try {
-        parsedUrl = new URL(erp_api_url);
-        if (!["https:", "http:"].includes(parsedUrl.protocol)) throw new Error();
-    } catch {
-        return NextResponse.json({ error: "URL invalid" }, { status: 400 });
+        parsedUrl = await assertPublicHttpsUrl(erp_api_url);
+    } catch (e) {
+        const reason = e instanceof UnsafeUrlError ? e.reason : "invalid_url";
+        return NextResponse.json({ error: "URL invalid", reason }, { status: 400 });
+    }
+
+    // O cheie de partner identifică un singur seller.
+    if (await isErpKeyUsedByOtherSeller(sellerId, erp_api_key)) {
+        return NextResponse.json({ error: "erp_key_in_use" }, { status: 409 });
     }
 
     // Testeaza conexiunea inainte de a salva.
@@ -74,12 +82,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: `Conexiune ERP esuata: ${test.error}` }, { status: 422 });
     }
 
-    // Salveaza (cheia e stocata plain — in productie: encrypt cu KMS).
-    await dbQuery(
-        `UPDATE sellers SET erp_api_url=$1, erp_api_key=$2, erp_connected=true, erp_last_sync=NOW()
-     WHERE id=$3`,
-        [parsedUrl.origin, erp_api_key, sellerId]
-    );
+    // Cheia: hash (autentificare partner) + criptată (apeluri către ERP), niciodată în clar.
+    await saveSellerErpConnection(sellerId, parsedUrl.origin, erp_api_key);
 
     logger.info({ sellerId, erpUrl: parsedUrl.origin }, "ERP connected");
 
@@ -98,7 +102,9 @@ export async function DELETE(_req: Request) {
     if (!sellerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     await dbQuery(
-        `UPDATE sellers SET erp_api_url=NULL, erp_api_key=NULL, erp_connected=false WHERE id=$1`,
+        `UPDATE sellers
+            SET erp_api_url=NULL, erp_api_key=NULL, erp_api_key_hash=NULL, erp_api_key_enc=NULL, erp_connected=false
+          WHERE id=$1`,
         [sellerId]
     );
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
-import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { anonSessionErrorResponse, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { logger } from "@/lib/logger";
 import { UUID_RE } from "@/lib/validation/uuid";
@@ -144,6 +144,8 @@ export async function POST(
       client.release();
     }
   } catch (error: any) {
+    const anonErr = anonSessionErrorResponse(error);
+    if (anonErr) return anonErr;
     logger.error({ err: error }, "[Like API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

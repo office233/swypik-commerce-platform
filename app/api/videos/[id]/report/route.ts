@@ -10,6 +10,7 @@ import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { VideoReportPostSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -39,6 +40,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: videoId } = await params;
+  if (!isUuidParam(videoId)) return invalidIdResponse();
   if (!/^[0-9a-f-]{36}$/i.test(videoId)) {
     return NextResponse.json({ error: "ID invalid" }, { status: 400 });
   }

@@ -5,13 +5,14 @@
  *         reason?, erp_api_key? }
  *
  * Pentru seller + approve: ERP-ul trimite erp_api_key generat de el →
- * il salvam pe seller (erp_api_key, erp_connected=true) ca partner API
+ * il salvam pe seller (erp_api_key_hash + erp_api_key_enc, erp_connected=true) ca partner API
  * (/api/partner/*) sa functioneze imediat.
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { encryptErpKey, hashErpKey } from "@/lib/seller/erp-credentials";
 import { verifyInternal, forbidden } from "../../_lib/auth";
 import { notifyFollowersNewPost } from "@/lib/notifications/dispatch";
 
@@ -50,11 +51,14 @@ export async function POST(req: Request) {
                 const { rowCount } = await dbQuery(
                     `UPDATE sellers
                         SET status = 'approved',
-                            erp_api_key = COALESCE($2, erp_api_key),
+                            erp_api_key = CASE WHEN $2::text IS NOT NULL THEN NULL ELSE erp_api_key END,
+                            erp_api_key_hash = COALESCE($2, erp_api_key_hash),
+                            erp_api_key_enc = COALESCE($3, erp_api_key_enc),
                             erp_connected = CASE WHEN $2 IS NOT NULL THEN true ELSE erp_connected END,
                             updated_at = NOW()
                       WHERE id = $1 AND status = 'pending'`,
-                    [id, erp_api_key ?? null]
+                    // Cheia de partner: doar hash + criptată (niciodată în clar).
+                    [id, erp_api_key ? hashErpKey(erp_api_key) : null, erp_api_key ? encryptErpKey(erp_api_key) : null]
                 );
                 updated = rowCount ?? 0;
             } else {

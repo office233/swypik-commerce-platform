@@ -1,6 +1,7 @@
 /**
  * Partner API auth — ERP-urile (Multi-ERP) push-uiesc produse cu X-Api-Key.
- * Cheia = sellers.erp_api_key (aceeasi cheie folosita si pentru pull).
+ * Cheia se verifica dupa sellers.erp_api_key_hash (sha256); aceeasi cheie,
+ * criptata in erp_api_key_enc, e folosita si pentru pull.
  *
  * ERP-first auto-provision: daca cheia nu exista inca, dar request-ul vine
  * semnat cu secretul partner (X-Partner-Secret == PARTNER_PROVISION_SECRET)
@@ -10,8 +11,8 @@
  *     produse si clipuri si din mobil).
  * Firma isi poate edita ulterior profilul din panoul de seller.
  */
-import { dbQuery } from "@/lib/db";
 import { getDb } from "@/lib/db";
+import { encryptErpKey, findSellerByPartnerKey, hashErpKey } from "@/lib/seller/erp-credentials";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
@@ -66,16 +67,21 @@ async function autoProvisionSeller(req: Request, apiKey: string): Promise<Partne
         );
         const userId = userRes.rows[0].id;
 
+        // 2026-09-26 (audit): NU mai rescriem cheia unui seller existent la potrivire
+        // pe email — oricine avea PARTNER_PROVISION_SECRET putea prelua un cont.
+        // Cheia se stochează doar ca hash + criptată.
         const sellerRes = await client.query(
-            `INSERT INTO sellers (name, email, cui, status, erp_api_key, erp_connected, erp_tenant_name, is_verified, user_id, business_details)
-             VALUES ($1, $2, $3, 'active', $4, true, $1, true, $5, jsonb_build_object('source', 'erp_auto_provision'))
-             ON CONFLICT (email) DO UPDATE SET
-               erp_api_key = EXCLUDED.erp_api_key,
-               erp_connected = true,
-               user_id = COALESCE(sellers.user_id, EXCLUDED.user_id)
+            `INSERT INTO sellers (name, email, cui, status, erp_api_key_hash, erp_api_key_enc, erp_connected, erp_tenant_name, is_verified, user_id, business_details)
+             VALUES ($1, $2, $3, 'active', $4, $5, true, $1, true, $6, jsonb_build_object('source', 'erp_auto_provision'))
+             ON CONFLICT (email) DO NOTHING
              RETURNING id, name AS display_name`,
-            [companyName, email, companyCui, apiKey, userId]
+            [companyName, email, companyCui, hashErpKey(apiKey), encryptErpKey(apiKey), userId]
         );
+        if (sellerRes.rows.length === 0) {
+            await client.query("ROLLBACK");
+            logger.warn({ company: companyName }, "partner auto-provision refused: email already belongs to a seller");
+            return null;
+        }
 
         await client.query("COMMIT");
         logger.info({ seller: sellerRes.rows[0].id, company: companyName }, "partner auto-provisioned seller");
@@ -92,11 +98,8 @@ async function autoProvisionSeller(req: Request, apiKey: string): Promise<Partne
 export async function getPartnerSeller(req: Request): Promise<PartnerSeller | null> {
     const apiKey = req.headers.get("x-api-key");
     if (!apiKey || apiKey.length < 16) return null;
-    const { rows } = await dbQuery<PartnerSeller>(
-        `SELECT id, name AS display_name FROM sellers WHERE erp_api_key = $1 AND erp_connected = true LIMIT 1`,
-        [apiKey]
-    );
-    if (rows[0]) return rows[0];
+    const existing = await findSellerByPartnerKey(apiKey);
+    if (existing) return existing;
     // ERP-first: primul push creeaza profilul firmei automat.
     return autoProvisionSeller(req, apiKey);
 }

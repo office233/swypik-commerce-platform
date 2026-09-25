@@ -7,7 +7,8 @@
  *    Fiecare val emite oferte (dispatch_offers) către max 5 curieri
  *    ordonați după distanță (haversine în SQL). Oferta expiră în 45s.
  *  - După 3 valuri fără accept → status 'no_courier'.
- *  - tick(): rulat de worker la ~10s — expiră ofertele, avansează valurile.
+ *  - tick(): rulat de worker la ~10s — pune offline curierii fără heartbeat,
+ *    expiră ofertele, avansează valurile.
  *  - acceptOffer(): tranzacție cu SELECT ... FOR UPDATE — anti dublă-asignare.
  *
  * Evenimente publicate pe Redis (canal `dispatch:job:<id>`):
@@ -18,6 +19,7 @@ import { getRedis } from "@/lib/redis";
 import { sendPushToUser } from "@/lib/push/send";
 import { logger } from "@/lib/logger";
 import { OFFER_TTL_SECONDS, MAX_COURIERS_PER_WAVE, WAVE_RADII_KM } from "./constants";
+import { COURIER_AVAILABLE_SQL, sweepStaleCouriers } from "./lifecycle";
 
 // Re-exportate din lib/dispatch/constants pentru compatibilitate cu importatorii actuali.
 export { VEHICLE_SPEED_KMH } from "./constants";
@@ -33,7 +35,7 @@ export type DispatchJob = {
     city: string;
     pickup_lat: number | null;
     pickup_lng: number | null;
-    status: "searching" | "assigned" | "no_courier" | "cancelled";
+    status: "searching" | "assigned" | "no_courier" | "cancelled" | "completed";
     wave: number;
     assigned_courier_id: string | null;
 };
@@ -92,6 +94,8 @@ async function emitWaveOffers(job: DispatchJob): Promise<number> {
             -- curierii isi scriu orasul liber (ex. "Bucuresti") -> fara unaccent nu se potrivesc niciodata.
             WHERE unaccent(lower(c.city)) = unaccent(lower($1))
         AND c.is_online
+        -- suspendat (active=false) sau fără heartbeat recent → fără oferte
+        AND ${COURIER_AVAILABLE_SQL}
         AND c.verification_status = 'approved'
         AND c.kind = $7
         AND c.id NOT IN (SELECT courier_id FROM dispatch_offers WHERE job_id = $4)
@@ -220,7 +224,14 @@ export async function acceptOffer(jobOrOrderId: string, courierId: string): Prom
 
         // Curierul nu poate avea două joburi active simultan. Lock pe rândul
         // curierului serializează accept-urile concurente ale aceluiași curier.
-        await q(`SELECT id FROM couriers WHERE id = $1 FOR UPDATE`, [courierId]);
+        const { rows: courierRows } = await q<{ active: boolean }>(
+            `SELECT active FROM couriers WHERE id = $1 FOR UPDATE`,
+            [courierId],
+        );
+        // Curier suspendat: nu poate accepta (audit P0 — suspendarea nu avea efect).
+        if (!courierRows[0]?.active) {
+            return { ok: false as const, error: "Courier account suspended.", code: 403 };
+        }
         const { rows: busy } = await q(
             `SELECT id FROM dispatch_jobs
         WHERE assigned_courier_id = $1 AND status = 'assigned'`,
@@ -324,6 +335,7 @@ export async function declineOffer(jobOrOrderId: string, courierId: string): Pro
 }
 
 export type TickResult = {
+    staleCouriers: number;
     expiredOffers: number;
     advancedWaves: number;
     noCourier: number;
@@ -336,7 +348,10 @@ export type TickResult = {
  *     sau declară 'no_courier' după epuizarea valurilor.
  */
 export async function tick(): Promise<TickResult> {
-    const result: TickResult = { expiredOffers: 0, advancedWaves: 0, noCourier: 0 };
+    const result: TickResult = { staleCouriers: 0, expiredOffers: 0, advancedWaves: 0, noCourier: 0 };
+
+    // 0. Curieri suspendați / fără heartbeat → offline (ofertele lor expiră).
+    result.staleCouriers = await sweepStaleCouriers();
 
     const { rowCount: expired } = await dbQuery(
         `UPDATE dispatch_offers SET response = 'expired', responded_at = now()

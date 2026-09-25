@@ -14,6 +14,8 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { safeFetch } from "@/lib/security/ssrf";
+import { getSellerErpCredentials } from "@/lib/seller/erp-credentials";
 
 export const dynamic = "force-dynamic";
 
@@ -38,13 +40,9 @@ export async function POST(_req: Request) {
     const rl = await rateLimit("sellerProducts", `erp-sync:${sellerId}`);
     if (!rl.success) return NextResponse.json({ error: "Rate limit — incearca din nou in 5 minute" }, { status: 429 });
 
-    // Ia credentialele ERP ale seller-ului.
-    const { rows: sellers } = await dbQuery<{ erp_api_url: string | null; erp_api_key: string | null; erp_connected: boolean }>(
-        `SELECT erp_api_url, erp_api_key, erp_connected FROM sellers WHERE id=$1`,
-        [sellerId]
-    );
-    const seller = sellers[0];
-    if (!seller?.erp_connected || !seller.erp_api_url || !seller.erp_api_key) {
+    // Ia credentialele ERP ale seller-ului (cheia e stocată criptat).
+    const creds = await getSellerErpCredentials(sellerId);
+    if (!creds) {
         return NextResponse.json({ error: "ERP nu este conectat" }, { status: 422 });
     }
 
@@ -58,9 +56,10 @@ export async function POST(_req: Request) {
     while (true) {
         let products: ERPProduct[];
         try {
-            const url = `${seller.erp_api_url}/api/swypik/products?page=${page}&size=${SIZE}`;
-            const res = await fetch(url, {
-                headers: { "X-Api-Key": seller.erp_api_key },
+            const url = `${creds.url}/api/swypik/products?page=${page}&size=${SIZE}`;
+            // Anti-SSRF: URL-ul e re-verificat (DNS) la fiecare apel; fără redirect-uri.
+            const res = await safeFetch(url, {
+                headers: { "X-Api-Key": creds.key },
                 signal: AbortSignal.timeout(15000),
             });
             if (!res.ok) break;

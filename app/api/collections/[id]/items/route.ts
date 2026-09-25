@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { CollectionItemAddSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 export const dynamic = "force-dynamic";
 
 /**
@@ -26,6 +27,8 @@ export async function POST(
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id: collectionId } = await params;
+
+    if (!isUuidParam(collectionId)) return invalidIdResponse();
     const rawBody = await req.json().catch(() => null);
     const parsedBody = parseBody(CollectionItemAddSchema, rawBody);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
@@ -99,6 +102,8 @@ export async function GET(
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id: collectionId } = await params;
+
+    if (!isUuidParam(collectionId)) return invalidIdResponse();
     const url = new URL(req.url);
     const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "30", 10) || 30, 100);
     const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0", 10) || 0, 0);

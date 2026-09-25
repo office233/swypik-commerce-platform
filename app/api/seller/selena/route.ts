@@ -11,8 +11,9 @@
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { safeFetch } from "@/lib/security/ssrf";
+import { getSellerErpCredentials } from "@/lib/seller/erp-credentials";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { withErrorHandling } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
@@ -36,15 +37,11 @@ async function POST_impl(req: Request): Promise<Response> {
     if (!parsed.success) return NextResponse.json({ error: "Body invalid" }, { status: 400 });
 
     // ERP-ul seller-ului (preferat) sau ERP-ul platformei din env.
-    const { rows: sellers } = await dbQuery<{
-        erp_api_url: string | null;
-        erp_api_key: string | null;
-        erp_connected: boolean;
-    }>(`SELECT erp_api_url, erp_api_key, erp_connected FROM sellers WHERE id=$1`, [sellerId]);
-    const seller = sellers[0];
-
-    let erpUrl = seller?.erp_connected ? seller.erp_api_url : null;
-    let erpKey = seller?.erp_connected ? seller.erp_api_key : null;
+    const creds = await getSellerErpCredentials(sellerId);
+    let erpUrl = creds?.url ?? null;
+    let erpKey = creds?.key ?? null;
+    // URL-ul seller-ului e controlat de utilizator → fetch anti-SSRF; cel din env e de încredere.
+    const sellerOwnedUrl = Boolean(erpUrl && erpKey);
     if (!erpUrl || !erpKey) {
         erpUrl = process.env.SELENA_ERP_URL || null;
         erpKey = process.env.SELENA_ERP_API_KEY || null;
@@ -58,12 +55,14 @@ async function POST_impl(req: Request): Promise<Response> {
 
     let res: Response;
     try {
-        res = await fetch(`${erpUrl.replace(/\/+$/, "")}/api/partner/selena/assist`, {
+        const target = `${erpUrl.replace(/\/+$/, "")}/api/partner/selena/assist`;
+        const init: RequestInit = {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-Api-Key": erpKey },
             body: JSON.stringify(parsed.data),
             signal: AbortSignal.timeout(95000),
-        });
+        };
+        res = sellerOwnedUrl ? await safeFetch(target, init) : await fetch(target, init);
     } catch (e) {
         logger.error({ sellerId, err: e }, "Selena ERP proxy failed");
         return NextResponse.json({ error: "ERP-ul nu răspunde — încearcă mai târziu" }, { status: 502 });

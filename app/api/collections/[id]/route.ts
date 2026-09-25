@@ -5,9 +5,11 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { CollectionPatchSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: collectionId } = await params;
+    if (!isUuidParam(collectionId)) return invalidIdResponse();
     const userId = await getOptionalSocialUserId();
 
     if (!userId) {
@@ -46,6 +48,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: collectionId } = await params;
+    if (!isUuidParam(collectionId)) return invalidIdResponse();
     const userId = await getOptionalSocialUserId();
 
     if (!userId) {
@@ -94,6 +97,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: collectionId } = await params;
+    if (!isUuidParam(collectionId)) return invalidIdResponse();
     const userId = await getOptionalSocialUserId();
 
     if (!userId) {

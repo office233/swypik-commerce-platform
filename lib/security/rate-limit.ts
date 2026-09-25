@@ -306,9 +306,14 @@ export async function rateLimit(
  * client remote îl poate prefixa.
  */
 export function getClientIP(req: Request): string {
-  const real = req.headers.get("x-real-ip");
+  return getClientIPFromHeaders(req.headers);
+}
+
+/** Aceeași regulă ca getClientIP, pentru contexte fără Request (ex. `headers()` din next/headers). */
+export function getClientIPFromHeaders(headers: Pick<Headers, "get">): string {
+  const real = headers.get("x-real-ip");
   if (real) return real.trim();
-  const xff = req.headers.get("x-forwarded-for");
+  const xff = headers.get("x-forwarded-for");
   if (xff) {
     const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
     if (parts.length) return parts[parts.length - 1];

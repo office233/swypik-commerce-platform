@@ -3,6 +3,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery, getDb } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,8 @@ export async function POST(
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id } = await params;
+
+    if (!isUuidParam(id)) return invalidIdResponse();
 
     await client.query("BEGIN");
 

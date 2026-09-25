@@ -5,6 +5,7 @@ import { getOptionalSocialUserId } from "@/lib/social/session";
 import { loadFeedWeightsForViewer, type FeedWeights } from "@/lib/algo/scoring";
 import { TOPICS, topicSearchTerms } from "@/lib/topics";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { FEED_SESSION_COOKIE, resolveOrIssueFeedSession, setFeedSessionCookie } from "@/lib/feed/feed-session";
 
 import { logger } from "@/lib/logger";
 import { formatMoneyCents } from "@/lib/i18n/currency";
@@ -594,7 +595,21 @@ export async function GET(request: NextRequest) {
 
     const userId = await getOptionalSocialUserId();
     const rawSessionId = (searchParams.get("session_id") || "").trim();
-    const viewerSessionId = SESSION_RE.test(rawSessionId) ? rawSessionId : null;
+    const clientSessionId = SESSION_RE.test(rawSessionId) ? rawSessionId : null;
+    // Vizitator fără identitate: sesiune de feed SEMNATĂ (feed_sid) — singura
+    // acceptată de ingest-ul de evenimente; aici o refolosim ca viewer id.
+    const feedSession = userId
+      ? { sid: null, issue: false }
+      : await resolveOrIssueFeedSession(
+          request.cookies.get(FEED_SESSION_COOKIE)?.value,
+          clientSessionId,
+          getClientIP(request),
+        );
+    const viewerSessionId = feedSession.sid ?? clientSessionId;
+    const withFeedSession = (res: NextResponse): NextResponse => {
+      if (feedSession.issue && feedSession.sid) setFeedSessionCookie(res, feedSession.sid);
+      return res;
+    };
 
     // Deep-link `?v=<uuid>`: clipul cerut se prinde PRIMUL în pagina 1,
     // altfel linkul de pe profil deschide feed-ul pe alt video.
@@ -992,12 +1007,12 @@ export async function GET(request: NextRequest) {
       const hasMore = qualityFilteredVideos.length > limit || rows.length >= queryLimit;
 
       const cacheHeaders = { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" };
-      return NextResponse.json({ videos, page, hasMore, ab: abVariant }, { headers: cacheHeaders });
+      return withFeedSession(NextResponse.json({ videos, page, hasMore, ab: abVariant }, { headers: cacheHeaders }));
     }
 
     // No videos available
     const emptyHeaders = { "Cache-Control": "private, max-age=5" };
-    return NextResponse.json({ videos: [], page, hasMore: false }, { headers: emptyHeaders });
+    return withFeedSession(NextResponse.json({ videos: [], page, hasMore: false }, { headers: emptyHeaders }));
   } catch (error: any) {
     logger.error({ err: error }, "Explore feed API error:");
     return NextResponse.json(

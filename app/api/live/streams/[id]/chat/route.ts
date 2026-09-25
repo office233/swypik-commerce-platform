@@ -28,10 +28,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
   const message = parsedBody.data.message;
   const { rows } = await dbQuery<{ id: number; created_at: string }>(
-    `INSERT INTO live_chat_messages (stream_id, user_id, message) VALUES ($1,$2,$3)
+    `INSERT INTO live_chat_messages (stream_id, user_id, message)
+     SELECT id, $2, $3 FROM live_streams WHERE id = $1 AND status = 'live'
      RETURNING id, created_at`,
     [id, session.userId, message],
   );
+  // Stream inexistent sau care nu e live: 404 (înainte: FK error → 500).
+  if (!rows[0]) return NextResponse.json({ error: "stream_not_live" }, { status: 404 });
   return NextResponse.json({ id: rows[0].id, created_at: rows[0].created_at });
 }
 
@@ -45,7 +48,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const lastEventId = req.headers.get("last-event-id") || url.searchParams.get("lastEventId");
     const encoder = new TextEncoder();
     const streamId = id;
-    let lastId = lastEventId ? Number(lastEventId) : 0;
+    const parsedLastId = lastEventId ? Number(lastEventId) : 0;
+    let lastId = Number.isSafeInteger(parsedLastId) && parsedLastId > 0 ? parsedLastId : 0;
     let closed = false;
     const stream = new ReadableStream({
       async start(controller) {
@@ -86,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
   }
   // Plain JSON list (recent)
-  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 200);
   const { rows } = await dbQuery(
     `SELECT id, user_id, message, created_at FROM live_chat_messages
        WHERE stream_id = $1 ORDER BY id DESC LIMIT $2`,

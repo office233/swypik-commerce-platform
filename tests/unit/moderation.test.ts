@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createHash } from "node:crypto";
 
 // ── mocks ────────────────────────────────────────────────────────────────
 const dbQuery = vi.fn();
@@ -9,6 +10,7 @@ vi.mock("@/lib/logger", () => ({
 
 const SECRET = "test-internal-secret-value";
 process.env.INTERNAL_SECRET = SECRET;
+process.env.APP_ENCRYPTION_KEY = process.env.APP_ENCRYPTION_KEY || "b".repeat(64);
 
 import { GET as pendingGET } from "@/app/api/internal/moderation/pending/route";
 import { POST as decidePOST } from "@/app/api/internal/moderation/decide/route";
@@ -158,7 +160,12 @@ describe("POST /api/internal/moderation/decide", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ ok: true, type: "seller", id: "7", decision: "approve" });
     expect(String(dbQuery.mock.calls[0][0])).toContain("status = 'approved'");
-    expect(dbQuery.mock.calls[0][1]).toEqual(["7", "k".repeat(20)]);
+    // Cheia se salvează doar ca hash sha256 + text criptat (niciodată în clar).
+    const params = dbQuery.mock.calls[0][1] as unknown[];
+    expect(params[0]).toBe("7");
+    expect(params[1]).toBe(createHash("sha256").update("k".repeat(20)).digest("hex"));
+    expect(String(params[2])).toMatch(/^v1:/);
+    expect(params).not.toContain("k".repeat(20));
   });
 
   it("rejects a seller and stores the rejection reason", async () => {

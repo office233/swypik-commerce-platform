@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { anonSessionErrorResponse, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { applyFeedAction, recordFeedEvent, recordWatchEvent } from "@/lib/db/feed-prefs";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { FeedActionSchema, parseBody } from "@/lib/validation/schemas";
@@ -98,6 +98,8 @@ export async function POST(req: NextRequest) {
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (err) {
+    const anonErr = anonSessionErrorResponse(err);
+    if (anonErr) return anonErr;
     logger.error({ err: err }, "[Feed Action] error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
