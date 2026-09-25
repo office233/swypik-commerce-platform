@@ -22,7 +22,7 @@ import { randomUUID } from "node:crypto";
 import { dbQuery, getDb } from "@/lib/db";
 import { getVideoStorageBucket, VIDEO_PATHS } from "@/lib/storage/video-storage";
 import { publishProcessVideoJob } from "@/lib/video/redis-queue";
-import { buildProcessVideoJobPayload } from "@/lib/video/upload-session";
+import { buildProcessVideoJobPayload, storageProviderFromEnv } from "@/lib/video/upload-session";
 
 const SYSTEM_CREATOR_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -65,6 +65,7 @@ export async function enqueueVideoPipeline(input: VideoPipelineInput): Promise<V
   }
 
   const creatorId = input.creatorId || SYSTEM_CREATOR_ID;
+  const storageProvider = storageProviderFromEnv();
   const bucket = getVideoStorageBucket();
   const videoId = input.existingVideoId || randomUUID();
   const sessionId = randomUUID();
@@ -147,7 +148,7 @@ export async function enqueueVideoPipeline(input: VideoPipelineInput): Promise<V
         status, byte_size, content_type, source_url, expires_at,
         metadata, created_at, updated_at
       )
-      VALUES ($1::uuid, $2, $3, 'r2', $4, $5, $1::text, 'completed', 0, 'video/mp4',
+      VALUES ($1::uuid, $2, $3, $9, $4, $5, $1::text, 'completed', 0, 'video/mp4',
               $6, $7, $8::jsonb, NOW(), NOW())
       `,
       [
@@ -159,6 +160,7 @@ export async function enqueueVideoPipeline(input: VideoPipelineInput): Promise<V
         input.sourceUrl,
         expiresAt,
         JSON.stringify(baseMetadata),
+        storageProvider,
       ]
     );
 
@@ -168,7 +170,7 @@ export async function enqueueVideoPipeline(input: VideoPipelineInput): Promise<V
         id, video_id, asset_type, storage_provider, bucket, object_key,
         mime_type, byte_size, status, metadata, created_at, updated_at
       )
-      VALUES ($1, $2, 'source', 'r2', $3, $4, 'video/mp4', 0,
+      VALUES ($1, $2, 'source', $6, $3, $4, 'video/mp4', 0,
               'uploading', $5::jsonb, NOW(), NOW())
       ON CONFLICT (storage_provider, bucket, object_key) DO UPDATE
         SET status = 'uploading',
@@ -176,7 +178,7 @@ export async function enqueueVideoPipeline(input: VideoPipelineInput): Promise<V
             updated_at = NOW()
       RETURNING id
       `,
-      [assetId, videoId, bucket, rawObjectKey, JSON.stringify(baseMetadata)]
+      [assetId, videoId, bucket, rawObjectKey, JSON.stringify(baseMetadata), storageProvider]
     );
     const effectiveAssetId = assetResult.rows[0]?.id ?? assetId;
 
@@ -223,8 +225,8 @@ export async function enqueueVideoPipeline(input: VideoPipelineInput): Promise<V
 export async function findExternalSourceUrlForVideo(videoId: string): Promise<string | null> {
   const { rows } = await dbQuery<{
     playback_url: string | null;
-    metadata: any;
-    product_refs: any;
+    metadata: unknown;
+    product_refs: unknown;
   }>(
     `SELECT playback_url, metadata, product_refs FROM videos WHERE id = $1 LIMIT 1`,
     [videoId]
@@ -233,7 +235,7 @@ export async function findExternalSourceUrlForVideo(videoId: string): Promise<st
   if (!row) return null;
 
   const metadata = typeof row.metadata === "string" ? safeJson(row.metadata) : row.metadata;
-  const fromMeta = metadata && typeof metadata === "object" ? (metadata as any).source_url : null;
+  const fromMeta = metadata && typeof metadata === "object" ? (metadata as { source_url?: unknown }).source_url : null;
   if (typeof fromMeta === "string" && /^https?:\/\//i.test(fromMeta)) return fromMeta;
 
   // Fallback: playback_url extern e folosit direct ca sursă.

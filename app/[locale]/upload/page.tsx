@@ -1,31 +1,28 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getAuthUser } from "@/lib/auth/getAuthUser";
-import UploadClient from "./UploadClient";
+import { getTranslations } from "next-intl/server";
+import CreateFlow from "@/components/upload/CreateFlow";
+import { guardCreatePage } from "@/components/upload/createPageGuard";
+import { isUuid } from "@/lib/video/upload-session";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Adaugă video | Swypik",
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ draft?: string; mission?: string }>;
 };
 
-export default async function UploadPage() {
-  const auth = await getAuthUser();
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "videoUpload" });
+  return { title: t("pageTitle"), robots: { index: false } };
+}
 
-  if (auth.role === "guest" || !auth.userId) {
-    redirect("/auth?next=/upload");
-  }
-
-  // Bug fix (i18n/UI audit 2026-09-24): this page used to silently run
-  // `UPDATE users SET role='creator'` for any signed-in shopper who simply
-  // opened /upload, bypassing the explicit creator opt-in at
-  // /become-a-creator (POST /api/creator/apply). Never mutate roles on a
-  // page GET — send non-creators to the explicit apply flow instead. The
-  // upload API routes (app/api/creator/upload-session, etc.) already reject
-  // non-creator/seller/admin roles server-side regardless of this gate.
-  if (auth.role !== "creator" && auth.role !== "admin" && auth.role !== "seller") {
-    redirect("/become-a-creator");
-  }
-
-  return <UploadClient />;
+/** Crearea unui clip: alege din galerie / filmează → editare → detalii → publicare. */
+export default async function UploadPage({ params, searchParams }: Props) {
+  const { locale } = await params;
+  const { draft, mission } = await searchParams;
+  await guardCreatePage(locale, "/upload");
+  const draftVideoId = draft && isUuid(draft) ? draft : undefined;
+  const missionSlug = mission && /^[a-z0-9-]{1,160}$/i.test(mission) ? mission : undefined;
+  return <CreateFlow initialSource="pick" draftVideoId={draftVideoId} missionSlug={missionSlug} />;
 }

@@ -14,6 +14,7 @@ import { safeJsonLd } from "@/lib/seo/json-ld";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { APP_URL } from "@/lib/app-url";
 import { getTranslations } from "next-intl/server";
+import { OwnerVideoStatus, loadOwnerVideo } from "./OwnerVideoStatus";
 
 type Props = { params: Promise<{ id: string; locale: string }> };
 
@@ -104,6 +105,9 @@ export default async function VideoPage({ params }: Props) {
   const video = await getVideo(id);
 
   if (!video) {
+    // Autorul vede starea clipului (procesare / review / programat), nu un redirect în gol.
+    const own = await loadOwnerVideo(id);
+    if (own) return <OwnerVideoStatus video={own} />;
     redirect("/explore");
   }
 

@@ -1,10 +1,20 @@
-export const MAX_VIDEO_UPLOAD_SIZE_BYTES = 1024 * 1024 * 1024;
+import {
+  VIDEO_LIMITS,
+  canonicalVideoType,
+  checkVideoFile,
+  workerLimits,
+} from "@/lib/video/limits";
 
 const HASHTAG_PATTERN = /(^|\s)#([a-zA-Z0-9_-]+)/g;
-const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".webm", ".m4v", ".avi", ".mkv"]);
 
 export class UploadInputError extends Error {
   status = 400;
+  code: string;
+  constructor(message: string, code = "validation_error", status = 400) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
 }
 
 export type CreatorUploadInput = {
@@ -43,9 +53,12 @@ export type ProcessVideoJobPayload = {
   thumbnail_key: string;
   preview_key: string;
   hls_master_key: string;
+  /** Gol pentru uploadurile directe: workerul citește sursa din bucket (fără ocol prin CDN). */
   source_url: string;
   content_type: string;
   byte_size: number;
+  limits: { min_duration_ms: number; max_duration_ms: number };
+  trim: { start_ms: number | null; end_ms: number | null };
   metadata: Record<string, unknown>;
 };
 
@@ -78,34 +91,30 @@ type ProcessVideoJobInput = {
   byteSize?: number;
   storageProvider?: string;
   outputBucket?: string;
+  trimStartMs?: number | null;
+  trimEndMs?: number | null;
   metadata?: Record<string, unknown>;
 };
 
 export function normalizeCreatorUploadInput(raw: RawCreatorUploadInput): CreatorUploadInput {
   const creatorId = asString(raw.creatorId);
   const filename = sanitizeFilename(asString(raw.filename));
-  const contentType = normalizeContentType(asString(raw.contentType), filename);
+  const rawType = asString(raw.contentType);
   const sizeBytes = Number(raw.sizeBytes);
 
-  if (!creatorId) {
-    throw new UploadInputError("creatorId is required");
-  }
-  if (!filename) {
-    throw new UploadInputError("filename is required");
-  }
-  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) {
-    throw new UploadInputError("sizeBytes must be positive");
-  }
-  if (sizeBytes > MAX_VIDEO_UPLOAD_SIZE_BYTES) {
-    throw new UploadInputError("sizeBytes exceeds 1GB");
-  }
-  if (!isVideoContentType(contentType) && !hasVideoExtension(filename)) {
-    throw new UploadInputError("contentType must be a video type");
+  if (!creatorId) throw new UploadInputError("creatorId is required");
+  if (!filename) throw new UploadInputError("filename is required");
+
+  const problem = checkVideoFile({ name: filename, type: rawType, size: sizeBytes });
+  if (problem === "empty") throw new UploadInputError("sizeBytes must be positive", "file_empty");
+  if (problem === "too_large") throw new UploadInputError("file exceeds the upload limit", "file_too_large", 413);
+  if (problem === "unsupported_type") {
+    throw new UploadInputError("contentType must be a video type", "unsupported_type", 415);
   }
 
-  const title = asString(raw.title);
-  const description = asString(raw.description);
-  const caption = asString(raw.caption || raw.description);
+  const title = asString(raw.title).slice(0, VIDEO_LIMITS.titleMaxChars);
+  const description = asString(raw.description).slice(0, VIDEO_LIMITS.descriptionMaxChars);
+  const caption = asString(raw.caption || raw.description).slice(0, VIDEO_LIMITS.descriptionMaxChars);
   const challengeId = asString(raw.challengeId);
   const productId = asString(raw.productId);
   const source = asString(raw.source) || "gallery";
@@ -113,13 +122,11 @@ export function normalizeCreatorUploadInput(raw: RawCreatorUploadInput): Creator
     extractPrefixedHashtags(caption),
     extractPrefixedHashtags(description),
     raw.hashtags,
-  ]);
+  ]).slice(0, VIDEO_LIMITS.hashtagsMax);
   const productRefs = productId ? [{ product_id: productId, source: "creator_upload" as const }] : [];
 
   const audioTrackIdRaw = Number(raw.audioTrackId);
-  const audioTrackId = Number.isFinite(audioTrackIdRaw) && audioTrackIdRaw > 0
-    ? Math.floor(audioTrackIdRaw)
-    : null;
+  const audioTrackId = Number.isFinite(audioTrackIdRaw) && audioTrackIdRaw > 0 ? Math.floor(audioTrackIdRaw) : null;
 
   return {
     creatorId,
@@ -129,7 +136,7 @@ export function normalizeCreatorUploadInput(raw: RawCreatorUploadInput): Creator
     caption,
     challengeId,
     filename,
-    contentType: contentType || "video/mp4",
+    contentType: canonicalVideoType(rawType, filename),
     sizeBytes,
     source,
     hashtags,
@@ -148,8 +155,15 @@ export function normalizeCreatorUploadInput(raw: RawCreatorUploadInput): Creator
   };
 }
 
+/** Furnizorul de stocare înregistrat în DB (prod rulează MinIO, nu R2). */
+export function storageProviderFromEnv(): "r2" | "s3" | "minio" | "local" {
+  const raw = (process.env.VIDEO_STORAGE_PROVIDER || "").trim().toLowerCase();
+  if (raw === "s3" || raw === "minio" || raw === "local" || raw === "r2") return raw;
+  return "r2";
+}
+
 export function buildProcessVideoJobPayload(input: ProcessVideoJobInput): ProcessVideoJobPayload {
-  const storageProvider = input.storageProvider || "r2";
+  const storageProvider = input.storageProvider || storageProviderFromEnv();
   const outputBucket = input.outputBucket || input.bucket;
   const sourceKey = input.sourceKey.replace(/^\/+/, "");
   const hlsPrefix = `videos/hls/${input.videoId}`;
@@ -170,28 +184,27 @@ export function buildProcessVideoJobPayload(input: ProcessVideoJobInput): Proces
     object_key: sourceKey,
     source_key: sourceKey,
     output_prefix: hlsPrefix,
-    thumbnail_key: `videos/thumbnails/${input.videoId}.jpg`,
-    preview_key: `videos/previews/${input.videoId}.mp4`,
+    thumbnail_key: `${hlsPrefix}/thumbnail.jpg`,
+    preview_key: `${hlsPrefix}/preview.mp4`,
     hls_master_key: `${hlsPrefix}/master.m3u8`,
     source_url: input.sourceUrl || "",
     content_type: input.contentType || "video/mp4",
     byte_size: input.byteSize || 0,
+    limits: workerLimits(),
+    trim: { start_ms: input.trimStartMs ?? null, end_ms: input.trimEndMs ?? null },
     metadata: input.metadata || {},
   };
 }
 
 export function normalizeHashtags(values: unknown[]): string[] {
   const tags: string[] = [];
-
   for (const value of values) {
-    const raw = flattenHashtagValue(value);
-    for (const item of raw) {
+    for (const item of flattenHashtagValue(value)) {
       for (const tag of extractHashtags(item)) {
         if (!tags.includes(tag)) tags.push(tag);
       }
     }
   }
-
   return tags;
 }
 
@@ -200,13 +213,14 @@ export function sanitizeFilename(filename: string): string {
     .replace(/\\/g, "/")
     .split("/")
     .pop()
+    // eslint-disable-next-line no-control-regex
     ?.replace(/[\u0000-\u001f\u007f]/g, "")
     .trim();
   return cleaned || "video.mp4";
 }
 
 export function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function extractHashtags(value: string): string[] {
@@ -217,12 +231,10 @@ function extractHashtags(value: string): string[] {
     const tag = normalizeHashtag(match[2]);
     if (tag) found.push(tag);
   }
-
   for (const part of value.split(/[\s,]+/)) {
     const tag = normalizeHashtag(part);
     if (tag) found.push(tag);
   }
-
   return found;
 }
 
@@ -230,9 +242,7 @@ function extractPrefixedHashtags(value: string): string[] {
   const found: string[] = [];
   let match: RegExpExecArray | null;
   HASHTAG_PATTERN.lastIndex = 0;
-  while ((match = HASHTAG_PATTERN.exec(value))) {
-    found.push(match[2]);
-  }
+  while ((match = HASHTAG_PATTERN.exec(value))) found.push(match[2]);
   return found;
 }
 
@@ -242,34 +252,14 @@ function normalizeHashtag(value: string): string {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+|-+$/g, "")
+    .slice(0, VIDEO_LIMITS.hashtagMaxChars);
 }
 
 function flattenHashtagValue(value: unknown): string[] {
   if (Array.isArray(value)) return value.flatMap(flattenHashtagValue);
   if (value === null || value === undefined) return [];
   return [String(value)];
-}
-
-function normalizeContentType(contentType: string, filename: string): string {
-  if (contentType) return contentType.toLowerCase();
-  const extension = extensionOf(filename);
-  if (extension === ".mov") return "video/quicktime";
-  if (extension === ".webm") return "video/webm";
-  return hasVideoExtension(filename) ? "video/mp4" : "";
-}
-
-function isVideoContentType(contentType: string): boolean {
-  return contentType.toLowerCase().startsWith("video/");
-}
-
-function hasVideoExtension(filename: string): boolean {
-  return VIDEO_EXTENSIONS.has(extensionOf(filename));
-}
-
-function extensionOf(filename: string): string {
-  const index = filename.lastIndexOf(".");
-  return index >= 0 ? filename.slice(index).toLowerCase() : "";
 }
 
 function asString(value: unknown): string {

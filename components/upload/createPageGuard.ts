@@ -1,0 +1,21 @@
+import { redirect as nextRedirect } from "next/navigation";
+import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { getPathname, redirect } from "@/lib/i18n/navigation";
+import { VIDEO_AUTHOR_ROLES } from "@/lib/video/auth";
+
+/**
+ * Poarta paginilor de creare (/upload, /reels/record): login cu întoarcere pe
+ * aceeași pagină, cu prefixul de limbă păstrat (/auth/login e o rută fără
+ * limbă, deci `next` primește calea localizată: /en/upload), apoi rolul de
+ * autor video. Nu promovează niciodată rolul pe un GET.
+ */
+export async function guardCreatePage(locale: string, returnTo: string): Promise<void> {
+  const auth = await getAuthUser();
+  if (auth.role === "guest" || !auth.userId) {
+    const next = getPathname({ href: returnTo, locale });
+    nextRedirect(`/auth/login?next=${encodeURIComponent(next)}`);
+  }
+  if (!VIDEO_AUTHOR_ROLES.has(auth.role)) {
+    redirect({ href: "/become-a-creator", locale });
+  }
+}

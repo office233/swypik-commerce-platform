@@ -54,7 +54,11 @@ export async function POST(
 
     // video publicat, deținut de user
     const { rows: videos } = await dbQuery<{ id: string }>(
-        `SELECT id FROM videos WHERE id = $1 AND creator_id = $2 AND status = 'published'`,
+        // videos.status nu are valoarea 'published' (CHECK: uploading/processing/
+        // ready/…): „publicat” = visibility public; clipul se poate înscrie și
+        // cât încă se procesează (fluxul de upload înscrie imediat după Publică).
+        `SELECT id FROM videos WHERE id = $1 AND creator_id = $2
+            AND status IN ('processing', 'ready') AND visibility = 'public'`,
         [videoId, userId],
     );
     if (!videos.length) {

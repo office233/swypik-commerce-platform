@@ -1,9 +1,5 @@
-// Layout minimal pentru rutele /reels/*.
-// TopBar și BottomNav sunt ascunse via hiddenPaths (vezi components/TopBar.tsx, BottomNav.tsx).
-export default function ReelsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return <div className="bg-black min-h-screen">{children}</div>;
+// Layout minimal pentru rutele /reels/*. Camera își desenează singură fundalul
+// imersiv (ImmersiveSurface); pașii de după (editare/detalii) sunt light-first.
+export default function ReelsLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

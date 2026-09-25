@@ -14,6 +14,7 @@ import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "crypto";
 import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { autoEmbedVideo } from "@/lib/ai/auto-embed";
+import { notifyPendingPublishedVideos } from "@/lib/video/publish-notify";
 
 export const dynamic = "force-dynamic";
 
@@ -45,15 +46,22 @@ async function run(req: Request) {
             updated_at = now()
       WHERE scheduled_publish_at IS NOT NULL
         AND scheduled_publish_at <= now()
-        AND status <> 'deleted'
-          AND COALESCE(moderation_status, 'approved') = 'approved'
+        AND status = 'ready'
       RETURNING id, title, description`,
   );
+  // Moderarea nu mai blochează publicarea programată: un clip încă în review
+  // devine public, dar rămâne în afara feed-ului (effective_label, migrarea
+  // 0012) până la aprobare. Clipurile încă în procesare se publică la
+  // următoarea rulare, după ce devin 'ready'.
   for (const r of rows) autoEmbedVideo(r.id, r.title, r.description);
+  // Followerii sunt anunțați o singură dată, când clipul chiar e vizibil
+  // (inclusiv clipurile publicate cât încă se procesau sau aprobate ulterior).
+  const notified = await notifyPendingPublishedVideos();
 
   return NextResponse.json({
     success: true,
     published: rows.length,
+    notified,
     ids: rows.map((r) => r.id),
   });
 }

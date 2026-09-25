@@ -625,29 +625,6 @@ export const SellerGenerateAwbSchema = z.object({
 });
 export type SellerGenerateAwbInput = z.infer<typeof SellerGenerateAwbSchema>;
 
-export const CreatorUploadSessionCreateSchema = z.object({
-  filename: z.string().trim().min(1, "filename is required").max(255),
-  contentType: z.string().trim().max(128).optional(),
-  sizeBytes: z.coerce.number().finite().positive("sizeBytes must be positive").max(1024 * 1024 * 1024, "sizeBytes exceeds 1GB"),
-  title: z.string().trim().max(180).optional(),
-  description: z.string().trim().max(5000).optional(),
-  caption: z.string().trim().max(5000).optional(),
-  challengeId: z.string().trim().max(128).optional(),
-  productId: z.string().trim().max(128).optional(),
-  source: z.string().trim().max(64).optional(),
-  hashtags: z.unknown().optional(),
-  audioTrackId: z.unknown().optional(),
-}).passthrough();
-export type CreatorUploadSessionCreateInput = z.infer<typeof CreatorUploadSessionCreateSchema>;
-
-const UploadSessionIdSchema = z.string().trim().min(1).max(128).regex(/^[A-Za-z0-9._:-]+$/, "Invalid upload session id");
-
-export const CreatorUploadSessionCompleteSchema = z.object({
-  sessionId: UploadSessionIdSchema.optional(),
-  uploadId: UploadSessionIdSchema.optional(),
-  action: z.literal("complete").optional(),
-}).passthrough();
-export type CreatorUploadSessionCompleteInput = z.infer<typeof CreatorUploadSessionCompleteSchema>;
 
 export const SellerApplicationSchema = z.object({
   companyName: z.string().trim().min(2, "companyName is required").max(160),

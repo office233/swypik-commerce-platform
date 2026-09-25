@@ -61,9 +61,6 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /readyz", api.readyz)
 	mux.HandleFunc("GET /v1/feed", api.feed)
 	mux.HandleFunc("POST /v1/events/batch", api.eventsBatch)
-	mux.HandleFunc("POST /v1/videos/uploads/init", api.uploadInit)
-	mux.HandleFunc("POST /v1/videos/uploads/complete", api.uploadComplete)
-	mux.HandleFunc("GET /v1/videos/uploads/{id}/status", api.uploadStatus)
 	mux.HandleFunc("POST /v1/videos/{id}/publish", api.videoPublish)
 	mux.HandleFunc("POST /v1/social/follow", api.follow)
 	mux.HandleFunc("POST /v1/social/unfollow", api.unfollow)
@@ -185,41 +182,6 @@ func (a *API) eventsBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, result)
-}
-
-func (a *API) uploadInit(w http.ResponseWriter, r *http.Request) {
-	var req videos.InitUploadInput
-	if !decodeRequest(w, r, &req) {
-		return
-	}
-	result, err := a.videosService.Init(r.Context(), req)
-	if err != nil {
-		a.writeDomainError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusCreated, result)
-}
-
-func (a *API) uploadComplete(w http.ResponseWriter, r *http.Request) {
-	var req videos.CompleteUploadInput
-	if !decodeRequest(w, r, &req) {
-		return
-	}
-	video, err := a.videosService.Complete(r.Context(), req)
-	if err != nil {
-		a.writeDomainError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"video": video})
-}
-
-func (a *API) uploadStatus(w http.ResponseWriter, r *http.Request) {
-	upload, err := a.videosService.Status(r.Context(), r.PathValue("id"))
-	if err != nil {
-		a.writeDomainError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, upload)
 }
 
 func (a *API) videoPublish(w http.ResponseWriter, r *http.Request) {

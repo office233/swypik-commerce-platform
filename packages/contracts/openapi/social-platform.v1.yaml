@@ -84,65 +84,6 @@ paths:
                 $ref: "#/components/schemas/EventBatchResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-  /v1/videos/uploads/init:
-    post:
-      tags: [videos]
-      operationId: initializeVideoUpload
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UploadInitRequest"
-      responses:
-        "201":
-          description: Upload URL initialized.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UploadInitResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-  /v1/videos/uploads/complete:
-    post:
-      tags: [videos]
-      operationId: completeVideoUpload
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UploadCompleteRequest"
-      responses:
-        "200":
-          description: Upload completed and video created.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [video]
-                properties:
-                  video:
-                    $ref: "#/components/schemas/Video"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-  /v1/videos/uploads/{id}/status:
-    get:
-      tags: [videos]
-      operationId: getVideoUploadStatus
-      parameters:
-        - $ref: "#/components/parameters/PathID"
-      responses:
-        "200":
-          description: Upload status.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UploadStatus"
-        "404":
-          $ref: "#/components/responses/NotFound"
   /v1/videos/{id}/publish:
     post:
       tags: [videos]
