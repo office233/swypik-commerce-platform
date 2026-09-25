@@ -16,6 +16,7 @@
 /[locale]/account/security
 /[locale]/account/settings
 /[locale]/account/stays
+/[locale]/account/stays/[id]
 /[locale]/audio/[id]
 /[locale]/b/[slug]
 /[locale]/become-a-creator

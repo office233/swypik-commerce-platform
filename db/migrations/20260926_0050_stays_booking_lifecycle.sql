@@ -36,6 +36,23 @@ ALTER TABLE stay_bookings
   ADD COLUMN IF NOT EXISTS completed_at timestamptz,
   ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
+-- CHECK-urile inițiale pe status/payment_status (20260729_0003) au nume
+-- generate de Postgres; le găsim după definiție ca să nu rămână unul vechi
+-- care ar respinge statusurile noi.
+DO $$
+DECLARE c record;
+BEGIN
+  FOR c IN
+    SELECT conname FROM pg_constraint
+     WHERE conrelid = 'stay_bookings'::regclass AND contype = 'c'
+       AND conname NOT IN ('stay_bookings_status_check', 'stay_bookings_payment_status_check')
+       AND pg_get_constraintdef(oid) ~ 'status'
+       AND pg_get_constraintdef(oid) ~ '''pending'''
+  LOOP
+    EXECUTE format('ALTER TABLE stay_bookings DROP CONSTRAINT %I', c.conname);
+  END LOOP;
+END $$;
+
 -- Statusuri noi (înlocuiește CHECK-ul inițial din 20260729_0003).
 ALTER TABLE stay_bookings DROP CONSTRAINT IF EXISTS stay_bookings_status_check;
 ALTER TABLE stay_bookings ADD CONSTRAINT stay_bookings_status_check

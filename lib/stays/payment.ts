@@ -95,7 +95,11 @@ export async function syncCardAuthorization(bookingId: string, userId?: string):
     const b = await loadBooking(db, bookingId);
     if (!b || (userId && b.guest_user_id !== userId)) throw new StaysError("not_found");
     if (!b.stripe_payment_intent_id) throw new StaysError("payment_not_authorized");
-    if (b.status === "requested" || b.status === "confirmed") return { status: b.status };
+    if (b.status === "requested" || b.status === "confirmed") {
+        // Deja plătită altfel (wallet) → hold-ul pe card nu trebuie să rămână blocat.
+        if (b.payment_method !== "card") await voidCardHold(b.id, b.stripe_payment_intent_id).catch(() => undefined);
+        return { status: b.status };
+    }
 
     const pi = await getStripe().paymentIntents.retrieve(b.stripe_payment_intent_id);
     if (pi.metadata?.stay_booking_id !== b.id || pi.status !== "requires_capture" || pi.amount !== b.total_cents) {
@@ -112,6 +116,8 @@ export async function syncCardAuthorization(bookingId: string, userId?: string):
 /** Plata din wallet: debit acum, refund automat la refuz/expirare. */
 export async function payWithWallet(bookingId: string, userId: string): Promise<{ status: string }> {
     const b = await ownPendingBooking(bookingId, userId);
+    // Un PaymentIntent început anterior nu trebuie să mai poată fi autorizat.
+    await voidCardHold(b.id, b.stripe_payment_intent_id).catch(() => undefined);
     try {
         await debitUser({
             userId,
