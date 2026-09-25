@@ -667,6 +667,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: F
         body: JSON.stringify({
           productId: String(product.id),
           quantity: 1,
+          videoId: video.id ? String(video.id) : undefined,
           title: product.name || product.title || t("genericProduct"),
           image: product.image || product.image_url || null,
           priceCents: product.priceCents || undefined,

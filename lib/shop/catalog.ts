@@ -84,9 +84,13 @@ type Row = {
 
 export async function listCatalog(params: CatalogParams): Promise<CatalogPage> {
   const limit = Math.min(Math.max(params.limit ?? CATALOG_PAGE_SIZE, 1), 48);
+  // Nodurile de taxonomie au slug-uri simple; ierarhia de rezervă (produse fără
+  // nod) folosește id-uri `department:…`, filtrate pe coloanele taxonomy_*.
+  const legacyCategory = params.category?.startsWith("department:") ? params.category : undefined;
   const { where, params: sqlParams, paramIndex } = buildSearchFilters({
     search: params.q || undefined,
-    taxonomyNodeSlug: params.category || undefined,
+    taxonomyNodeSlug: legacyCategory ? undefined : params.category || undefined,
+    categoryId: legacyCategory,
     minPrice: params.minPrice,
     maxPrice: params.maxPrice,
     locale: params.locale,

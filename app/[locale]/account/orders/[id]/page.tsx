@@ -1,188 +1,148 @@
-import Link from "next/link";
-import { redirect, notFound } from "next/navigation";
-import { cookies } from "next/headers";
-import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+import { ExternalLink, MapPin, Package } from "lucide-react";
+import { getFormatter, getTranslations } from "next-intl/server";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { OrderPrice } from "@/components/shop/OrderPrice";
+import { OrderReviewButton } from "@/components/shop/reviews/OrderReviewButton";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
-import { dbQuery } from "@/lib/db";
-import { formatCurrency } from "@/lib/i18n/currency";
-import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, type Currency } from "@/lib/i18n/config";
+import { Link } from "@/lib/i18n/navigation";
+import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/config";
+import { getBuyerOrder, orderStatusKey, orderStatusTone } from "@/lib/shop/orders";
 import OrderReturnButton from "./OrderReturnButton";
-import ReviewItemButton from "./ReviewItemButton";
-import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
-type OrderRow = {
-  id: string;
-  status: string;
-  subtotal_cents: number;
-  shipping_cents: number;
-  tax_cents: number;
-  discount_cents: number;
-  total_cents: number;
-  currency: string;
-  created_at: string;
-  metadata: Record<string, unknown>;
-};
+const RETURNABLE = new Set(["delivered", "fulfilled"]);
 
-type ItemRow = {
-  id: string;
-  product_id: string | null;
-  title: string;
-  quantity: number;
-  unit_amount_cents: number;
-  gross_amount_cents: number;
-  currency: string;
-};
+type Props = { params: Promise<{ locale: string; id: string }> };
 
-const RETURNABLE_STATUSES = new Set(["delivered", "fulfilled"]);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale, id } = await params;
+  const t = await getTranslations({ locale, namespace: "shopBuyer.orders" });
+  return { title: t("detailTitle", { number: id.slice(0, 8).toUpperCase() }), robots: { index: false, follow: false } };
+}
 
-export default async function OrderDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const t = await getTranslations("accountOrders");
-  const { id } = await params;
+export default async function OrderDetailPage({ params }: Props) {
+  const { locale: raw, id } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const user = await getAuthUser();
-  if (!user.userId) redirect(`/account?redirect=/account/orders/${id}`);
-
-  const STATUS_LABELS: Record<string, string> = {
-    pending: t("statusPending"),
-    paid: t("statusPaid"),
-    processing: t("statusProcessing"),
-    fulfilled: t("statusFulfilled"),
-    delivered: t("statusDelivered"),
-    cancelled: t("statusCancelled"),
-    refunded: t("statusRefunded"),
-    return_requested: t("statusReturnRequested"),
-  };
-
-  const cookieStore = await cookies();
-  const cookieCurrency = cookieStore.get(CURRENCY_COOKIE)?.value;
-  const displayCurrency: Currency =
-    cookieCurrency && isCurrency(cookieCurrency) ? cookieCurrency : DEFAULT_CURRENCY;
-
-  const { rows } = await dbQuery<OrderRow>(
-    `SELECT id, status, subtotal_cents, shipping_cents, tax_cents, discount_cents,
-            total_cents, currency, created_at, metadata
-       FROM commerce_orders
-      WHERE id = $1 AND buyer_user_id = $2
-      LIMIT 1`,
-    [id, user.userId],
-  );
-  const order = rows[0];
+  if (!user.userId) redirect(`/account?redirect=/account/orders/${encodeURIComponent(id)}`);
+  const order = await getBuyerOrder(user.userId, id);
   if (!order) notFound();
 
-  const { rows: items } = await dbQuery<ItemRow>(
-    `SELECT id, product_id, title, quantity, unit_amount_cents, gross_amount_cents, currency
-       FROM commerce_order_items
-      WHERE order_id = $1
-      ORDER BY created_at ASC`,
-    [id],
-  );
-
-  const productIds = items.map((it) => it.product_id).filter((x): x is string => !!x);
-  let reviewedSet = new Set<string>();
-  if (productIds.length > 0 && order.status === "delivered") {
-    const { rows: reviewed } = await dbQuery<{ product_id: string }>(
-      `SELECT product_id FROM product_reviews
-        WHERE user_id = $1 AND product_id = ANY($2::uuid[])`,
-      [user.userId, productIds],
-    );
-    reviewedSet = new Set(reviewed.map((r) => r.product_id));
-  }
-  const canReview = order.status === "delivered";
-
-  const src = (order.currency?.trim() as Currency) || "RON";
-  const fmt = (c: number) =>
-    formatCurrency(c, { sourceCurrency: src, displayCurrency, locale: "ro" });
-
-  const lookupToken = (order.metadata?.order_lookup_token as string | undefined) || null;
-  const canReturn = RETURNABLE_STATUSES.has(order.status);
+  const [t, ts, format] = await Promise.all([
+    getTranslations({ locale, namespace: "shopBuyer.orders" }),
+    getTranslations({ locale, namespace: "shopBuyer.summary" }),
+    getFormatter({ locale }),
+  ]);
+  const price = (cents: number, negative = false) => <OrderPrice cents={cents} currency={order.currency} negative={negative} />;
+  const addr = order.shipping;
 
   return (
-    <main className="min-h-screen bg-black text-white pb-24">
-      <header className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur border-b border-white/10">
-        <Link href="/account/orders" className="p-1 -ml-1">
-          <ArrowLeft size={22} />
-        </Link>
-        <h1 className="text-lg font-black">{t("comanda")}{order.id.slice(0, 8)}</h1>
-      </header>
-
-      <div className="px-4 pt-4 max-w-2xl mx-auto space-y-4">
-        <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-white/50">{t("status")}</span>
-            <span className="text-sm font-bold">{STATUS_LABELS[order.status] || order.status}</span>
+    <div className="min-h-dvh bg-canvas">
+      <PageHeader back="/account/orders" title={t("detailTitle", { number: order.id.slice(0, 8).toUpperCase() })} />
+      <main className="mx-auto max-w-2xl space-y-4 px-gutter py-4">
+        <Card padding="md" className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-muted">{t("placedOn", { date: format.dateTime(new Date(order.createdAt), { dateStyle: "long", timeStyle: "short" }) })}</p>
+            {order.trackingNumber ? <p className="mt-1 text-xs text-muted">{t("trackingNumber", { number: order.trackingNumber })}</p> : null}
           </div>
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-white/50">{t("data")}</span>
-            <span className="text-sm">
-              {new Date(order.created_at).toLocaleString("ro-RO")}
-            </span>
-          </div>
-        </section>
+          <Badge tone={orderStatusTone(order.status)}>{t(`status_${orderStatusKey(order.status)}`)}</Badge>
+        </Card>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
-          {items.map((it) => (
-            <div key={it.id} className="px-4 py-3 flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold line-clamp-2">{it.title}</div>
-                  <div className="text-xs text-white/50">
-                    {t("cantitate", { qty: it.quantity, unit: fmt(it.unit_amount_cents) })}
+        <Card padding="none">
+          <ul className="divide-y divide-subtle">
+            {order.items.map((it) => (
+              <li key={it.id} className="space-y-2 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-control bg-surface-2">
+                    {it.image ? (
+                      <Image src={it.image} alt="" fill sizes="56px" className="object-cover" />
+                    ) : (
+                      <Package className="m-4 h-6 w-6 text-subtle" aria-hidden />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {it.productId ? (
+                      <Link href={`/product/${it.productId}`} className="line-clamp-2 text-sm font-medium text-fg hover:underline">
+                        {it.title}
+                      </Link>
+                    ) : (
+                      <p className="line-clamp-2 text-sm font-medium text-fg">{it.title}</p>
+                    )}
+                    <p className="text-xs text-muted">{t("qtyTimes", { qty: it.quantity })} {price(it.unitCents)}</p>
                   </div>
+                  <span className="text-sm font-semibold tabular-nums text-fg">{price(it.lineCents)}</span>
                 </div>
-                <div className="text-sm font-bold">{fmt(it.gross_amount_cents)}</div>
+                {order.canReview && it.productId ? (
+                  <OrderReviewButton productId={it.productId} productTitle={it.title} reviewed={it.reviewed} />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Card>
+
+        <Card padding="md">
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted">{ts("subtotal")}</dt>
+              <dd className="tabular-nums">{price(order.subtotalCents)}</dd>
+            </div>
+            {order.discountCents > 0 ? (
+              <div className="flex justify-between text-success">
+                <dt>{t("discount")}</dt>
+                <dd className="tabular-nums">{price(order.discountCents, true)}</dd>
               </div>
-              {canReview && it.product_id && (
-                <ReviewItemButton
-                  productId={it.product_id}
-                  alreadyReviewed={reviewedSet.has(it.product_id)}
-                />
-              )}
+            ) : null}
+            <div className="flex justify-between">
+              <dt className="text-muted">{ts("shipping")}</dt>
+              <dd className="tabular-nums">{order.shippingCents === 0 ? ts("shippingFree") : price(order.shippingCents)}</dd>
             </div>
-          ))}
-        </section>
+            {order.taxCents > 0 ? (
+              <div className="flex justify-between">
+                <dt className="text-muted">{t("tax")}</dt>
+                <dd className="tabular-nums">{price(order.taxCents)}</dd>
+              </div>
+            ) : null}
+            <div className="flex justify-between border-t border-subtle pt-3 text-base font-semibold">
+              <dt>{ts("total")}</dt>
+              <dd className="tabular-nums">{price(order.totalCents)}</dd>
+            </div>
+          </dl>
+        </Card>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 space-y-1.5 text-sm">
-          <div className="flex justify-between text-white/70">
-            <span>{t("subtotal")}</span>
-            <span>{fmt(order.subtotal_cents)}</span>
-          </div>
-          {order.discount_cents > 0 && (
-            <div className="flex justify-between text-green-400">
-              <span>{t("reducere")}</span>
-              <span>−{fmt(order.discount_cents)}</span>
+        {addr?.line1 ? (
+          <Card padding="md" className="flex gap-3">
+            <MapPin className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+            <div className="text-sm">
+              <p className="font-medium text-fg">{t("shippingTo")}</p>
+              <p className="text-muted">{[addr.name, addr.line1, [addr.postal_code, addr.city].filter(Boolean).join(" "), addr.country].filter(Boolean).join(", ")}</p>
             </div>
-          )}
-          <div className="flex justify-between text-white/70">
-            <span>{t("transport")}</span>
-            <span>{fmt(order.shipping_cents)}</span>
-          </div>
-          {order.tax_cents > 0 && (
-            <div className="flex justify-between text-white/70">
-              <span>{t("tva")}</span>
-              <span>{fmt(order.tax_cents)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-base font-bold pt-2 border-t border-white/10 mt-2">
-            <span>{t("total")}</span>
-            <span>{fmt(order.total_cents)}</span>
-          </div>
-        </section>
+          </Card>
+        ) : null}
 
-        {canReturn && lookupToken && (
-          <OrderReturnButton orderId={order.id} lookupToken={lookupToken} />
-        )}
-        {canReturn && !lookupToken && (
-          <p className="text-xs text-white/40 text-center">
-            
-            {t("pentruReturContacteazaSuportul")}
-          </p>
-        )}
-      </div>
-    </main>
+        {order.trackingUrl && /^https:\/\//.test(order.trackingUrl) ? (
+          <Button asChild variant="secondary" block>
+            <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer">
+              {t("trackOrder")}
+              <ExternalLink aria-hidden className="h-4 w-4" />
+            </a>
+          </Button>
+        ) : null}
+
+        {RETURNABLE.has(order.status) ? (
+          order.lookupToken ? (
+            <OrderReturnButton orderId={order.id} lookupToken={order.lookupToken} />
+          ) : (
+            <p className="text-center text-xs text-muted">{t("returnHelp")}</p>
+          )
+        ) : null}
+      </main>
+    </div>
   );
 }

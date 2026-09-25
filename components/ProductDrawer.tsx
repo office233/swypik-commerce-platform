@@ -234,6 +234,8 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
         body: JSON.stringify({
           productId: String(data.id),
           quantity: 1,
+          // Clipul din care cumpără — comisionul ajunge la creatorul lui.
+          videoId: data.videoId ? String(data.videoId) : undefined,
           title: productName,
           image: productImage,
           priceCents: priceCents || undefined,

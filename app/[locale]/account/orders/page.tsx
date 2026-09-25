@@ -1,116 +1,106 @@
-import Link from "next/link";
+import Image from "next/image";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { ArrowLeft, Package } from "lucide-react";
+import { ChevronRight, Package } from "lucide-react";
+import { getFormatter, getTranslations } from "next-intl/server";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { OrderPrice } from "@/components/shop/OrderPrice";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
-import { dbQuery } from "@/lib/db";
-import { formatCurrency } from "@/lib/i18n/currency";
-import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, type Currency } from "@/lib/i18n/config";
-import { getTranslations } from "next-intl/server";
+import { Link } from "@/lib/i18n/navigation";
+import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/config";
+import { listBuyerOrders, orderStatusKey, orderStatusTone } from "@/lib/shop/orders";
 
 export const dynamic = "force-dynamic";
 
-type Row = {
-  id: string;
-  status: string;
-  total_cents: number;
-  currency: string;
-  created_at: string;
-  item_count: string;
+const PAGE_SIZE = 20;
+
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ cursor?: string }>;
 };
 
-function fmtDate(iso: string) {
-  try {
-    return new Date(iso).toLocaleDateString("ro-RO", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "shopBuyer.orders" });
+  return { title: t("metaTitle"), robots: { index: false, follow: false } };
 }
 
-export default async function OrdersPage() {
-  const t = await getTranslations("accountOrders");
+export default async function OrdersPage({ params, searchParams }: Props) {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const { cursor } = await searchParams;
   const user = await getAuthUser();
   if (!user.userId) redirect("/account?redirect=/account/orders");
 
-  const STATUS_LABELS: Record<string, string> = {
-    pending: t("statusPending"),
-    paid: t("statusPaid"),
-    processing: t("statusProcessing"),
-    fulfilled: t("statusFulfilled"),
-    delivered: t("statusDelivered"),
-    cancelled: t("statusCancelled"),
-    refunded: t("statusRefunded"),
-    return_requested: t("statusReturnRequested"),
-  };
-
-  const cookieStore = await cookies();
-  const cookieCurrency = cookieStore.get(CURRENCY_COOKIE)?.value;
-  const displayCurrency: Currency =
-    cookieCurrency && isCurrency(cookieCurrency) ? cookieCurrency : DEFAULT_CURRENCY;
-
-  const { rows } = await dbQuery<Row>(
-    `SELECT o.id, o.status, o.total_cents, o.currency, o.created_at,
-            (SELECT count(*) FROM commerce_order_items oi WHERE oi.order_id = o.id) AS item_count
-       FROM commerce_orders o
-      WHERE o.buyer_user_id = $1
-      ORDER BY o.created_at DESC
-      LIMIT 100`,
-    [user.userId],
-  );
+  const [t, format, page] = await Promise.all([
+    getTranslations({ locale, namespace: "shopBuyer.orders" }),
+    getFormatter({ locale }),
+    listBuyerOrders(user.userId, { cursor, limit: PAGE_SIZE }),
+  ]);
 
   return (
-    <main className="min-h-screen bg-black text-white pb-24">
-      <header className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur border-b border-white/10">
-        <Link href="/account" className="p-1 -ml-1">
-          <ArrowLeft size={22} />
-        </Link>
-        <h1 className="text-lg font-black">{t("headerComenzi")}</h1>
-      </header>
-      <div className="px-4 pt-4 max-w-2xl mx-auto">
-        {rows.length === 0 ? (
-          <p className="text-white/50 text-sm mt-8 text-center">{t("nuAiComenziInca")}</p>
+    <div className="min-h-dvh bg-canvas">
+      <PageHeader back="/account" title={t("title")} />
+      <main className="mx-auto max-w-2xl px-gutter py-4">
+        {page.orders.length === 0 ? (
+          <EmptyState
+            icon={Package}
+            title={t("emptyTitle")}
+            description={t("emptyBody")}
+            action={
+              <Button asChild>
+                <Link href="/shop">{t("browse")}</Link>
+              </Button>
+            }
+          />
         ) : (
-          <ul className="space-y-3">
-            {rows.map((r) => (
-              <li key={r.id}>
-                <Link
-                  href={`/account/orders/${r.id}`}
-                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 hover:bg-white/[0.07]"
-                >
-                  <div className="size-10 rounded-full bg-white/10 flex items-center justify-center">
-                    <Package size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm md:text-base font-semibold">
-                      
-                      {t("comanda")}{r.id.slice(0, 8)}
-                    </div>
-                    <div className="text-xs text-white/60">
-                      {fmtDate(r.created_at)} · {r.item_count} {Number(r.item_count) === 1 ? t("produs") : t("produse")}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold">
-                      {formatCurrency(r.total_cents, {
-                        sourceCurrency: (r.currency?.trim() as Currency) || "RON",
-                        displayCurrency,
-                        locale: "ro",
-                      })}
-                    </div>
-                    <div className="text-[10px] text-white/50">
-                      {STATUS_LABELS[r.status] || r.status}
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <Card padding="none">
+            <ul className="divide-y divide-subtle">
+              {page.orders.map((o) => (
+                <li key={o.id}>
+                  <Link href={`/account/orders/${o.id}`} className="flex min-h-[4.5rem] items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-control bg-surface-2">
+                      {o.firstImage ? (
+                        <Image src={o.firstImage} alt="" fill sizes="48px" className="object-cover" />
+                      ) : (
+                        <Package className="m-3 h-6 w-6 text-subtle" aria-hidden />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-fg">
+                        {t("orderNumber", { number: o.id.slice(0, 8).toUpperCase() })}
+                      </span>
+                      <span className="block truncate text-xs text-muted">
+                        {format.dateTime(new Date(o.createdAt), { dateStyle: "medium" })} · {t("itemsCount", { count: o.itemCount })}
+                      </span>
+                    </span>
+                    <span className="flex flex-col items-end gap-1">
+                      <span className="text-sm font-semibold tabular-nums text-fg">
+                        <OrderPrice cents={o.totalCents} currency={o.currency} />
+                      </span>
+                      <Badge tone={orderStatusTone(o.status)} size="sm">
+                        {t(`status_${orderStatusKey(o.status)}`)}
+                      </Badge>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-subtle" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
-      </div>
-    </main>
+        {page.nextCursor ? (
+          <div className="mt-4 flex justify-center">
+            <Button asChild variant="secondary">
+              <Link href={`/account/orders?cursor=${encodeURIComponent(page.nextCursor)}`}>{t("loadMore")}</Link>
+            </Button>
+          </div>
+        ) : null}
+      </main>
+    </div>
   );
 }

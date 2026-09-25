@@ -1,296 +1,125 @@
 /**
- * Product Page — Server Component with SSR data
- * 
- * - generateMetadata: SEO title, description, OG tags
- * - JSON-LD: Product structured data (only real ratings)
- * - Passes initialData to ProductClient to avoid double fetch
+ * Pagina de produs (server): date SSR, SEO (metadata + JSON-LD), recenzii reale.
+ * UI-ul interactiv e în components/shop/product/ProductView.
  */
-
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
 import { cache } from "react";
-import { getProductDetail as _getProductDetail } from "@/lib/products/get-product-detail";
-import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
-const getProductDetail = cache(_getProductDetail);
-
-async function resolveLocale(): Promise<string> {
-  const c = await cookies();
-  const v = c.get(LOCALE_COOKIE)?.value;
-  return isLocale(v) ? v : DEFAULT_LOCALE;
-}
-import ProductClient from "./ProductClient";
-import ReviewList from "@/components/reviews/ReviewList";
-import ReviewForm from "@/components/reviews/ReviewForm";
-import StarRating from "@/components/reviews/StarRating";
+import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ProductActions } from "@/components/shop/product/ProductActions";
+import { ProductView } from "@/components/shop/product/ProductView";
+import { ReviewsSection } from "@/components/shop/reviews/ReviewsSection";
 import { getAuthSession } from "@/lib/auth/session";
-import { dbQuery } from "@/lib/db";
+import { DEFAULT_LOCALE, LOCALES, isLocale } from "@/lib/i18n/config";
+import { getProductDetail } from "@/lib/products/get-product-detail";
 import { safeJsonLd } from "@/lib/seo/json-ld";
 import { APP_URL } from "@/lib/app-url";
-
-type Props = { params: Promise<{ id: string }> };
+import { isUuid } from "@/lib/validation/uuid";
+import { REVIEWS_PAGE_SIZE, getShopConfig } from "@/lib/shop/config";
+import type { CatalogCard } from "@/lib/shop/catalog";
+import { buildProductDescription, buildProductJsonLd, getProductAlternates, getProductClips } from "@/lib/shop/product-page";
+import { getReviewEligibility, getReviewSummary, listReviews } from "@/lib/shop/reviews";
 
 export const dynamic = "force-dynamic";
 
+type Props = {
+  params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+const loadDetail = cache((id: string, locale: string) => getProductDetail(id, locale));
+
+async function resolveLocale(params: Props["params"]) {
+  const { locale, id } = await params;
+  return { id, locale: isLocale(locale) ? locale : DEFAULT_LOCALE };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const locale = await resolveLocale();
-  const data = await getProductDetail(id, locale);
-  if (!data) return { title: "Produs negăsit — Swypik" };
-
-  const { product } = data as any;
-  const seoTitle = product.seoTitle as string | null;
-  const seoDescription = product.seoDescription as string | null;
-
-  const title = seoTitle
-    ? `${seoTitle} | Swypik`
-    : `${product.title} — ${product.price} lei — Swypik`;
-  const description = seoDescription
-    ? seoDescription
-    : (product.description
-      ? `${String(product.description).replace(/<[^>]*>/g, " ").trim().slice(0, 150)}...`
-      : `${product.title} — livrare rapidă. Cumpără de pe Swypik.`);
-
-  // hreflang alternates from product_translations — uses localized slug per locale when present
-  const baseUrl = APP_URL;
-  const productUuid = (product?.id ?? id) as string;
-  let languages: Record<string, string> | undefined;
-  let canonicalUrl = `${baseUrl}/product/${productUuid}`;
-  try {
-    const { LOCALES } = await import("@/lib/i18n/config");
-    const { dbQuery } = await import("@/lib/db");
-    const { rows } = await dbQuery<{ locale: string; slug: string | null }>(
-      `SELECT locale, NULLIF(slug,'') AS slug FROM product_translations WHERE product_id = $1`,
-      [productUuid],
-    );
-    const slugByLocale = new Map<string, string | null>();
-    for (const r of rows) slugByLocale.set(r.locale, r.slug);
-    if (rows.length > 0) {
-      languages = { "x-default": `${baseUrl}/product/${productUuid}` };
-      for (const l of LOCALES) {
-        if (slugByLocale.has(l)) {
-          const slug = slugByLocale.get(l);
-          languages[l] = slug
-            ? `${baseUrl}/product/${slug}`
-            : `${baseUrl}/product/${productUuid}?locale=${l}`;
-        }
-      }
-    }
-    // Canonical follows the slug for the active locale when available
-    const activeSlug = slugByLocale.get(locale) ?? null;
-    if (activeSlug) canonicalUrl = `${baseUrl}/product/${activeSlug}`;
-  } catch {
-    /* non-fatal */
-  }
-
+  const { id, locale } = await resolveLocale(params);
+  const t = await getTranslations({ locale, namespace: "shopBuyer.product" });
+  const detail = await loadDetail(id, locale);
+  if (!detail) return { title: t("notFound") };
+  const { product } = detail;
+  const title = product.seoTitle || product.title;
+  const description = buildProductDescription(detail, t("metaFallbackDescription", { title: product.title }));
+  const { canonical, languages } = await getProductAlternates(product.id, locale, LOCALES);
+  const images = product.images[0] ? [product.images[0]] : [];
   return {
-    title,
+    title: t("metaTitle", { title }),
     description,
-    alternates: {
-      canonical: canonicalUrl,
-      ...(languages ? { languages } : {}),
-    },
-    openGraph: {
-      title: seoTitle ?? product.title,
-      description,
-      images: product.images?.[0] ? [{ url: product.images[0], width: 800, height: 800 }] : [],
-      type: "website",
-      locale,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: seoTitle ?? product.title,
-      description,
-      images: product.images?.[0] ? [product.images[0]] : [],
-    },
+    alternates: { canonical, ...(languages ? { languages } : {}) },
+    openGraph: { title, description, images: images.map((url) => ({ url, width: 800, height: 800 })), type: "website", locale },
+    twitter: { card: "summary_large_image", title, description, images },
   };
 }
 
-export default async function ProductPage({ params }: Props) {
-  const { id } = await params;
-  const locale = await resolveLocale();
-  const data = await getProductDetail(id, locale);
-  if (!data) notFound();
-  const session = await getAuthSession();
+export default async function ProductPage({ params, searchParams }: Props) {
+  const { id, locale } = await resolveLocale(params);
+  const detail = await loadDetail(id, locale);
+  if (!detail) notFound();
+  const productId = detail.product.id;
+  const sp = await searchParams;
+  const rawVideo = Array.isArray(sp.v) ? sp.v[0] : sp.v;
 
-  // The URL segment may be a UUID, slug, or external id. Resolve the real UUID here.
-  const productUuid = (data?.product?.id as string) ?? id;
+  const session = await getAuthSession().catch(() => null);
+  const [clips, summary, firstPage, eligibility, t] = await Promise.all([
+    getProductClips(productId).catch(() => []),
+    getReviewSummary(productId),
+    listReviews(productId, { sort: "recent", limit: REVIEWS_PAGE_SIZE, offset: 0 }),
+    getReviewEligibility(productId, session?.userId ?? null),
+    getTranslations({ locale, namespace: "shopBuyer" }),
+  ]);
 
-  // SSR-prefetch clips for this product (so "Clips (N)" is correct on first paint)
-  let initialVideos: Array<{ id: string; title: string; playbackUrl: string; thumbnailUrl: string; durationSeconds: number; viewCount: number; likeCount: number; publishedAt: string; creatorName: string; creatorId: string; description: string }> = [];
-  if (data) {
-    try {
-      const { rows: vRows } = await dbQuery<any>(
-        `SELECT v.id, v.title, v.description, v.playback_url, v.thumbnail_url, v.duration_ms,
-                v.view_count, v.like_count, v.published_at,
-                u.display_name AS creator_name, u.id AS creator_id
-           FROM videos v
-           JOIN users u ON v.creator_id = u.id
-          WHERE v.status='ready' AND v.visibility='public'
-            AND COALESCE(v.is_hidden,false)=false
-            AND v.effective_label='safe'
-            AND EXISTS (
-              SELECT 1 FROM jsonb_array_elements(COALESCE(v.product_refs,'[]'::jsonb)) e
-              WHERE (e ? 'product_id' AND e->>'product_id' = $1)
-                 OR (jsonb_typeof(e)='string' AND e #>> '{}' = $1)
-            )
-          ORDER BY v.view_count DESC NULLS LAST, v.published_at DESC NULLS LAST
-          LIMIT 12`,
-        [productUuid]
-      );
-      initialVideos = vRows.map((r: any) => ({
-        id: r.id,
-        title: r.title,
-        description: r.description ?? "",
-        playbackUrl: r.playback_url,
-        thumbnailUrl: r.thumbnail_url,
-        durationSeconds: r.duration_ms ? Math.round(r.duration_ms / 1000) : 0,
-        viewCount: Number(r.view_count) || 0,
-        likeCount: Number(r.like_count) || 0,
-        publishedAt: r.published_at,
-        creatorName: r.creator_name,
-        creatorId: r.creator_id,
-      }));
-    } catch { /* non-fatal */ }
-  }
+  const similar: CatalogCard[] = detail.similar
+    .filter((s) => isUuid(s.id))
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      priceCents: Math.round(s.price * 100),
+      compareAtCents: s.oldPrice ? Math.round(s.oldPrice * 100) : null,
+      currency: detail.product.currency,
+      image: s.image || null,
+      hasVideo: s.hasVideo,
+      rating: s.ratingAvg,
+      ratingCount: s.ratingCount,
+    }));
 
-  // SSR-prefetch similar products (taxonomy match) for SEO internal linking
-  let initialSimilar: Array<{ id: string; title: string; price: number; image: string; oldPrice: number; hasVideo: boolean; rating: number; ratingAvg: number | null; ratingCount: number }> = [];
-  if (data) {
-    try {
-      const { rows: sRows } = await dbQuery<any>(
-        `SELECT p.id, p.title, p.price_cents, p.image_url
-           FROM marketplace_products p
-          WHERE p.status = 'active'
-            AND p.id <> $1
-            AND p.image_url IS NOT NULL
-            AND p.price_cents IS NOT NULL
-            AND p.taxonomy_node_slug = (SELECT taxonomy_node_slug FROM marketplace_products WHERE id = $1)
-            AND COALESCE(p.is_adult, false) = false
-          ORDER BY p.created_at DESC NULLS LAST
-          LIMIT 8`,
-        [productUuid]
-      );
-      initialSimilar = sRows.map((r: any) => ({
-        id: r.id,
-        title: r.title,
-        price: r.price_cents ? r.price_cents / 100 : 0,
-        oldPrice: 0,
-        image: r.image_url || "",
-        hasVideo: false,
-        rating: 0,
-        ratingAvg: null,
-        ratingCount: 0,
-      }));
-    } catch { /* non-fatal */ }
-  }
-
-  // Reviews aggregate + capability checks
-  let reviewsAgg: { average: number | null; total: number } = { average: null, total: 0 };
-  let canReview = false;
-  let alreadyReviewed = false;
-  if (data) {
-    const { rows: aggRows } = await dbQuery<{ avg_rating: string | null; total: string }>(
-      "SELECT AVG(rating)::numeric(3,2) AS avg_rating, COUNT(*)::text AS total FROM product_reviews WHERE product_id = $1 AND is_hidden = false",
-      [productUuid]
-    );
-    const a = aggRows[0];
-    reviewsAgg = {
-      average: a?.avg_rating ? Number(a.avg_rating) : null,
-      total: Number(a?.total || "0"),
-    };
-    if (session) {
-      const { rows: ownRows } = await dbQuery<{ id: string }>(
-        "SELECT id FROM product_reviews WHERE product_id = $1 AND user_id = $2 LIMIT 1",
-        [productUuid, session.userId]
-      );
-      alreadyReviewed = ownRows.length > 0;
-      if (!alreadyReviewed) {
-        const { rows: orderRows } = await dbQuery<{ order_id: string }>(
-          "SELECT oi.order_id FROM commerce_order_items oi JOIN commerce_orders o ON o.id = oi.order_id WHERE oi.product_id = $1 AND o.buyer_user_id = $2 AND o.status IN ('paid','fulfilled') LIMIT 1",
-          [productUuid, session.userId]
-        );
-        canReview = orderRows.length > 0;
-      }
-    }
-  }
-
-  // JSON-LD — localized via `locale` (data.product fields already come translated)
-  let jsonLd = null;
-  if (data) {
-    const { product } = data as any;
-    const productUrl = `${APP_URL}/product/${product.id}`;
-    jsonLd = {
-      "@context": "https://schema.org",
-      "@type": "Product",
-      name: product.title,
-      description: (product.description || product.title).replace(/<[^>]*>/g, " ").trim().slice(0, 300),
-      image: product.images?.[0],
-      url: productUrl,
-      inLanguage: locale,
-      sku: product.id,
-      ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
-      offers: {
-        "@type": "Offer",
-        url: productUrl,
-        price: product.price,
-        priceCurrency: locale === "ro" ? "RON" : "EUR",
-        availability: "https://schema.org/InStock",
-        itemCondition: "https://schema.org/NewCondition",
-        seller: {
-          "@type": "Organization",
-          name: "Swypik",
-        },
-      },
-      // Doar recenzii reale (product_reviews) — niciodată rating din metadata seed.
-      ...(reviewsAgg.average !== null && reviewsAgg.total > 0 && {
-        aggregateRating: {
-          "@type": "AggregateRating",
-          ratingValue: reviewsAgg.average,
-          bestRating: 5,
-          worstRating: 1,
-          ratingCount: reviewsAgg.total,
-        },
-      }),
-    };
-  }
-
-  // Breadcrumb JSON-LD: Home > Explore > {product title} — localized labels
-  const breadcrumbLabels: Record<string, { home: string; explore: string }> = {
-    ro: { home: "Acasă", explore: "Explorează" },
-    en: { home: "Home", explore: "Explore" },
-    es: { home: "Inicio", explore: "Explorar" },
-    fr: { home: "Accueil", explore: "Explorer" },
-    de: { home: "Startseite", explore: "Entdecken" },
-    pt: { home: "Início", explore: "Explorar" },
-    it: { home: "Home", explore: "Esplora" },
-  };
-  const bcLabels = breadcrumbLabels[locale] ?? breadcrumbLabels.en;
-  const breadcrumbJsonLd = data ? {
+  const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: bcLabels.home, item: `${APP_URL}/` },
-      { "@type": "ListItem", position: 2, name: bcLabels.explore, item: `${APP_URL}/explore` },
-      { "@type": "ListItem", position: 3, name: data.product.title?.slice(0, 80) || "Product", item: `${APP_URL}/product/${data.product.id}` },
+      { "@type": "ListItem", position: 1, name: t("catalog.title"), item: `${APP_URL}/shop` },
+      { "@type": "ListItem", position: 2, name: detail.product.title.slice(0, 80), item: `${APP_URL}/product/${productId}` },
     ],
-  } : null;
+  };
 
   return (
-    <>
-      {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
-        />
-      )}
-      {breadcrumbJsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
-        />
-      )}
-      <ProductClient initialData={{ ...data, similar: initialSimilar.length > 0 ? initialSimilar : (data?.similar || []) }} initialVideos={initialVideos} />
-    </>
+    <div className="min-h-dvh bg-canvas">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd([buildProductJsonLd(detail, summary, locale), breadcrumb]) }}
+      />
+      <PageHeader back title={detail.product.title} actions={<ProductActions productId={productId} title={detail.product.title} />} />
+      <ProductView
+        detail={detail}
+        clips={clips}
+        similar={similar}
+        reviewSummary={summary}
+        sourceVideoId={isUuid(rawVideo) ? rawVideo : null}
+        maxLineQty={getShopConfig().maxLineQty}
+        reviews={
+          <ReviewsSection
+            productId={productId}
+            productTitle={detail.product.title}
+            summary={summary}
+            initialItems={firstPage.items}
+            initialHasMore={firstPage.hasMore}
+            eligibility={eligibility}
+            pageSize={REVIEWS_PAGE_SIZE}
+          />
+        }
+      />
+    </div>
   );
 }

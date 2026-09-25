@@ -615,6 +615,7 @@ const TAXONOMY_PATH_COLUMNS = [
   "p.taxonomy_category",
   "p.taxonomy_subcategory",
 ];
+const TAXONOMY_PATH_DEFAULTS = ["other", "general", "general"] as const;
 
 function buildTaxonomyPathFilters(where: string[], params: unknown[], paramIndex: number, categoryId: string) {
   const parts = categoryId
@@ -625,7 +626,10 @@ function buildTaxonomyPathFilters(where: string[], params: unknown[], paramIndex
     .slice(0, TAXONOMY_PATH_COLUMNS.length);
 
   for (const [index, part] of parts.entries()) {
-    where.push(`REGEXP_REPLACE(LOWER(COALESCE(NULLIF(${TAXONOMY_PATH_COLUMNS[index]}, ''), '')), '[^a-z0-9]+', '-', 'g') = $${paramIndex}`);
+    // Aceleași valori implicite ca ierarhia de rezervă (Other › General › General),
+    // altfel produsele fără taxonomie apar în „Altele” dar filtrul nu le găsește.
+    const fallback = TAXONOMY_PATH_DEFAULTS[index];
+    where.push(`REGEXP_REPLACE(LOWER(COALESCE(NULLIF(${TAXONOMY_PATH_COLUMNS[index]}, ''), '${fallback}')), '[^a-z0-9]+', '-', 'g') = $${paramIndex}`);
     params.push(part);
     paramIndex += 1;
   }
@@ -1117,6 +1121,7 @@ export async function getCategoryHierarchy(locale = "ro") {
         FROM marketplace_products
         WHERE status = 'active'
           AND COALESCE(is_adult, false) = false AND effective_label = 'safe'
+          AND COALESCE(listing_type, 'product') = 'product'
           AND taxonomy_node_slug IS NOT NULL
         GROUP BY taxonomy_node_slug
       ),
@@ -1167,6 +1172,10 @@ export async function getCategoryHierarchy(locale = "ro") {
           COUNT(*)::int AS count
         FROM marketplace_products p
         WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND p.effective_label = 'safe'
+          -- Listările de verticală (zboruri, curse) au pagini proprii (/fly, /go):
+          -- nu intră în categoriile magazinului (audit shop 2026-09-25).
+          AND COALESCE(p.listing_type, 'product') = 'product'
+          AND COALESCE(p.metadata->>'vertical', '') NOT IN ('fly', 'go')
         GROUP BY 1,2,3,4,5
         HAVING COUNT(*) > 0
       `,
@@ -1219,8 +1228,9 @@ function buildTaxonomyNodeTree(rows: TaxonomyNodeRow[]) {
       roots.push(node);
     }
   }
-  // Hide "Altele" bucket and noisy thin top-level nodes (<5 products) from nav.
-  const filtered = roots.filter((r) => r.id !== 'other' && r.count >= 5);
+  // Hide the "Altele" bucket. Every non-empty node is shown: the catalog is small
+  // (post-AliExpress), a <5 threshold hid every real category (audit shop 2026-09-25).
+  const filtered = roots.filter((r) => r.id !== 'other' && r.count > 0);
   const sortRec = (list: TaxonomyTreeNode[]) => {
     list.sort((a, b) => ((a._sort ?? 9999) - (b._sort ?? 9999)) || (b.count - a.count) || a.name.localeCompare(b.name));
     for (const n of list) {

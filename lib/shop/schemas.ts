@@ -22,7 +22,8 @@ export const ShopCartAddSchema = z
     productId: uuid(),
     variantId: uuid().nullish(),
     quantity: z.coerce.number().int().min(1).max(99).default(1),
-    videoId: uuid().nullish(),
+    // Tolerant: un id de clip nevalid nu blochează adăugarea, doar nu se atribuie.
+    videoId: z.string().max(64).nullish(),
   })
   .passthrough();
 

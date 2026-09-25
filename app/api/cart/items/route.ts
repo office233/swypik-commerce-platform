@@ -14,6 +14,7 @@ import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
 import { addToCart, loadCart } from "@/lib/shop/cart";
 import { getShopConfig } from "@/lib/shop/config";
 import { ShopCartAddSchema } from "@/lib/shop/schemas";
+import { isUuid } from "@/lib/validation/uuid";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       productId: parsed.data.productId,
       variantId: parsed.data.variantId ?? null,
       quantity: parsed.data.quantity,
-      videoId: parsed.data.videoId ?? null,
+      videoId: isUuid(parsed.data.videoId) ? parsed.data.videoId : null,
       maxLineQty: getShopConfig().maxLineQty,
     });
     if (!result.ok) {
