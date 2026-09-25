@@ -64,7 +64,7 @@ class Settings:
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
         values = dict(os.environ if env is None else env)
-        public_base_url = _optional(values, "S3_PUBLIC_BASE_URL", "S3_PUBLIC_URL", "R2_PUBLIC_BASE_URL", "R2_PUBLIC_URL")
+        public_base_url = _optional(values, "MEDIA_PUBLIC_BASE_URL", "S3_PUBLIC_BASE_URL", "S3_PUBLIC_URL", "R2_PUBLIC_BASE_URL", "R2_PUBLIC_URL")
         if public_base_url:
             public_base_url = public_base_url.rstrip("/")
 

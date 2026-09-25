@@ -6,6 +6,7 @@
 import { dbQuery } from "@/lib/db";
 import { isEnabled } from "@/lib/feature-flags";
 import { getMissionBadges } from "@/lib/missions/feed-badge";
+import { mediaPublicBaseUrl } from "@/lib/storage/config";
 import { toFeedVideo, type HydratedRow } from "./dto";
 import type { FeedVideo } from "./types";
 import { LINKED_PRODUCT_ID_SQL, notHiddenByViewerSql, productAttachSql, visibleVideoSql } from "./visibility";
@@ -18,7 +19,7 @@ export type HydrateOptions = {
 };
 
 function publicMediaBase(): string {
-  return process.env.S3_PUBLIC_URL || process.env.R2_PUBLIC_URL || "";
+  return mediaPublicBaseUrl();
 }
 
 export function buildHydrateSql(opts: HydrateOptions): { sql: string; params: unknown[] } {

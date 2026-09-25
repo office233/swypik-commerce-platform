@@ -51,6 +51,13 @@ services:
         # NEXT_PUBLIC_LIVEKIT_URL alimentează atât CSP-ul (next.config.mjs
         # connect-src, calculat la build) cât și clientul de apeluri video.
         NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL:-}
+        # Media (R2 + CDN, docs/infra/r2.md): CSP-ul din next.config.mjs și
+        # loader-ul next/image se calculează la BUILD din aceste valori.
+        MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-}
+        MEDIA_SIGNED_BASE_URL: ${MEDIA_SIGNED_BASE_URL:-}
+        S3_PRESIGN_ENDPOINT: ${S3_PRESIGN_ENDPOINT:-}
+        NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL: ${NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL:-}
+        NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM: ${NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM:-}
       dockerfile_inline: |
         # ── Build stage ──
         FROM node:20.19.0-alpine AS builder
@@ -102,6 +109,16 @@ services:
         ENV NEXT_PUBLIC_FEATURE_DM=$NEXT_PUBLIC_FEATURE_DM
         ARG NEXT_PUBLIC_LIVEKIT_URL
         ENV NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL
+        ARG MEDIA_PUBLIC_BASE_URL
+        ENV MEDIA_PUBLIC_BASE_URL=$MEDIA_PUBLIC_BASE_URL
+        ARG MEDIA_SIGNED_BASE_URL
+        ENV MEDIA_SIGNED_BASE_URL=$MEDIA_SIGNED_BASE_URL
+        ARG S3_PRESIGN_ENDPOINT
+        ENV S3_PRESIGN_ENDPOINT=$S3_PRESIGN_ENDPOINT
+        ARG NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL
+        ENV NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL=$NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL
+        ARG NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM
+        ENV NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM=$NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM
         RUN npm run build
 
         # ── Runtime stage ──

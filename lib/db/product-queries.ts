@@ -2,6 +2,7 @@ import { dbQuery } from "@/lib/db";
 import { parseScopedTagFilter } from "@/lib/db/category-filter-utils";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { logger } from "@/lib/logger";
+import { mediaPublicBaseUrl } from "@/lib/storage/config";
 import { getProductRatingMap } from "@/lib/reviews/aggregate";
 
 export type ProductFilters = {
@@ -505,7 +506,7 @@ function transformProduct(
     row.ae_ship_free,
     shipCostUsd === 0,
   ) || false;
-  const publicUrl = (process.env.S3_PUBLIC_URL || process.env.R2_PUBLIC_URL || "").replace(/\/$/, "");
+  const publicUrl = mediaPublicBaseUrl();
   const linkedSourceUrl = row.linked_video_source_key && publicUrl
     ? `${publicUrl}/${row.linked_video_source_key}`
     : undefined;

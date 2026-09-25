@@ -28,7 +28,25 @@ try {
 // Jamendo, Radio-Browser, CheapShark, OpenTDB, Gemini) ONLY from
 // server code (lib/**), never from the browser — see app/api/* proxies — so
 // none of those hosts need to be here.
-const CONNECT_SRC = `'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC}${LIVEKIT_CONNECT_SRC ? ` ${LIVEKIT_CONNECT_SRC}` : ""}`;
+// Media (R2 + CDN, docs/infra/r2.md): originile vin din env — CDN-ul public,
+// originea URL-urilor semnate și endpointul S3 pe care browserul urcă direct.
+// Oglinda lui `mediaCspOrigins()` din lib/storage/config.ts (folosit de middleware).
+function httpsOrigin(value) {
+  try {
+    const u = new URL(String(value || "").trim());
+    return u.protocol === "https:" ? u.origin : "";
+  } catch {
+    return "";
+  }
+}
+const MEDIA_CSP_ORIGINS = Array.from(new Set([
+  process.env.MEDIA_PUBLIC_BASE_URL || process.env.S3_PUBLIC_URL || process.env.S3_PUBLIC_BASE_URL || process.env.R2_PUBLIC_URL,
+  process.env.MEDIA_SIGNED_BASE_URL,
+  process.env.S3_PRESIGN_ENDPOINT || process.env.S3_UPLOAD_PUBLIC_ENDPOINT || process.env.S3_ENDPOINT,
+].map(httpsOrigin).filter(Boolean)));
+const MEDIA_CONNECT_SRC = MEDIA_CSP_ORIGINS.length ? ` ${MEDIA_CSP_ORIGINS.join(" ")}` : "";
+const MEDIA_IMAGE_PATTERNS = MEDIA_CSP_ORIGINS.map((origin) => ({ protocol: "https", hostname: new URL(origin).hostname }));
+const CONNECT_SRC = `'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com${MEDIA_CONNECT_SRC} https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC}${LIVEKIT_CONNECT_SRC ? ` ${LIVEKIT_CONNECT_SRC}` : ""}`;
 // media-src stays broad (`https:`) on purpose: Swypik Music plays internet
 // radio streams (lib/audio/radio-browser.ts) whose stream URLs come from
 // arbitrary stations' own hosts picked at request time — there is no fixed
@@ -80,6 +98,11 @@ const nextConfig = {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
   },
   images: {
+    // Fără optimizatorul din server (/_next/image): bytes-ii imaginilor de pe
+    // CDN nu trec prin aplicație. Loader-ul întoarce URL-ul CDN direct sau prin
+    // Cloudflare Image Transformations (lib/storage/image-loader.ts).
+    loader: "custom",
+    loaderFile: "./lib/storage/image-loader.ts",
     // Explicit allowlist — `hostname: '**'` for http AND https was an open
     // image proxy (any URL could be requested through /_next/image). Arbitrary-
     // host images from the new modules (radio station favicons, Audius/Jamendo
@@ -92,6 +115,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'https', hostname: 'cdn.swypik.com' },
       { protocol: 'https', hostname: 'media.swypik.com' },
+      ...MEDIA_IMAGE_PATTERNS,
     ],
   },
   // ─── Cloudflare + Performance Headers ───

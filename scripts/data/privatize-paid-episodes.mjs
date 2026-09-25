@@ -14,14 +14,14 @@
  * Politica bucket-ului (MinIO): acces anonim doar pe prefixele publice, NU pe `private/`
  *   (ex. `mc anonymous set none <alias>/<bucket>/private`).
  *
- * Env: DATABASE_URL, S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET, S3_PUBLIC_URL.
+ * Env: DATABASE_URL, S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET, MEDIA_PUBLIC_BASE_URL (alias vechi: S3_PUBLIC_URL).
  */
 import pg from "pg";
 import { S3Client, ListObjectsV2Command, CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 const env = (...keys) => keys.map((k) => process.env[k]?.trim()).find(Boolean) ?? "";
 const BUCKET = env("S3_BUCKET", "S3_MEDIA_BUCKET", "R2_BUCKET");
-const PUBLIC_BASE = (env("S3_PUBLIC_URL", "S3_PUBLIC_BASE_URL", "R2_PUBLIC_URL") || `${env("S3_ENDPOINT", "R2_ENDPOINT")}/${BUCKET}`).replace(/\/$/, "");
+const PUBLIC_BASE = (env("MEDIA_PUBLIC_BASE_URL", "S3_PUBLIC_URL", "S3_PUBLIC_BASE_URL", "R2_PUBLIC_URL") || `${env("S3_ENDPOINT", "R2_ENDPOINT")}/${BUCKET}`).replace(/\/$/, "");
 const PRIVATE_PREFIX = (env("MEDIA_PRIVATE_PREFIX") || "private/").replace(/\/?$/, "/");
 
 const apply = process.argv.includes("--apply");

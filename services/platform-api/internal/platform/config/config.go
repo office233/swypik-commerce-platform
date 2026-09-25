@@ -67,7 +67,7 @@ func Load() Config {
 		RedisStreamVideoJobs: envOr("REDIS_STREAM_VIDEO_JOBS", "video:jobs"),
 
 		// Upload / S3 / R2
-		PublicUploadBaseURL: strings.TrimRight(envAnyOr([]string{"PUBLIC_UPLOAD_BASE_URL", "S3_PUBLIC_BASE_URL", "S3_PUBLIC_URL", "R2_PUBLIC_BASE_URL", "R2_PUBLIC_URL"}, "https://uploads.swypik.local"), "/"),
+		PublicUploadBaseURL: strings.TrimRight(envAnyOr([]string{"MEDIA_PUBLIC_BASE_URL", "PUBLIC_UPLOAD_BASE_URL", "S3_PUBLIC_BASE_URL", "S3_PUBLIC_URL", "R2_PUBLIC_BASE_URL", "R2_PUBLIC_URL"}, "https://uploads.swypik.local"), "/"),
 		UploadTTL:           time.Duration(envIntOr("UPLOAD_TTL_MINUTES", 15)) * time.Minute,
 		S3StorageProvider:   envOr("S3_STORAGE_PROVIDER", "r2"),
 		S3Endpoint:          envAny("S3_ENDPOINT", "S3_ENDPOINT_URL", "R2_ENDPOINT", "R2_ENDPOINT_URL"),
