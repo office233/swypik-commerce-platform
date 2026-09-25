@@ -3,6 +3,7 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { isSeriesPublic } from "@/lib/movies/access";
 import { addToWatchlist, getSeriesBySlug, removeFromWatchlist } from "@/lib/movies/repository";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ async function resolve(req: Request, slug: string): Promise<Resolved> {
     const rl = await rateLimit("moviesProgress", user.userId);
     if (!rl.success) return { response: NextResponse.json({ error: "rate_limited" }, { status: 429 }) };
     const series = await getSeriesBySlug(slug);
-    if (!series || series.status !== "published") return { response: NextResponse.json({ error: "not_found" }, { status: 404 }) };
+    if (!series || !isSeriesPublic(series)) return { response: NextResponse.json({ error: "not_found" }, { status: 404 }) };
     return { userId: user.userId, seriesId: series.id };
 }
 

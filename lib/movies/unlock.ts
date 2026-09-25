@@ -2,6 +2,7 @@ import { dbQuery } from "@/lib/db";
 import { getStripe } from "@/lib/stripe/checkout";
 import { creditUser, debitUser } from "@/lib/wallet/ledger";
 import { logger } from "@/lib/logger";
+import { claimUnlockPayment, recordUnlockPaymentOutcome, settleUnmatchedUnlockPayment } from "@/lib/media/unlock-payments";
 import { isFreeEpisode } from "./access";
 import { creatorShareCents, seasonPriceCents } from "./pricing";
 
@@ -23,7 +24,7 @@ async function upsertPendingEpisodeUnlock(userId: string, seriesId: string, epis
         `INSERT INTO movie_unlocks (user_id, series_id, episode_id, units_paid, creator_share_units, amount_cents, currency, status)
          VALUES ($1, $2, $3, 0, 0, $4, 'RON', 'pending')
          ON CONFLICT (user_id, episode_id) WHERE episode_id IS NOT NULL
-         DO UPDATE SET amount_cents = EXCLUDED.amount_cents
+         DO UPDATE SET amount_cents = CASE WHEN movie_unlocks.status = 'paid' THEN movie_unlocks.amount_cents ELSE EXCLUDED.amount_cents END
          RETURNING id, status`,
         [userId, seriesId, episodeId, amountCents],
     );
@@ -35,7 +36,7 @@ async function upsertPendingSeasonUnlock(userId: string, seriesId: string, amoun
         `INSERT INTO movie_unlocks (user_id, series_id, episode_id, units_paid, creator_share_units, amount_cents, currency, status)
          VALUES ($1, $2, NULL, 0, 0, $3, 'RON', 'pending')
          ON CONFLICT (user_id, series_id) WHERE episode_id IS NULL
-         DO UPDATE SET amount_cents = EXCLUDED.amount_cents
+         DO UPDATE SET amount_cents = CASE WHEN movie_unlocks.status = 'paid' THEN movie_unlocks.amount_cents ELSE EXCLUDED.amount_cents END
          RETURNING id, status`,
         [userId, seriesId, amountCents],
     );
@@ -98,6 +99,12 @@ export async function createEpisodeUnlockIntent(args: { userId: string; episodeI
     if (isFreeEpisode(row, row)) return { ok: false, reason: "already_free" };
     const amountCents = row.episode_price_cents === null ? null : Number(row.episode_price_cents);
     if (amountCents === null) return { ok: false, reason: "price_not_set" };
+    // Sezonul întreg deja plătit acoperă episodul — nu mai cerem o plată.
+    const { rows: season } = await dbQuery(
+        `SELECT 1 FROM movie_unlocks WHERE user_id = $1 AND series_id = $2 AND episode_id IS NULL AND status = 'paid'`,
+        [args.userId, row.series_id],
+    );
+    if (season.length > 0) return { ok: true, alreadyUnlocked: true };
 
     const pending = await upsertPendingEpisodeUnlock(args.userId, row.series_id, args.episodeId, amountCents);
     if (pending.status === "paid") return { ok: true, alreadyUnlocked: true };
@@ -175,6 +182,8 @@ export async function markMovieUnlockPaid(args: {
         logger.error({ paymentIntentId, currency, amountReceivedCents }, "[movies/unlock] unexpected paid amount/currency — unlock not granted");
         return;
     }
+    // O singură procesare per PaymentIntent (cheie primară) — retry-urile Stripe sunt no-op.
+    if (!(await claimUnlockPayment({ paymentIntentId, vertical: "movies", unlockId, amountCents: amountReceivedCents }))) return;
     const { rows } = await dbQuery<{
         id: string;
         user_id: string;
@@ -184,7 +193,7 @@ export async function markMovieUnlockPaid(args: {
         owner_user_id: string;
     }>(
         `UPDATE movie_unlocks u
-            SET status = 'paid'
+            SET status = 'paid', paid_at = now(), payment_intent_id = $1
            FROM movie_series s
           WHERE u.series_id = s.id AND u.status <> 'paid'
             AND (u.payment_intent_id = $1 OR u.id::text = $2)
@@ -192,7 +201,14 @@ export async function markMovieUnlockPaid(args: {
         [paymentIntentId, unlockId ?? ""],
     );
     const row = rows[0];
-    if (!row) return; // deja procesat (retry Stripe) sau intent necunoscut
+    if (!row) {
+        const { rows: current } = await dbQuery<{ status: string; payment_intent_id: string | null }>(
+            `SELECT status, payment_intent_id FROM movie_unlocks WHERE payment_intent_id = $1 OR id::text = $2 ORDER BY (status = 'paid') DESC LIMIT 1`,
+            [paymentIntentId, unlockId ?? ""],
+        );
+        await settleUnmatchedUnlockPayment({ paymentIntentId, vertical: "movies", unlockId, current: current[0] ?? null });
+        return;
+    }
 
     if (Number(row.amount_cents ?? 0) !== amountReceivedCents) {
         logger.warn({ unlockId: row.id, stored: row.amount_cents, received: amountReceivedCents }, "[movies/unlock] paid amount differs from stored price — using Stripe amount");
@@ -200,8 +216,8 @@ export async function markMovieUnlockPaid(args: {
     const amountCents = amountReceivedCents;
     const share = creatorShareCents(amountCents, row.owner_user_id, row.user_id);
     await dbQuery(
-        `UPDATE movie_unlocks SET payment_intent_id = $4, amount_cents = $2, units_paid = $2, creator_share_units = $3 WHERE id = $1`,
-        [row.id, amountCents, share, paymentIntentId],
+        `UPDATE movie_unlocks SET amount_cents = $2, units_paid = $2, creator_share_units = $3 WHERE id = $1`,
+        [row.id, amountCents, share],
     );
 
     if (share > 0) {
@@ -214,6 +230,7 @@ export async function markMovieUnlockPaid(args: {
             metadata: { seriesId: row.series_id, episodeId: row.episode_id },
         }).catch((err) => logger.error({ err, unlockId: row.id }, "[movies/unlock] creator share credit failed"));
     }
+    await recordUnlockPaymentOutcome(paymentIntentId, "granted");
 }
 
 /**

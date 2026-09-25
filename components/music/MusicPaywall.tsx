@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { pollUntil } from "@/lib/media/poll";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Loader2, Lock, X } from "lucide-react";
@@ -89,6 +90,8 @@ export default function MusicPaywall({ locked, onUnlocked, onClose, albumSlug }:
   const [busy, setBusy] = useState<UnlockTarget | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<{ target: UnlockTarget; clientSecret: string; amountCents: number } | null>(null);
+  /** Plata e confirmată; așteptăm webhook-ul care dă accesul (altfel paywall-ul reapare). */
+  const [waiting, setWaiting] = useState(false);
 
   if (!locked) return null;
   const { track, priceCents, albumPriceCents, requireAuth } = locked;
@@ -127,12 +130,28 @@ export default function MusicPaywall({ locked, onUnlocked, onClose, albumSlug }:
         <ConfirmForm
           amountCents={pending.amountCents}
           onCancel={() => setPending(null)}
-          onDone={() => {
+          onDone={async () => {
             setPending(null);
-            onUnlocked();
+            setWaiting(true);
+            const ok = await pollUntil(
+              () => fetch(`/api/music/tracks/${track.slug}/play`, { cache: "no-store" }).then((r) => r.status),
+              (status) => status !== 402,
+            );
+            setWaiting(false);
+            if (ok !== null) onUnlocked();
+            else setNotice(t("paymentPendingSlow"));
           }}
         />
       </Elements>
+    );
+  }
+
+  if (waiting) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-card bg-elevated p-5 text-center text-fg" aria-live="polite">
+        <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
+        <p className="text-sm">{t("confirmingPayment")}</p>
+      </div>
     );
   }
 

@@ -1,4 +1,13 @@
 import type { MovieEpisodeRow, MovieSeriesRow, ViewerContext } from "./types";
+import { isLicenseExpired } from "./license";
+
+/** Titlul e vizibil public: publicat și cu licența încă valabilă (expirarea ascunde titlul automat). */
+export function isSeriesPublic(
+    series: Pick<MovieSeriesRow, "status"> & { license_expires_at?: string | null },
+    now: number = Date.now(),
+): boolean {
+    return series.status === "published" && !isLicenseExpired(series.license_expires_at ?? null, now);
+}
 
 export function isFreeEpisode(
     series: Pick<MovieSeriesRow, "free_episodes">,

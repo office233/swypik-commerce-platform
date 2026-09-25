@@ -6,6 +6,13 @@ let stripeCreateCalls: Array<Record<string, unknown>> = [];
 let creditCalls: Array<Record<string, unknown>> = [];
 let debitCalls: Array<Record<string, unknown>> = [];
 let revokeMatches = true;
+let claimed = new Set<string>();
+let outcomes: Array<[unknown, unknown]> = [];
+let refundCalls: Array<Record<string, unknown>> = [];
+let grantMatches = true;
+let currentRow: { status: string; payment_intent_id: string | null } | null = null;
+let seasonPaid = false;
+const insertSql: string[] = [];
 
 const series = { id: "s1", owner_user_id: "owner-1", status: "published", free_episodes: 3, episode_price_cents: "500" };
 
@@ -16,6 +23,12 @@ vi.mock("@/lib/stripe/checkout", () => ({
       create: vi.fn(async (params: Record<string, unknown>) => {
         stripeCreateCalls.push(params);
         return createdIntent;
+      }),
+    },
+    refunds: {
+      create: vi.fn(async (params: Record<string, unknown>, opts: Record<string, unknown>) => {
+        refundCalls.push({ ...params, ...opts });
+        return { id: "re_1" };
       }),
     },
   }),
@@ -32,6 +45,18 @@ vi.mock("@/lib/wallet/ledger", () => ({
 }));
 
 async function query(sql: string, params: unknown[] = []) {
+  if (sql.startsWith("INSERT INTO media_unlock_payments")) {
+    const pi = String(params[0]);
+    if (claimed.has(pi)) return { rows: [], rowCount: 0 };
+    claimed.add(pi);
+    return { rows: [{ payment_intent_id: pi }], rowCount: 1 };
+  }
+  if (sql.startsWith("UPDATE media_unlock_payments")) { outcomes.push([params[0], params[1]]); return { rows: [], rowCount: 1 }; }
+  if (sql.startsWith("SELECT status, payment_intent_id FROM movie_unlocks")) return { rows: currentRow ? [currentRow] : [], rowCount: currentRow ? 1 : 0 };
+  if (sql.startsWith("SELECT 1 FROM movie_unlocks WHERE user_id")) return { rows: seasonPaid ? [{ "?column?": 1 }] : [], rowCount: seasonPaid ? 1 : 0 };
+  if (sql.startsWith("UPDATE movie_unlocks SET amount_cents")) return { rows: [], rowCount: 1 };
+  if (sql.startsWith("INSERT INTO movie_unlocks")) insertSql.push(sql);
+  if (sql.includes("UPDATE movie_unlocks u") && sql.includes("SET status = 'paid'") && !grantMatches) return { rows: [], rowCount: 0 };
   if (sql.includes("FROM movie_episodes e") && sql.includes("JOIN movie_series")) {
     return { rows: [{ ...series, series_id: "s1", episode_number: 5 }], rowCount: 1 };
   }
@@ -68,6 +93,13 @@ beforeEach(() => {
   creditCalls = [];
   debitCalls = [];
   revokeMatches = true;
+  claimed = new Set();
+  outcomes = [];
+  refundCalls = [];
+  grantMatches = true;
+  currentRow = null;
+  seasonPaid = false;
+  insertSql.length = 0;
 });
 
 describe("movies/unlock — card (Stripe, RON)", () => {
@@ -142,5 +174,51 @@ describe("movies/unlock — card (Stripe, RON)", () => {
     revokeMatches = false;
     await expect(revokeMovieUnlockForPayment("pi_other", "refund")).resolves.toBe(false);
     expect(debitCalls).toHaveLength(0);
+  });
+});
+
+describe("movies/unlock — idempotență și cursa plății duble", () => {
+  it("retry Stripe pentru același PaymentIntent → procesat o singură dată (o singură cotă)", async () => {
+    await markMovieUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 500, currency: "ron" });
+    await markMovieUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 500, currency: "ron" });
+    expect(creditCalls).toHaveLength(1);
+    expect(outcomes).toEqual([["pi_1", "granted"]]);
+  });
+
+  it("a doua plată pentru o deblocare deja plătită cu alt intent → rambursare automată, fără cotă", async () => {
+    grantMatches = false;
+    currentRow = { status: "paid", payment_intent_id: "pi_1" };
+    await markMovieUnlockPaid({ paymentIntentId: "pi_2", unlockId: "unlock-1", amountReceivedCents: 500, currency: "ron" });
+    expect(creditCalls).toHaveLength(0);
+    expect(refundCalls).toHaveLength(1);
+    expect(refundCalls[0]).toMatchObject({ payment_intent: "pi_2", reason: "duplicate", idempotencyKey: "unlock_duplicate_refund:pi_2" });
+    expect(outcomes).toEqual([["pi_2", "duplicate_refunded"]]);
+  });
+
+  it("livrare concurentă a aceluiași intent (rândul e deja plătit cu el) → fără rambursare", async () => {
+    grantMatches = false;
+    currentRow = { status: "paid", payment_intent_id: "pi_1" };
+    await markMovieUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 500, currency: "ron" });
+    expect(refundCalls).toHaveLength(0);
+    expect(outcomes).toEqual([["pi_1", "granted"]]);
+  });
+
+  it("intent fără deblocare cunoscută → unknown_unlock, fără acces și fără rambursare", async () => {
+    grantMatches = false;
+    await markMovieUnlockPaid({ paymentIntentId: "pi_x", unlockId: null, amountReceivedCents: 500, currency: "ron" });
+    expect(refundCalls).toHaveLength(0);
+    expect(creditCalls).toHaveLength(0);
+    expect(outcomes).toEqual([["pi_x", "unknown_unlock"]]);
+  });
+
+  it("upsert-ul pending nu suprascrie suma unui rând deja plătit", async () => {
+    await createEpisodeUnlockIntent({ userId: "viewer-1", episodeId: "ep-5" });
+    expect(insertSql[0]).toMatch(/CASE WHEN movie_unlocks.status = 'paid' THEN movie_unlocks.amount_cents/);
+  });
+
+  it("sezonul deja plătit acoperă episodul → alreadyUnlocked, fără PaymentIntent", async () => {
+    seasonPaid = true;
+    expect(await createEpisodeUnlockIntent({ userId: "viewer-1", episodeId: "ep-5" })).toEqual({ ok: true, alreadyUnlocked: true });
+    expect(stripeCreateCalls).toHaveLength(0);
   });
 });

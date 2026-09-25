@@ -19,6 +19,7 @@
  */
 import { NextResponse } from "next/server";
 import { demoteInactiveFoundingDrivers } from "@/lib/drivers/tiers";
+import { privatizeExpiredMovieTitles } from "@/lib/movies/visibility";
 import { logger } from "@/lib/logger";
 import { timingSafeEqual } from "crypto";
 
@@ -54,6 +55,14 @@ async function handle(req: Request) {
     } catch (err) {
         log.error({ err }, "founding demotion failed");
         results["founding-demotion"] = { error: String((err as Error)?.message ?? err) };
+    }
+
+    // 1b. Movies: titlurile cu licența expirată ies din feed (episoadele gratuite devin private).
+    try {
+        results["movies-license-expiry"] = await privatizeExpiredMovieTitles();
+    } catch (err) {
+        log.error({ err }, "movies license expiry failed");
+        results["movies-license-expiry"] = { error: String((err as Error)?.message ?? err) };
     }
 
     // 2. Joburile delegate, în serie (evită vârf de DB la 4 dimineața).

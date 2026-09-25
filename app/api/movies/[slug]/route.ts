@@ -4,6 +4,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
 import { getSeriesBySlug, listEpisodes, getProgress, isInWatchlist } from "@/lib/movies/repository";
+import { isSeriesPublic } from "@/lib/movies/access";
 import { buildViewerContext } from "@/lib/movies/viewer";
 import { toSeriesDto, toEpisodeDtos } from "@/lib/movies/dto";
 
@@ -16,7 +17,7 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
     const series = await getSeriesBySlug(slug);
     const user = await getAuthUser();
     const isOwner = Boolean(user.userId && series && series.owner_user_id === user.userId);
-    if (!series || (series.status !== "published" && !user.isAdmin && !isOwner)) {
+    if (!series || (!isSeriesPublic(series) && !user.isAdmin && !isOwner)) {
         return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
     const [episodes, viewer, progress, ownerRows, inWatchlist] = await Promise.all([

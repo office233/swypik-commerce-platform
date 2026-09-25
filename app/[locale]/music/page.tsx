@@ -37,15 +37,17 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     };
 }
 
-export default function MusicPage() {
+export default async function MusicPage({ params }: { params: Promise<{ locale: string }> }) {
     if (!isEnabled("music")) notFound();
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: "meta" });
 
     const jsonLd = {
         "@context": "https://schema.org",
         "@type": "MusicPlaylist",
-        name: "Swypik Music — Descoperă piese și artiști în vogă",
+        name: t("musicTitle"),
         url: `${APP_URL}/music`,
-        description: "Streaming audio gratuit și melodii de top pe Swypik Music.",
+        description: t("musicDescription"),
         publisher: {
             "@type": "Organization",
             name: "Swypik",

@@ -1,4 +1,5 @@
 import type { AudioItemDto } from "./types";
+import { isSecureStreamUrl } from "./license";
 
 interface ITunesEpisode {
     trackId?: number;
@@ -90,7 +91,7 @@ export async function fetchPodcastEpisodes(term: string, country = "ro", limit =
         }
 
         return data.results
-            .filter((ep) => ep.episodeUrl || ep.previewUrl)
+            .filter((ep) => isSecureStreamUrl(ep.episodeUrl || ep.previewUrl))
             .map((ep) => {
                 const streamUrl = ep.episodeUrl || ep.previewUrl || "";
                 const id = `podcast-${ep.trackId || Math.random().toString(36).substring(2, 9)}`;

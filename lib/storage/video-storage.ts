@@ -9,7 +9,7 @@
  *   npm install @aws-sdk/s3-request-presigner
  */
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { sanitizeFilename } from "@/lib/video/upload-session";
 
@@ -154,6 +154,38 @@ export function buildRawVideoObjectKey(uploadId: string, creatorId?: string, fil
   return `${VIDEO_PATHS.raw}/${safeCreator}/${safeUpload}/${safeFilename}`;
 }
 
+// ─── Presigned server-side GET (media privată) ─────────────────────────────
+
+/**
+ * URL GET presemnat, cu durată scurtă, pe clientul INTERN (endpointul văzut de
+ * server, nu de browser). Îl folosește proxy-ul de stream ca să citească
+ * obiecte care nu mai sunt publice (episoade plătite, piese premium).
+ */
+export async function createPresignedGetUrl(key: string, expiresIn: number): Promise<string> {
+  return getSignedUrl(getS3Client(), new GetObjectCommand({ Bucket: getBucket(), Key: key }), { expiresIn });
+}
+
+/** Baza publică a obiectelor (fără `/` final), aceeași ca `getVideoAssetUrl`. */
+function publicAssetBase(): string {
+  return (
+    firstEnv("S3_PUBLIC_URL", "S3_PUBLIC_BASE_URL", "R2_PUBLIC_URL", "R2_PUBLIC_BASE_URL")?.replace(/\/$/, "") ||
+    `${firstEnv("S3_ENDPOINT", "S3_ENDPOINT_URL", "R2_ENDPOINT", "R2_ENDPOINT_URL")}/${getBucket()}`
+  );
+}
+
+/**
+ * Inversul lui `getVideoAssetUrl`: cheia obiectului pentru un URL din bucket-ul
+ * nostru, sau null pentru orice alt host/cale (ori storage neconfigurat).
+ */
+export function objectKeyFromAssetUrl(url: string): string | null {
+  if (!isVideoStorageConfigured()) return null;
+  const base = `${publicAssetBase()}/`;
+  if (!url.startsWith(base)) return null;
+  const key = decodeURIComponent(url.slice(base.length).split(/[?#]/)[0]);
+  if (!key || key.split("/").includes("..")) return null;
+  return key;
+}
+
 // ─── Public CDN URL ─────────────────────────────────────────────────────────
 
 /**
@@ -163,10 +195,7 @@ export function buildRawVideoObjectKey(uploadId: string, creatorId?: string, fil
  * @returns    Full public URL via the CDN.
  */
 export function getVideoAssetUrl(key: string): string {
-  const publicBase =
-    firstEnv("S3_PUBLIC_URL", "S3_PUBLIC_BASE_URL", "R2_PUBLIC_URL", "R2_PUBLIC_BASE_URL")?.replace(/\/$/, "") ||
-    `${firstEnv("S3_ENDPOINT", "S3_ENDPOINT_URL", "R2_ENDPOINT", "R2_ENDPOINT_URL")}/${getBucket()}`;
-  return `${publicBase}/${key}`;
+  return `${publicAssetBase()}/${key}`;
 }
 
 function firstEnv(...keys: string[]): string {

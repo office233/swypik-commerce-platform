@@ -39,7 +39,8 @@ export async function GET(request: Request) {
     const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
     const sort = url.searchParams.get("sort") || "popular";
 
-    const where: string[] = ["is_active = true"];
+    // Platformă monetizată: reels/feed folosesc doar sunete licențiate comercial (vezi lib/audio/license.ts).
+    const where: string[] = ["is_active = true", "licensed_for_commercial = true"];
     const params: unknown[] = [];
 
     if (q) {

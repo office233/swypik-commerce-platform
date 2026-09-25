@@ -8,10 +8,7 @@ import { listTracks, ensureLikedPlaylist, listPlaylistTracks, listPlaylists, get
 import { toTrackDto } from "@/lib/music/dto";
 import { buildMusicViewer } from "@/lib/music/viewer";
 import { buildMusicHomeRows } from "@/lib/music/home";
-import { getCuratedRomanianRadios } from "@/lib/audio/radio-browser";
-import { getTrendingAudiusTracks } from "@/lib/audio/audius";
-import { getChillJamendoTracks } from "@/lib/audio/jamendo";
-import { audioItemToTrackDto } from "@/lib/audio/types";
+import { logger } from "@/lib/logger";
 import type { TrackDto } from "@/lib/music/types";
 
 export const dynamic = "force-dynamic";
@@ -47,33 +44,10 @@ export const GET = withErrorHandling(async function GET(req: Request) {
         latest = latestRows.map((t) => toTrackDto(t, viewer, likedIds.has(t.id)));
         liked = likedRows.map((t) => toTrackDto(t, viewer, likedIds.has(t.id)));
         playlists = playlistRows.filter((p) => !p.is_liked_list).map((p) => ({ id: p.id, title: p.title, trackCount: p.track_count }));
-    } catch {
-        // Dacă baza de date locală e offline sau goală, fallback fluent
-    }
-
-    // Swypik Audio: alimentăm automat cu Radio Live România și Audius
-    if (trending.length === 0) {
-        try {
-            const [roRadios, audiusTracks] = await Promise.all([
-                getCuratedRomanianRadios(),
-                getTrendingAudiusTracks(10),
-            ]);
-            const audioItems = [...roRadios, ...audiusTracks].map(audioItemToTrackDto);
-            if (audioItems.length > 0) {
-                trending = audioItems;
-            }
-        } catch {
-            // continue
-        }
-    }
-
-    if (latest.length === 0) {
-        try {
-            const jamendoTracks = await getChillJamendoTracks(10);
-            latest = jamendoTracks.map(audioItemToTrackDto);
-        } catch {
-            // continue
-        }
+    } catch (err) {
+        // Catalog indisponibil: rândurile rămân goale (UI-ul arată „catalog în pregătire"),
+        // fără să le umplem cu radiouri/surse externe reetichetate drept „top" sau „originale".
+        logger.warn({ err }, "[music/home] catalog query failed");
     }
 
     const rows = buildMusicHomeRows({

@@ -5,6 +5,7 @@
  * oprite nu devin niciodată sunet public — dacă aveau unul, îl dezactivăm.
  */
 import { withTransaction, type TxQuery } from "@/lib/db";
+import { isCommercialLicense } from "@/lib/audio/license";
 import { MUSIC_AUDIO_TRACK_LICENSE, MUSIC_AUDIO_TRACK_SOURCE } from "./config";
 import { TRACK_COLS, buildTrackUpdate, normalizeTrackRow, type TrackPatch } from "./repository";
 import type { MusicArtistRow, MusicTrackRow } from "./types";
@@ -55,15 +56,15 @@ export async function syncAudioTrack(q: TxQuery, track: MusicTrackRow, artist: S
     const row = track.status === "published" ? audioTrackRowFor(track, artist) : null;
     if (row) {
         const { rows } = await q<{ id: number }>(
-            `INSERT INTO audio_tracks (source, source_id, title, artist, duration_s, audio_url, preview_url, image_url, genre, license, attribution_url, is_active)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
+            `INSERT INTO audio_tracks (source, source_id, title, artist, duration_s, audio_url, preview_url, image_url, genre, license, attribution_url, licensed_for_commercial, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
              ON CONFLICT (source, source_id) DO UPDATE SET
                  title = EXCLUDED.title, artist = EXCLUDED.artist, duration_s = EXCLUDED.duration_s,
                  audio_url = EXCLUDED.audio_url, image_url = EXCLUDED.image_url, genre = EXCLUDED.genre,
                  license = EXCLUDED.license, attribution_url = EXCLUDED.attribution_url,
-                 is_active = true, updated_at = now()
+                 licensed_for_commercial = EXCLUDED.licensed_for_commercial, is_active = true, updated_at = now()
              RETURNING id::int AS id`,
-            [row.source, row.source_id, row.title, row.artist, row.duration_s, row.audio_url, row.preview_url, row.image_url, row.genre, row.license, row.attribution_url],
+            [row.source, row.source_id, row.title, row.artist, row.duration_s, row.audio_url, row.preview_url, row.image_url, row.genre, row.license, row.attribution_url, isCommercialLicense(row.license)],
         );
         const id = rows[0].id;
         await q(`UPDATE music_tracks SET audio_track_id = $2, updated_at = now() WHERE id = $1`, [track.id, id]);

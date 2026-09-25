@@ -1,112 +1,59 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { Info, Play, Volume2, VolumeX } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
+import { Button } from "@/components/ui/Button";
+import { IconButton } from "@/components/ui/IconButton";
+import { Badge } from "@/components/ui/Badge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { genreLabelKey, isMovieGenre } from "@/lib/movies/genres";
 import type { SeriesDto } from "@/lib/movies/types";
-import { MOVIES_DISPLAY_CLASS } from "./fonts";
 
-/** Billboard stil Netflix: copertă HD/4K, titlu impunător, detalii și redare video HLS local. */
+/** Titlul recomandat: copertă + (opțional) episodul 1 gratuit ca trailer, fără sunet implicit. */
 export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto; playbackUrl: string | null }) {
   const t = useTranslations("movies");
   const [muted, setMuted] = useState(true);
-
-  const isVideoHls = Boolean(playbackUrl && (playbackUrl.includes(".m3u8") || playbackUrl.includes("/stream/")));
-  const videoRef = useHlsVideo(isVideoHls ? playbackUrl : null);
+  const [imgBroken, setImgBroken] = useState(false);
+  const videoRef = useHlsVideo(playbackUrl);
   const heroImage = series.coverUrl ?? series.posterUrl;
   const genres = series.genres.filter(isMovieGenre).map((g) => t(genreLabelKey(g)));
 
   return (
-    <section className="relative h-[56vh] sm:h-[68vh] md:h-[75vh] w-full overflow-hidden bg-black">
-      {/* Background Image / Backdrop */}
-      {heroImage && (
+    <section className="relative h-[56dvh] w-full overflow-hidden bg-canvas">
+      {heroImage && !imgBroken && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={heroImage}
-          alt={series.title}
+          alt=""
           referrerPolicy="no-referrer"
-          onError={(e) => {
-            // Dacă backdropUrl pică, încearcă posterUrl
-            if (series.posterUrl && e.currentTarget.src !== series.posterUrl) {
-              e.currentTarget.src = series.posterUrl;
-            } else {
-              e.currentTarget.style.display = "none";
-            }
-          }}
-          className="absolute inset-0 h-full w-full object-cover object-top opacity-85 transition-opacity duration-700"
+          onError={() => setImgBroken(true)}
+          className="absolute inset-0 h-full w-full object-cover object-top"
         />
       )}
+      {playbackUrl && <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" autoPlay loop muted={muted} playsInline />}
+      <div className="absolute inset-0 bg-gradient-to-t from-canvas via-canvas/40 to-transparent" />
 
-      {/* Video HLS local dacă există */}
-      {isVideoHls && (
-        <video
-          ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
-          autoPlay
-          loop
-          muted={muted}
-          playsInline
-        />
-      )}
-
-      {/* Cinematic Gradient Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/30 to-transparent" />
-
-      {/* Content */}
-      <div className="absolute inset-x-0 bottom-0 px-4 pb-6 sm:px-6 sm:pb-8 max-w-4xl" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="rounded-full bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#EC4899] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_0_16px_rgba(124,58,237,0.6)]">
-            {t("brandBadge")}
-          </span>
-        </div>
-
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)] leading-tight line-clamp-2">
-          {series.title}
-        </h1>
-
-        {series.synopsis && (
-          <p className="mt-2 line-clamp-2 text-xs sm:text-sm text-white/80 max-w-2xl leading-relaxed drop-shadow">
-            {series.synopsis}
-          </p>
-        )}
-
-        {genres.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {genres.map((g) => (
-              <span key={g} className="rounded-md bg-white/10 backdrop-blur-sm px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold text-white/70">
-                {g}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4 flex items-center gap-2.5 sm:gap-3">
-          <Link
-            href={`/movies/${series.slug}/1`}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] px-4 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-sm font-black text-white shadow-[0_0_20px_rgba(124,58,237,0.5)] active:scale-95 hover:brightness-110 transition-all shrink-0"
-          >
-            <Play size={15} fill="currentColor" /> {t("play")}
-          </Link>
-
-          <Link
-            href={`/movies/${series.slug}`}
-            className="flex items-center gap-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 px-3.5 py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-bold text-white hover:bg-white/20 active:scale-95 transition-all shrink-0"
-          >
-            <Info size={15} /> {t("moreInfo")}
-          </Link>
-
-          {isVideoHls && (
-            <button
-              type="button"
-              onClick={() => setMuted((m) => !m)}
-              aria-label={muted ? t("unmute") : t("mute")}
-              className="ml-auto rounded-full bg-black/40 border border-white/20 p-2 text-white hover:bg-black/60 transition-colors"
-            >
-              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
+      <div className="absolute inset-x-0 bottom-0 mx-auto max-w-5xl px-gutter pb-5">
+        {series.owner.isOfficial && <Badge tone="solid">{t("official")}</Badge>}
+        <h1 className="mt-2 line-clamp-2 text-3xl font-black leading-tight text-fg">{series.title}</h1>
+        {series.synopsis && <p className="mt-2 line-clamp-2 max-w-2xl text-sm text-muted">{series.synopsis}</p>}
+        {genres.length > 0 && <p className="mt-1 text-xs text-subtle">{genres.join(" · ")}</p>}
+        <div className="mt-4 flex items-center gap-2">
+          <Button asChild size="lg">
+            <Link href={`/movies/${series.slug}/1`}>
+              <Play className="h-4 w-4" fill="currentColor" aria-hidden /> {t("play")}
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="secondary">
+            <Link href={`/movies/${series.slug}`}>
+              <Info className="h-4 w-4" aria-hidden /> {t("moreInfo")}
+            </Link>
+          </Button>
+          {playbackUrl && (
+            <IconButton variant="overlay" className="ml-auto" label={muted ? t("unmute") : t("mute")} onClick={() => setMuted((m) => !m)}>
+              {muted ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
+            </IconButton>
           )}
         </div>
       </div>

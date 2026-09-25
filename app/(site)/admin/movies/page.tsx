@@ -1,16 +1,23 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useFormatPrice } from "@/components/i18n/useFormatPrice";
-import type { MovieSeriesRow, SeriesStatus } from "@/lib/movies/types";
+import { Clapperboard } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { TextField } from "@/components/ui/Input";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { useToast } from "@/components/ui/Toast";
+import type { SeriesStatus } from "@/lib/movies/types";
+import IngestForm from "./_components/IngestForm";
+import SeriesAdminCard, { type AdminSeriesRow } from "./_components/SeriesAdminCard";
 
-type Row = MovieSeriesRow & { episode_count: number; owner_name: string | null };
-type Publisher = { user_id: string; display_name: string | null; username: string | null; email: string | null; note: string | null };
+type Publisher = { user_id: string; display_name: string | null; username: string | null; email: string | null };
 const STATUSES: SeriesStatus[] = ["pending_review", "draft", "published", "archived"];
 const REQUEST_OPTS: RequestInit = { credentials: "same-origin", headers: { "Content-Type": "application/json" } };
-
-type StatusKey = "statusDraft" | "statusPendingReview" | "statusPublished" | "statusArchived";
-const STATUS_KEY: Record<SeriesStatus, StatusKey> = {
+const STATUS_KEY: Record<SeriesStatus, "statusDraft" | "statusPendingReview" | "statusPublished" | "statusArchived"> = {
   draft: "statusDraft",
   pending_review: "statusPendingReview",
   published: "statusPublished",
@@ -19,98 +26,69 @@ const STATUS_KEY: Record<SeriesStatus, StatusKey> = {
 
 export default function AdminMoviesPage() {
   const t = useTranslations("movies");
-  const formatPrice = useFormatPrice();
+  const { toast } = useToast();
   const [status, setStatus] = useState<SeriesStatus>("pending_review");
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<AdminSeriesRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [newPublisher, setNewPublisher] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(() => {
+    setFailed(false);
     fetch(`/api/admin/movies?status=${status}`, REQUEST_OPTS)
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((d) => setRows(d.series ?? []))
-      .catch(() => setMsg(t("error")));
+      .catch(() => setFailed(true));
     fetch("/api/admin/movies/publishers", REQUEST_OPTS)
       .then((r) => r.json())
       .then((d) => setPublishers(d.publishers ?? []))
       .catch(() => undefined);
-  }, [status, t]);
+  }, [status]);
   useEffect(load, [load]);
 
-  const patch = async (id: string, body: Record<string, unknown>) => {
-    const res = await fetch(`/api/admin/movies/${id}`, { ...REQUEST_OPTS, method: "PATCH", body: JSON.stringify(body) });
-    const d = await res.json().catch(() => ({}));
-    setMsg(res.ok ? t("saved") : `${t("error")} ${d.error ?? ""}`);
-    load();
-  };
+  const changed = (msg: string) => { toast({ title: msg, tone: "success" }); load(); };
+
   const approve = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch("/api/admin/movies/publishers", { ...REQUEST_OPTS, method: "POST", body: JSON.stringify({ userId: newPublisher.trim() }) });
-    setMsg(res.ok ? t("saved") : t("error"));
-    if (res.ok) {
-      setNewPublisher("");
-      load();
-    }
+    toast({ title: res.ok ? t("saved") : t("error"), tone: res.ok ? "success" : "danger" });
+    if (res.ok) { setNewPublisher(""); load(); }
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <h1 className="text-xl font-black">{t("adminTitle")}</h1>
-      {msg && <p className="text-sm font-semibold">{msg}</p>}
-      <div className="flex flex-wrap gap-2">
-        {STATUSES.map((s) => (
-          <button key={s} type="button" onClick={() => setStatus(s)} className={`rounded-full px-3 py-1 text-xs font-bold ${status === s ? "bg-black text-white" : "bg-neutral-100"}`}>
-            {t(STATUS_KEY[s])}
-          </button>
-        ))}
-      </div>
-      <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
-        <thead>
-          <tr className="text-left text-xs uppercase text-neutral-500">
-            <th>{t("tableSeries")}</th><th>{t("tableOwner")}</th><th>{t("tableEpisodes")}</th><th>{t("tableFree")}</th><th>{t("episodePrice")}</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id} className="border-t">
-              <td className="py-2 font-bold">
-                {r.title}
-                <div className="text-xs font-normal text-neutral-500">{r.slug}{r.license_note ? "" : ` · ${t("noLicenseNote")}`}</div>
-              </td>
-              <td>{r.owner_name ?? r.owner_user_id.slice(0, 8)}</td>
-              <td>{r.episode_count}</td>
-              <td>{r.free_episodes}</td>
-              <td>{r.episode_price_cents !== null ? formatPrice(r.episode_price_cents, { sourceCurrency: "RON" }) : t("priceComingSoon")}</td>
-              <td className="space-x-1 text-right whitespace-nowrap">
-                {r.status !== "published" && (
-                  <button type="button" onClick={() => patch(r.id, { status: "published" })} className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-bold text-white">{t("publish")}</button>
-                )}
-                {r.status === "published" && (
-                  <button type="button" onClick={() => patch(r.id, { status: "archived" })} className="rounded-lg bg-neutral-800 px-2 py-1 text-xs font-bold text-white">{t("archive")}</button>
-                )}
-                {r.status !== "draft" && (
-                  <button type="button" onClick={() => patch(r.id, { status: "draft" })} className="rounded-lg border px-2 py-1 text-xs font-bold">{t("backToDraft")}</button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
-      <section className="rounded-2xl border p-4">
-        <h2 className="mb-2 font-black">{t("publishers")}</h2>
-        <ul className="mb-3 space-y-1 text-sm">
+    <div className="mx-auto max-w-3xl space-y-6 px-gutter py-6">
+      <h1 className="flex items-center gap-2 text-xl font-bold text-fg"><Clapperboard className="h-5 w-5" aria-hidden /> {t("adminTitle")}</h1>
+      <p className="rounded-card bg-info-soft p-3 text-sm text-info">{t("cnaAdminNotice")}</p>
+
+      <IngestForm onCreated={() => { setStatus("draft"); load(); }} />
+
+      <Tabs value={status} onValueChange={(v) => setStatus(v as SeriesStatus)}>
+        <TabsList variant="pill">
+          {STATUSES.map((s) => <TabsTrigger key={s} value={s}>{t(STATUS_KEY[s])}</TabsTrigger>)}
+        </TabsList>
+      </Tabs>
+      {failed ? (
+        <ErrorState onRetry={load} />
+      ) : rows === null ? (
+        <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-28 w-full rounded-card" />)}</div>
+      ) : rows.length === 0 ? (
+        <EmptyState icon={Clapperboard} title={t("adminEmpty")} />
+      ) : (
+        <div className="space-y-3">{rows.map((r) => <SeriesAdminCard key={r.id} row={r} onChanged={changed} />)}</div>
+      )}
+
+      <Card className="space-y-3">
+        <h2 className="font-semibold text-fg">{t("publishers")}</h2>
+        <ul className="space-y-1 text-sm text-fg">
           {publishers.map((p) => (
-            <li key={p.user_id}>{p.display_name ?? p.username ?? p.email} <span className="text-xs text-neutral-500">{p.user_id}</span></li>
+            <li key={p.user_id}>{p.display_name ?? p.username ?? p.email} <span className="text-xs text-subtle">{p.user_id}</span></li>
           ))}
         </ul>
-        <form onSubmit={approve} className="flex flex-wrap gap-2">
-          <input value={newPublisher} onChange={(e) => setNewPublisher(e.target.value)} placeholder={t("approvePublisher")} className="flex-1 min-w-0 rounded-xl border px-3 py-2 text-sm" />
-          <button type="submit" className="rounded-xl bg-black px-4 py-2 text-sm font-bold text-white">{t("approveSubmit")}</button>
+        <form onSubmit={approve} className="space-y-2">
+          <TextField label={t("approvePublisher")} value={newPublisher} onChange={(e) => setNewPublisher(e.target.value)} />
+          <Button type="submit" variant="secondary">{t("approveSubmit")}</Button>
         </form>
-      </section>
+      </Card>
     </div>
   );
 }

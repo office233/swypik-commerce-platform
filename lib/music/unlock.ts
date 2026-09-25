@@ -2,6 +2,7 @@ import { dbQuery } from "@/lib/db";
 import { getStripe } from "@/lib/stripe/checkout";
 import { creditUser, debitUser } from "@/lib/wallet/ledger";
 import { logger } from "@/lib/logger";
+import { claimUnlockPayment, recordUnlockPaymentOutcome, settleUnmatchedUnlockPayment } from "@/lib/media/unlock-payments";
 import { artistShareCents, albumPriceCents } from "./pricing";
 
 export type UnlockIntentResult =
@@ -22,7 +23,7 @@ async function upsertPendingTrackUnlock(userId: string, trackId: string, amountC
         `INSERT INTO music_unlocks (user_id, track_id, album_id, units_paid, artist_share_units, amount_cents, currency, status)
          VALUES ($1, $2, NULL, 0, 0, $3, 'RON', 'pending')
          ON CONFLICT (user_id, track_id) WHERE track_id IS NOT NULL
-         DO UPDATE SET amount_cents = EXCLUDED.amount_cents
+         DO UPDATE SET amount_cents = CASE WHEN music_unlocks.status = 'paid' THEN music_unlocks.amount_cents ELSE EXCLUDED.amount_cents END
          RETURNING id, status`,
         [userId, trackId, amountCents],
     );
@@ -34,7 +35,7 @@ async function upsertPendingAlbumUnlock(userId: string, albumId: string, amountC
         `INSERT INTO music_unlocks (user_id, track_id, album_id, units_paid, artist_share_units, amount_cents, currency, status)
          VALUES ($1, NULL, $2, 0, 0, $3, 'RON', 'pending')
          ON CONFLICT (user_id, album_id) WHERE album_id IS NOT NULL
-         DO UPDATE SET amount_cents = EXCLUDED.amount_cents
+         DO UPDATE SET amount_cents = CASE WHEN music_unlocks.status = 'paid' THEN music_unlocks.amount_cents ELSE EXCLUDED.amount_cents END
          RETURNING id, status`,
         [userId, albumId, amountCents],
     );
@@ -154,6 +155,8 @@ export async function markMusicUnlockPaid(args: {
         logger.error({ paymentIntentId, currency, amountReceivedCents }, "[music/unlock] unexpected paid amount/currency — unlock not granted");
         return;
     }
+    // O singură procesare per PaymentIntent (cheie primară) — retry-urile Stripe sunt no-op.
+    if (!(await claimUnlockPayment({ paymentIntentId, vertical: "music", unlockId, amountCents: amountReceivedCents }))) return;
     const { rows } = await dbQuery<{
         id: string;
         user_id: string;
@@ -163,7 +166,7 @@ export async function markMusicUnlockPaid(args: {
         artist_user_id: string;
     }>(
         `UPDATE music_unlocks u
-            SET status = 'paid'
+            SET status = 'paid', paid_at = now(), payment_intent_id = $1
            FROM (
                 SELECT id, artist_user_id FROM music_tracks
                 UNION ALL
@@ -175,7 +178,14 @@ export async function markMusicUnlockPaid(args: {
         [paymentIntentId, unlockId ?? ""],
     );
     const row = rows[0];
-    if (!row) return; // deja procesat (retry Stripe) sau intent necunoscut
+    if (!row) {
+        const { rows: current } = await dbQuery<{ status: string; payment_intent_id: string | null }>(
+            `SELECT status, payment_intent_id FROM music_unlocks WHERE payment_intent_id = $1 OR id::text = $2 ORDER BY (status = 'paid') DESC LIMIT 1`,
+            [paymentIntentId, unlockId ?? ""],
+        );
+        await settleUnmatchedUnlockPayment({ paymentIntentId, vertical: "music", unlockId, current: current[0] ?? null });
+        return;
+    }
 
     if (Number(row.amount_cents ?? 0) !== amountReceivedCents) {
         logger.warn({ unlockId: row.id, stored: row.amount_cents, received: amountReceivedCents }, "[music/unlock] paid amount differs from stored price — using Stripe amount");
@@ -183,8 +193,8 @@ export async function markMusicUnlockPaid(args: {
     const amountCents = amountReceivedCents;
     const share = artistShareCents(amountCents, row.artist_user_id, row.user_id);
     await dbQuery(
-        `UPDATE music_unlocks SET payment_intent_id = $4, amount_cents = $2, units_paid = $2, artist_share_units = $3 WHERE id = $1`,
-        [row.id, amountCents, share, paymentIntentId],
+        `UPDATE music_unlocks SET amount_cents = $2, units_paid = $2, artist_share_units = $3 WHERE id = $1`,
+        [row.id, amountCents, share],
     );
 
     if (share > 0) {
@@ -197,6 +207,7 @@ export async function markMusicUnlockPaid(args: {
             metadata: { trackId: row.track_id, albumId: row.album_id },
         }).catch((err) => logger.error({ err, unlockId: row.id }, "[music/unlock] artist share credit failed"));
     }
+    await recordUnlockPaymentOutcome(paymentIntentId, "granted");
 }
 
 /**
