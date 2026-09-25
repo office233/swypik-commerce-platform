@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/gaming/profile — level/XP badge for the signed-in account.
- * Reconciles XP for real platform actions first (idempotent), so watching,
- * a first upload or a first purchase show up without touching those flows.
+ * Reconciles today's watching XP first (idempotent); first upload / first
+ * purchase are granted directly by their hooks (lib/gaming/activity-xp.ts).
  */
 export async function GET() {
   if (!isEnabled("gaming")) return frozenResponse("gaming");

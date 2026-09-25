@@ -4504,13 +4504,17 @@
       "fleet": "Partenaire de flotte",
       "admin": "Administration",
       "account": "Mon compte",
-      "help": "Aide"
+      "help": "Aide",
+      "liveStudio": "Studio live",
+      "host": "Espace hôte",
+      "myStays": "Mes séjours"
     },
     "become": {
       "becomeSeller": "Devenir vendeur",
       "becomeCreator": "Devenir créateur",
       "becomeCourier": "Devenir livreur ou chauffeur",
-      "becomeFleet": "Devenir partenaire de flotte"
+      "becomeFleet": "Devenir partenaire de flotte",
+      "becomeHost": "Devenir hôte"
     },
     "theme": {
       "label": "Thème",

@@ -4504,13 +4504,17 @@
       "fleet": "Partner di flotta",
       "admin": "Amministrazione",
       "account": "Il mio account",
-      "help": "Aiuto"
+      "help": "Aiuto",
+      "liveStudio": "Studio live",
+      "host": "Pannello host",
+      "myStays": "I miei soggiorni"
     },
     "become": {
       "becomeSeller": "Diventa venditore",
       "becomeCreator": "Diventa creator",
       "becomeCourier": "Diventa corriere o autista",
-      "becomeFleet": "Diventa partner di flotta"
+      "becomeFleet": "Diventa partner di flotta",
+      "becomeHost": "Diventa host"
     },
     "theme": {
       "label": "Tema",

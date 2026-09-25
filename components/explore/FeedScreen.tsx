@@ -21,6 +21,7 @@ import { useFeed } from "./useFeed";
 import { useFeedTelemetry } from "./useFeedTelemetry";
 import { useMutedPreference, usePageVisible } from "./usePlaybackPrefs";
 import { toDrawerProduct } from "./drawer-product";
+import { findLinkedVideo, parseFeedDeepLink } from "./deep-link";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
@@ -37,7 +38,8 @@ function FeedScreenInner({ initialCategory }: Props) {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pinnedVideoId = searchParams.get("v") || undefined;
+  const deepLink = useMemo(() => parseFeedDeepLink(searchParams), [searchParams]);
+  const pinnedVideoId = deepLink?.videoId;
   const creatorId = searchParams.get("creator_id") || undefined;
   const [source, setSource] = useState<FeedSource>("foryou");
   const feed = useFeed({ source, category: initialCategory || undefined, creatorId, pinnedVideoId, locale });
@@ -51,6 +53,20 @@ function FeedScreenInner({ initialCategory }: Props) {
   const reducedMotion = usePrefersReducedMotion();
   const [product, setProduct] = useState<(ProductData & { videoId: string }) | null>(null);
   const [commentsVideo, setCommentsVideo] = useState<FeedVideo | null>(null);
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
+
+  // Deep link `?v=…&comment=…` (notificări): la prima pagină deschidem foaia pe clipul țintă.
+  const deepLinkHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLink?.commentId || status !== "ready") return;
+    const key = `${deepLink.videoId}:${deepLink.commentId}`;
+    if (deepLinkHandled.current === key) return;
+    deepLinkHandled.current = key;
+    const video = findLinkedVideo(items, deepLink);
+    if (!video) return;
+    setFocusCommentId(deepLink.commentId);
+    setCommentsVideo(video);
+  }, [deepLink, status, items]);
 
   const videoEls = useRef<Map<string, HTMLVideoElement>>(new Map());
   const registerEl = useCallback((id: string, el: HTMLVideoElement | null) => {
@@ -148,7 +164,10 @@ function FeedScreenInner({ initialCategory }: Props) {
                     onTimeUpdate={telemetry.onTimeUpdate}
                     onPatch={(patch) => feed.patchVideo(item.video.id, patch)}
                     onFollowChange={feed.patchCreator}
-                    onOpenComments={() => setCommentsVideo(item.video)}
+                    onOpenComments={() => {
+                      setFocusCommentId(null);
+                      setCommentsVideo(item.video);
+                    }}
                     onNotInterested={() => void notInterested(item.video.id)}
                     onOpenProduct={() => openProduct(item.video)}
                   />
@@ -180,7 +199,11 @@ function FeedScreenInner({ initialCategory }: Props) {
         open={Boolean(commentsVideo)}
         videoId={commentsVideo?.id ?? null}
         initialCount={commentsVideo?.comments}
-        onClose={() => setCommentsVideo(null)}
+        focusCommentId={focusCommentId}
+        onClose={() => {
+          setCommentsVideo(null);
+          setFocusCommentId(null);
+        }}
         onCountChange={(count: number) => {
           if (commentsVideo) feed.patchVideo(commentsVideo.id, (v) => ({ ...v, comments: count }));
         }}

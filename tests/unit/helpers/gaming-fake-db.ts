@@ -16,8 +16,8 @@ export const fake = {
   sessions: [] as Row[],
   rounds: [] as Row[],
   scores: [] as unknown[][],
-  /** Facts returned by the activity-xp SELECT. */
-  activity: { has_upload: false, has_purchase: false, views_today: 0 },
+  /** Facts returned by the activity-xp SELECT (today's video_view count). */
+  activity: { views_today: 0 },
   failFor: null as RegExp | null,
   reset() {
     this.ledger.clear();
@@ -26,7 +26,7 @@ export const fake = {
     this.sessions = [];
     this.rounds = [];
     this.scores = [];
-    this.activity = { has_upload: false, has_purchase: false, views_today: 0 };
+    this.activity = { views_today: 0 };
     this.failFor = null;
   },
 };
@@ -102,7 +102,7 @@ export async function dbQuery(sql: string, params: unknown[] = []): Promise<{ ro
     fake.scores.push(p);
     return res();
   }
-  if (sql.includes("has_upload")) return res([{ ...fake.activity }]);
+  if (sql.includes("AS views_today")) return res([{ ...fake.activity }]);
   return res();
 }
 

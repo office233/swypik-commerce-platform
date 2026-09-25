@@ -11,6 +11,7 @@ import { ProfileMenu } from "@/components/social/profile/ProfileMenu";
 import { ProfileSocialBar } from "@/components/social/profile/ProfileSocialBar";
 import { ProfileTabs } from "@/components/social/profile/ProfileTabs";
 import { PromotedProducts } from "@/components/social/profile/PromotedProducts";
+import { getProfileLevelBadge } from "@/lib/gaming/level";
 import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/config";
 import { Link, permanentRedirect } from "@/lib/i18n/navigation";
 import { logger } from "@/lib/logger";
@@ -92,6 +93,7 @@ export default async function UserProfilePage({ params }: Props) {
 
   const { profile, stats, badges, promotedProducts } = data;
   const restricted = profile.blocksViewer || profile.blockedByViewer;
+  const level = restricted ? null : await getProfileLevelBadge(profile.id);
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -110,7 +112,7 @@ export default async function UserProfilePage({ params }: Props) {
       />
       <main className="mx-auto flex max-w-md flex-col gap-6 pb-6 pt-4">
         <div className="flex flex-col items-center gap-4 px-gutter">
-          <ProfileHeader locale={locale} profile={profile} badges={badges} />
+          <ProfileHeader locale={locale} profile={profile} badges={badges} level={level} />
           <ProfileSocialBar
             userId={profile.id}
             username={profile.username}

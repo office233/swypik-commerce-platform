@@ -13,6 +13,7 @@ import { formatCount } from "@/lib/social/format";
 import { CommentActions } from "./comments/CommentActions";
 import { CommentComposer } from "./comments/CommentComposer";
 import { CommentItem } from "./comments/CommentItem";
+import { commentDomId } from "./comments/focus";
 import type { CommentErrorCode, CommentItemData } from "./comments/types";
 import { useComments } from "./comments/useComments";
 import { useAuthRedirect } from "./useAuthRedirect";
@@ -25,6 +26,8 @@ export type CommentsSheetProps = {
   onClose: () => void;
   /** Contorul real (include răspunsurile) după încărcare/creare/ștergere. */
   onCountChange?: (nextCount: number) => void;
+  /** Deep link (`?comment=`): firul acestui comentariu vine primul, derulat și evidențiat. */
+  focusCommentId?: string | null;
 };
 
 function parseCount(value: CommentsSheetProps["initialCount"]): number {
@@ -53,13 +56,13 @@ const NEW_KEYS = new Set(["rejectedError", "disabledError", "blockedError"]);
  * Foaia de comentarii reutilizabilă (Sheet primitive): fire cu 1 nivel de
  * răspunsuri, like, ștergere/raportare/fixare, @mențiuni, paginare prin cursor.
  */
-export default function CommentsSheet({ open, videoId, initialCount, onClose, onCountChange }: CommentsSheetProps) {
+export default function CommentsSheet({ open, videoId, initialCount, onClose, onCountChange, focusCommentId }: CommentsSheetProps) {
   const t = useTranslations("commentsSheet");
   const ts = useTranslations("social.comments");
   const locale = useLocale();
   const { toast } = useToast();
   const toAuth = useAuthRedirect();
-  const c = useComments(videoId, open, onCountChange);
+  const c = useComments(videoId, open, onCountChange, focusCommentId);
   const [replyTo, setReplyTo] = useState<CommentItemData | null>(null);
   const [actionsFor, setActionsFor] = useState<CommentItemData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +83,18 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
       setError(null);
     }
   }, [open]);
+
+  // Deep link: după prima încărcare derulăm o singură dată la comentariul țintă.
+  const scrolledTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) scrolledTo.current = null;
+    if (!open || !focusCommentId || c.status !== "ready" || scrolledTo.current === focusCommentId) return;
+    scrolledTo.current = focusCommentId;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(commentDomId(focusCommentId))?.scrollIntoView({ block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, focusCommentId, c.status]);
 
   // Paginare la derulare: sentinela de la finalul listei cere pagina următoare.
   const { loadMore, nextCursor } = c;
@@ -115,6 +130,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
     onMore: setActionsFor,
     onLoadReplies: (comment: CommentItemData) => void c.loadReplies(comment),
     onLiked: c.setLiked,
+    focusId: focusCommentId ?? null,
   };
 
   return (

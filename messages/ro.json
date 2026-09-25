@@ -4504,13 +4504,17 @@
       "fleet": "Partener de flotă",
       "admin": "Administrare",
       "account": "Contul meu",
-      "help": "Ajutor"
+      "help": "Ajutor",
+      "liveStudio": "Studio live",
+      "host": "Panou gazdă",
+      "myStays": "Cazările mele"
     },
     "become": {
       "becomeSeller": "Devino vânzător",
       "becomeCreator": "Devino creator",
       "becomeCourier": "Devino curier sau șofer",
-      "becomeFleet": "Devino partener de flotă"
+      "becomeFleet": "Devino partener de flotă",
+      "becomeHost": "Devino gazdă"
     },
     "theme": {
       "label": "Temă",

@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 let userId: string | null = "user-1";
+const flags = vi.hoisted(() => ({ gaming: true }));
 
 vi.mock("@/lib/db", async () => (await import("./helpers/gaming-fake-db")).dbModule);
 vi.mock("@/lib/feature-flags", () => ({
-  isEnabled: () => true,
+  isEnabled: (name: string) => (name === "gaming" ? flags.gaming : true),
   frozenResponse: () => new Response("frozen", { status: 410 }),
 }));
 vi.mock("@/lib/social/session", () => ({ getAccountUserId: async () => userId }));
@@ -12,13 +13,14 @@ vi.mock("@/lib/security/rate-limit", () => ({ rateLimit: async () => ({ success:
 
 import { fake } from "./helpers/gaming-fake-db";
 import { awardXp } from "@/lib/gaming/xp";
-import { syncActivityXp, pendingActivityGrants } from "@/lib/gaming/activity-xp";
+import { awardMilestoneXp, syncActivityXp, pendingActivityGrants } from "@/lib/gaming/activity-xp";
 import { xpDay } from "@/lib/gaming/level-math";
 import { DAILY_XP_CAP, XP_RULES } from "@/lib/gaming/config";
 import { GET as profileGET } from "@/app/api/gaming/profile/route";
 
 beforeEach(() => {
   userId = "user-1";
+  flags.gaming = true;
   fake.reset();
 });
 
@@ -67,31 +69,50 @@ describe("awardXp — idempotent ledger", () => {
 });
 
 describe("XP for real actions (watching, first upload, first purchase)", () => {
-  it("pendingActivityGrants only returns what the facts justify and the ledger lacks", () => {
+  it("pendingActivityGrants: watch_daily only when today's views justify it and the ledger lacks it", () => {
     const day = "2026-09-26";
-    const facts = { has_upload: true, has_purchase: false, views_today: XP_RULES.watchDaily.minViews };
-    expect(pendingActivityGrants(facts, new Set(), day).map((g) => g.action)).toEqual(["first_upload", "watch_daily"]);
-    expect(pendingActivityGrants(facts, new Set(["first_upload:once", `watch_daily:${day}`]), day)).toEqual([]);
-    expect(pendingActivityGrants({ ...facts, views_today: 1 }, new Set(["first_upload:once"]), day)).toEqual([]);
+    const facts = { views_today: XP_RULES.watchDaily.minViews };
+    expect(pendingActivityGrants(facts, new Set(), day).map((g) => g.action)).toEqual(["watch_daily"]);
+    expect(pendingActivityGrants(facts, new Set([`watch_daily:${day}`]), day)).toEqual([]);
+    expect(pendingActivityGrants({ views_today: 1 }, new Set(), day)).toEqual([]);
   });
 
-  it("syncActivityXp is idempotent across calls", async () => {
-    fake.activity = { has_upload: true, has_purchase: true, views_today: 10 };
+  it("syncActivityXp is idempotent across calls (watch_daily only — milestones come from hooks)", async () => {
+    fake.activity = { views_today: 10 };
     const first = await syncActivityXp("user-1");
     const second = await syncActivityXp("user-1");
-    expect(first).toBe(XP_RULES.firstUpload.xp + XP_RULES.firstPurchase.xp + XP_RULES.watchDaily.xp);
+    expect(first).toBe(XP_RULES.watchDaily.xp);
     expect(second).toBe(0);
+    expect(fake.ledger.has("user-1|first_upload|once")).toBe(false);
   });
 
   it("a DB failure never breaks the caller", async () => {
-    fake.failFor = /has_upload/;
+    fake.failFor = /views_today/;
     await expect(syncActivityXp("user-1")).resolves.toBe(0);
   });
 
-  it("GET /api/gaming/profile reconciles and returns level badge data", async () => {
-    fake.activity = { has_upload: false, has_purchase: true, views_today: 0 };
+  it("awardMilestoneXp grants each milestone exactly once", async () => {
+    expect(await awardMilestoneXp("user-1", "first_upload")).toBe(XP_RULES.firstUpload.xp);
+    expect(await awardMilestoneXp("user-1", "first_upload")).toBe(0);
+    expect(await awardMilestoneXp("user-1", "first_purchase")).toBe(XP_RULES.firstPurchase.xp);
+    expect(fake.profiles.get("user-1")?.xp).toBe(XP_RULES.firstUpload.xp + XP_RULES.firstPurchase.xp);
+  });
+
+  it("awardMilestoneXp is a no-op when gaming is off, without a user, or on DB failure", async () => {
+    flags.gaming = false;
+    expect(await awardMilestoneXp("user-1", "first_upload")).toBe(0);
+    flags.gaming = true;
+    expect(await awardMilestoneXp(null, "first_upload")).toBe(0);
+    expect(fake.ledger.size).toBe(0);
+    fake.failFor = /gaming_xp_events/;
+    await expect(awardMilestoneXp("user-1", "first_purchase")).resolves.toBe(0);
+  });
+
+  it("GET /api/gaming/profile reconciles watching and returns level badge data", async () => {
+    await awardMilestoneXp("user-1", "first_purchase");
+    fake.activity = { views_today: 0 };
     const json = await (await profileGET()).json();
-    expect(json).toMatchObject({ ok: true, level: 2, xp: 100, syncedXp: 100, nextLevelXp: 400 });
+    expect(json).toMatchObject({ ok: true, level: 2, xp: 100, syncedXp: 0, nextLevelXp: 400 });
   });
 
   it("GET /api/gaming/profile requires an account (no guest rows)", async () => {

@@ -2,8 +2,12 @@
  * Registrul producătorilor de carduri pe tip. Un tip e cerut doar când are
  * sloturi datorate în pagina curentă (interleave.cardDemand); un producător
  * care cade (sau un modul lipsă) lasă pur și simplu pozițiile clipurilor.
+ * Un modul cu flag OFF nu produce carduri: Movies/Music/News după flag-ul de
+ * server, Food/Stays/Live după flag-ul de vizibilitate (NEXT_PUBLIC_FEATURE_X,
+ * același care îl ascunde din meniu) — feed-ul nu trimite spre module ascunse.
  */
 import { isEnabled } from "@/lib/feature-flags";
+import { isEnabledClient } from "@/lib/feature-flags-client";
 import { logger } from "@/lib/logger";
 import { FEED_ITEMS_MAX_LIMIT } from "@/lib/media/feed-card";
 import { getMovieFeedItems } from "@/lib/movies/feed-items";
@@ -33,13 +37,14 @@ async function optionalCards<T>(
 
 export const CARD_PROVIDERS: Record<FeedCardKind, Provider> = {
   product: (limit) => getShopFeedCards(limit),
-  food: (limit) => getFoodFeedCards(limit),
+  food: async (limit) => (isEnabledClient("food") ? getFoodFeedCards(limit) : []),
   movie: async (limit) =>
     isEnabled("movies") ? (await getMovieFeedItems({ limit })).map(fromModuleCard).filter(notNull) : [],
   music: async (limit) =>
     isEnabled("music") ? (await getMusicFeedItems({ limit })).map(fromModuleCard).filter(notNull) : [],
-  stay: async (limit, ctx) => (await getStaysFeedItems({ limit, locale: ctx.locale })).map(fromStayItem),
-  live: (limit) => optionalCards("live", limit, isLiveFeedInput, fromLiveItem),
+  stay: async (limit, ctx) =>
+    isEnabledClient("stays") ? (await getStaysFeedItems({ limit, locale: ctx.locale })).map(fromStayItem) : [],
+  live: async (limit) => (isEnabledClient("live") ? optionalCards("live", limit, isLiveFeedInput, fromLiveItem) : []),
   news: (limit) => (isEnabled("news") ? optionalCards("news", limit, isNewsFeedInput, fromNewsItem) : Promise.resolve([])),
 };
 

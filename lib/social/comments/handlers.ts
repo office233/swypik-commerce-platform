@@ -21,6 +21,7 @@ import { chooseCommentStatus, validateCommentText, type CommentLocale } from "..
 import { SOCIAL_LIMITS, SOCIAL_PAGE } from "../config";
 import { decodeCursor, pageLimit } from "../cursor";
 import { CommentError, createComment, deleteComment } from "./mutations";
+import { getFocusedThread } from "./focus";
 import { notifyForComment } from "./notify";
 import { getVideoCommentMeta, listComments, listReplies, type ViewerInput } from "./queries";
 
@@ -53,6 +54,9 @@ export async function getComments(req: NextRequest, { params }: Ctx) {
     if (cursor && !decodeCursor(cursor)) return NextResponse.json({ error: "invalid_cursor" }, { status: 400 });
     const parentId = sp.get("parent_comment_id");
     if (parentId && !isUuidParam(parentId)) return invalidIdResponse();
+    // `focus` (linkurile din notificări): doar pe prima pagină; un id invalid e ignorat.
+    const focusRaw = sp.get("focus");
+    const focusId = !cursor && !parentId && focusRaw && isUuidParam(focusRaw) ? focusRaw : null;
 
     const meta = await getVideoCommentMeta(videoId);
     if (!meta) return NextResponse.json({ error: "video_not_found" }, { status: 404 });
@@ -64,9 +68,13 @@ export async function getComments(req: NextRequest, { params }: Ctx) {
       return NextResponse.json({ ...page, totalCount: meta.commentCount });
     }
     const limit = pageLimit(sp.get("limit"), SOCIAL_PAGE.comments, SOCIAL_PAGE.maxPage);
-    const page = await listComments(videoId, meta, viewer, { cursor, limit });
+    const [page, focused] = await Promise.all([
+      listComments(videoId, meta, viewer, { cursor, limit }),
+      focusId ? getFocusedThread(videoId, focusId, meta, viewer) : Promise.resolve(null),
+    ]);
     return NextResponse.json({
       ...page,
+      focused,
       hasMore: Boolean(page.nextCursor),
       allowComments: meta.allowComments,
       viewer: { id: viewer.viewerId, isAccount: viewer.viewerIsAccount, isVideoOwner: Boolean(viewer.viewerId && viewer.viewerId === meta.ownerId) },

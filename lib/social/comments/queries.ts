@@ -22,7 +22,7 @@ import {
 import { SOCIAL_PAGE } from "../config";
 import { decodeCursor, encodeCursor, nextCursorFrom } from "../cursor";
 
-const SELECT = `
+export const SELECT = `
   c.id, c.video_id, c.user_id, c.parent_comment_id, c.body, c.status,
   c.like_count, c.reply_count, c.created_at, c.pinned_at,
   u.username, u.display_name, u.avatar_url,
@@ -30,7 +30,7 @@ const SELECT = `
     SELECT 1 FROM likes l WHERE l.comment_id = c.id AND l.user_id = $VIEWER::uuid
   )) AS viewer_liked`;
 
-type Row = CommentRow & { id: string; created_at: string };
+export type Row = CommentRow & { id: string; created_at: string };
 
 export type ViewerInput = { viewerId: string | null; viewerIsAccount: boolean; locale?: CommentLocale };
 
@@ -50,16 +50,16 @@ export async function getVideoCommentMeta(videoId: string): Promise<VideoComment
   };
 }
 
-function withViewer(sql: string): string {
+export function withViewer(sql: string): string {
   return sql.split("$VIEWER").join("$1");
 }
 
-function blockFilter(viewerId: string | null): string {
+export function blockFilter(viewerId: string | null): string {
   return viewerId ? `AND (c.user_id IS NULL OR ${notBlockedSql("c.user_id", "$1")})` : "";
 }
 
 /** Primele N răspunsuri pentru fiecare comentariu de nivel 1 din pagină. */
-async function inlineReplies(parentIds: string[], viewerId: string | null): Promise<Row[]> {
+export async function inlineReplies(parentIds: string[], viewerId: string | null): Promise<Row[]> {
   if (parentIds.length === 0) return [];
   const { rows } = await dbQuery<Row & { reply_rank: number }>(
     withViewer(`SELECT * FROM (
@@ -78,7 +78,7 @@ async function inlineReplies(parentIds: string[], viewerId: string | null): Prom
   return rows;
 }
 
-function setRepliesCursors(comments: CommentView[]): void {
+export function setRepliesCursors(comments: CommentView[]): void {
   for (const comment of comments) {
     const last = comment.replies[comment.replies.length - 1];
     comment.repliesCursor = last && comment.replyCount > comment.replies.length

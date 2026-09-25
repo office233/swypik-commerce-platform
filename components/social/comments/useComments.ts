@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
+import { mergeFocusedThread } from "./focus";
 import { toErrorCode, type CommentErrorCode, type CommentItemData, type CommentsViewer } from "./types";
 
 type ListResponse = {
   pinned?: CommentItemData | null;
+  /** Firul comentariului cerut prin `focus` (doar pe prima pagină). */
+  focused?: CommentItemData | null;
   comments?: CommentItemData[];
   nextCursor?: string | null;
   totalCount?: number;
@@ -31,8 +34,16 @@ function mapTree(list: CommentItemData[], id: string, fn: (c: CommentItemData) =
   return out;
 }
 
-/** Starea foii de comentarii: listă cu cursor, răspunsuri, creare/ștergere/fixare. */
-export function useComments(videoId: string | null, open: boolean, onCountChange?: (count: number) => void) {
+/**
+ * Starea foii de comentarii: listă cu cursor, răspunsuri, creare/ștergere/fixare.
+ * `focusId` (deep link) aduce firul acelui comentariu primul, pe prima pagină.
+ */
+export function useComments(
+  videoId: string | null,
+  open: boolean,
+  onCountChange?: (count: number) => void,
+  focusId?: string | null,
+) {
   const locale = useLocale();
   const [pinned, setPinned] = useState<CommentItemData | null>(null);
   const [comments, setComments] = useState<CommentItemData[]>([]);
@@ -52,13 +63,14 @@ export function useComments(videoId: string | null, open: boolean, onCountChange
   const fetchPage = useCallback(async (cursor: string | null) => {
     const qs = new URLSearchParams({ locale });
     if (cursor) qs.set("cursor", cursor);
+    else if (focusId) qs.set("focus", focusId);
     const res = await fetch(`/api/videos/${encodeURIComponent(videoId as string)}/comments?${qs}`, {
       credentials: "include",
       cache: "no-store",
     });
     if (!res.ok) throw new Error(String(res.status));
     return (await res.json()) as ListResponse;
-  }, [locale, videoId]);
+  }, [focusId, locale, videoId]);
 
   const reload = useCallback(async () => {
     if (!videoId) return;
@@ -67,8 +79,9 @@ export function useComments(videoId: string | null, open: boolean, onCountChange
     try {
       const data = await fetchPage(null);
       if (id !== requestId.current) return;
-      setPinned(data.pinned ?? null);
-      setComments(data.comments ?? []);
+      const merged = mergeFocusedThread(data.pinned ?? null, data.comments ?? [], data.focused);
+      setPinned(merged.pinned);
+      setComments(merged.comments);
       setNextCursor(data.nextCursor ?? null);
       setAllowComments(data.allowComments !== false);
       setViewer(data.viewer ?? NO_VIEWER);
