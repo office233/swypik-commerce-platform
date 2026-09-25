@@ -8,11 +8,14 @@ const { notify, dbQuery } = vi.hoisted(() => ({
 
 vi.mock("@/lib/social/session", () => ({
   getOptionalSocialUserId: async () => identity.userId,
+  getSocialIdentity: async () => identity,
   getOrCreateSocialUser: async () => ({ ...identity }),
   setAnonSessionCookie: () => undefined,
   anonSessionErrorResponse: () => null,
 }));
 vi.mock("@/lib/notifications/dispatch", () => ({ notifyUser: notify }));
+// Notificările sociale trec prin notifySocial (regula anonimilor e testată în social-notify.test.ts).
+vi.mock("@/lib/notifications/social", () => ({ notifySocial: notify }));
 vi.mock("@/lib/security/rate-limit", () => ({
   rateLimit: async () => ({ success: true, remaining: 1 }),
   getClientIP: () => "1.1.1.1",
@@ -30,7 +33,7 @@ vi.mock("@/lib/db", () => ({
   getDb: () => ({ connect: async () => ({ query: clientQuery, release: () => undefined }) }),
 }));
 
-import { POST as follow, GET as followGet } from "@/app/api/users/[id]/follow/route";
+import { PUT as follow, GET as followGet } from "@/app/api/users/[id]/follow/route";
 import { GET as commentLikeGet } from "@/app/api/comments/[id]/like/route";
 import { GET as liveList } from "@/app/api/live/streams/route";
 import { withErrorHandling } from "@/lib/api-handler";
@@ -59,7 +62,8 @@ describe("follow route", () => {
   });
 
   it("does not notify when the follower is anonymous", async () => {
-    dbQuery.mockImplementation(async () => ({ rows: [{ "?column?": 1 }], rowCount: 1 }));
+    dbQuery.mockImplementation(async (sql: string) =>
+      sql.includes("user_blocks") ? { rows: [{ blocked: false }], rowCount: 1 } : { rows: [{ "?column?": 1 }], rowCount: 1 });
     const res = await follow(req(), p(TARGET));
     expect(res.status).toBe(200);
     expect(notify).not.toHaveBeenCalled();
@@ -67,7 +71,8 @@ describe("follow route", () => {
 
   it("notifies when the follower has a real account", async () => {
     identity = { ...identity, isAnon: false };
-    dbQuery.mockImplementation(async () => ({ rows: [{ "?column?": 1 }], rowCount: 1 }));
+    dbQuery.mockImplementation(async (sql: string) =>
+      sql.includes("user_blocks") ? { rows: [{ blocked: false }], rowCount: 1 } : { rows: [{ "?column?": 1 }], rowCount: 1 });
     const res = await follow(req(), p(TARGET));
     expect(res.status).toBe(200);
     expect(notify).toHaveBeenCalledTimes(1);
