@@ -8,6 +8,7 @@ vi.mock("@/lib/db", () => ({
     if (sql.includes("FROM news_sources")) return { rows: [], rowCount: 0 };
     return { rows: [], rowCount: 0 };
   }),
+  withAdvisoryLock: async <T,>(_key: string, fn: () => Promise<T>) => fn(),
 }));
 vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 vi.mock("@/lib/news/repository", () => ({ countArticlesPublishedToday: vi.fn(async () => 0) }));
@@ -33,11 +34,32 @@ describe("news pipeline never fabricates articles", () => {
     expect(out).toBeNull();
   });
 
+  it("does not even fetch feeds when the AI model/key are not configured", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const res = await runNewsIngestionPipeline();
+    expect(res).toMatchObject({ ingested: 0, reason: "ai_not_configured" });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(inserts).toHaveLength(0);
+    vi.unstubAllGlobals();
+  });
+
+  it("ignores OPENAI_API_KEY (no cross-provider key fallback)", async () => {
+    process.env.OPENAI_API_KEY = "sk-test";
+    process.env.NEWS_GEMINI_MODEL = "some-model";
+    const out = await generateAutonomousNewsArticle({ title: "Headline", source: "BBC", summary: "Summary", url: "https://bbc.co.uk/x" });
+    expect(out).toBeNull();
+    delete process.env.NEWS_GEMINI_MODEL;
+  });
+
   it("publishes nothing when every live feed is unreachable", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+    process.env.NEWS_GEMINI_MODEL = "test-model";
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
     const res = await runNewsIngestionPipeline();
     expect(res.ingested).toBe(0);
     expect(inserts).toHaveLength(0);
     vi.unstubAllGlobals();
+    delete process.env.NEWS_GEMINI_MODEL;
   });
 });

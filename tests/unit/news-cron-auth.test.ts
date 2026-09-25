@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 process.env.CRON_SECRET = "test-cron-secret-value";
 
-const pipelineMock = vi.fn(async (_category?: string) => ({ ingested: 2, categoriesProcessed: ["tech-ai"], capped: false }));
+type PipelineOut = { ingested: number; categoriesProcessed: string[]; capped: boolean; errors?: number; duplicates?: number; reason?: string };
+const DEFAULT_OUT: PipelineOut = { ingested: 2, categoriesProcessed: ["tech-ai"], capped: false, errors: 0, duplicates: 0 };
+let pipelineOut: PipelineOut = DEFAULT_OUT;
+const pipelineMock = vi.fn(async (_category?: string) => pipelineOut);
 
 vi.mock("@/lib/news/rss-ingester", () => ({
   runNewsIngestionPipeline: (category?: string) => pipelineMock(category),
@@ -35,6 +38,7 @@ function req(headers: Record<string, string> = {}, body: unknown = {}): Request 
 
 beforeEach(() => {
   adminOk = false;
+  pipelineOut = DEFAULT_OUT;
   pipelineMock.mockClear();
 });
 
@@ -75,5 +79,30 @@ describe("POST /api/cron/news-pipeline auth", () => {
     const json = await res.json();
     expect(json.triggeredBy).toBe("admin");
     expect(pipelineMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("POST /api/cron/news-pipeline outcomes are visible to the cron-worker", () => {
+  const cron = () => POST(req({ "x-cron-secret": "test-cron-secret-value" }) as any);
+
+  it("503 when the AI key/model is not configured", async () => {
+    pipelineOut = { ...DEFAULT_OUT, ingested: 0, reason: "ai_not_configured" };
+    const res = await cron();
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toBe("news_ai_not_configured");
+  });
+
+  it("502 when a run produced nothing and had errors (no silent empty feed)", async () => {
+    pipelineOut = { ...DEFAULT_OUT, ingested: 0, errors: 4 };
+    const res = await cron();
+    expect(res.status).toBe(502);
+    expect((await res.json()).error).toBe("pipeline_all_failed");
+  });
+
+  it("200 when everything was already ingested (idempotent re-run)", async () => {
+    pipelineOut = { ...DEFAULT_OUT, ingested: 0, duplicates: 9 };
+    const res = await cron();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, ingested: 0, duplicates: 9 });
   });
 });

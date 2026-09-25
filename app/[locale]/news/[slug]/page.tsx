@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isEnabled } from "@/lib/feature-flags";
-import { getArticleBySlug } from "@/lib/news/repository";
+import { getArticleBySlug, incrementViewCount } from "@/lib/news/repository";
+import { plainSummary } from "@/lib/news/text";
 import ArticleClient from "./ArticleClient";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +20,7 @@ export async function generateMetadata({
   const article = await getArticleBySlug(slug).catch(() => null);
   if (!article) return {};
 
-  const description = article.summary_tldr.replace(/[⚡📊🔮\n]/g, " ").trim().slice(0, DESCRIPTION_MAX);
-
+  const description = plainSummary(article.summary_tldr, DESCRIPTION_MAX);
   return {
     title: article.title,
     description,
@@ -45,6 +45,9 @@ export default async function ArticleReaderPage({
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
   if (!article) notFound();
+
+  // Best-effort view count, once per page render (never blocks the response).
+  void incrementViewCount(article.id);
 
   return <ArticleClient article={article} />;
 }
