@@ -91,6 +91,10 @@ while true; do
   fi
   # Every 15 min
   if [ $((TICK % 900)) -lt 60 ]; then
+    # Cataloage externe (Radio-Browser, Audius, Jamendo, podcasturi) + prima
+    # pagina de stiri, calde in Redis: cererile nu mai asteapta API-uri externe.
+    # Lock distribuit + audit (runCron). (w6-performance, 2026-09-27)
+    run_job prewarm-catalogs POST
     run_job embed-batch POST
     run_job classify-pending POST
   fi

@@ -114,19 +114,9 @@ export async function fetchPodcastEpisodes(term: string, country = "ro", limit =
 }
 
 export async function getTrendingPodcasts(): Promise<AudioItemDto[]> {
-    const results: AudioItemDto[] = [];
-    
-    // Fetch 2 top episodes from each curated podcast show
-    for (const show of CURATED_PODCAST_SHOWS) {
-        try {
-            const episodes = await fetchPodcastEpisodes(show.term, show.country, 3);
-            if (episodes.length > 0) {
-                results.push(...episodes);
-            }
-        } catch {
-            // continue
-        }
-    }
-
-    return results;
+    // Emisiunile în paralel (erau secvențiale: N × latența iTunes pe calea cererii).
+    const perShow = await Promise.all(
+        CURATED_PODCAST_SHOWS.map((show) => fetchPodcastEpisodes(show.term, show.country, 3).catch(() => [])),
+    );
+    return perShow.flat();
 }

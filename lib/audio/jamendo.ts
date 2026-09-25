@@ -104,6 +104,13 @@ export async function getJamendoChillTracks(tags = CHILL_TAGS, limit = 25): Prom
     return tracks;
 }
 
+/** Apel extern fără cache (preîncălzirea); `null` = neconfigurat sau fără răspuns. */
+export async function fetchJamendoChill(limit = 15): Promise<AudioItemDto[] | null> {
+    if (!isJamendoConfigured()) return null;
+    const tracks = await fetchJamendo({ limit: String(limit), tags: CHILL_TAGS, featured: "1" }, "Chill & Lounge");
+    return tracks.length > 0 ? tracks : null;
+}
+
 export async function getChillJamendoTracks(limit = 15): Promise<AudioItemDto[]> {
     return getJamendoChillTracks(CHILL_TAGS, limit);
 }
