@@ -1,15 +1,14 @@
 /**
- * Explore — RSC shell.
- * Fetches the first feed batch server-side so LCP gets a poster without waiting for JS.
- * Heavy interactive feed lives in ExploreClient.tsx (client component).
+ * Explore — RSC shell (metadata + ecran imersiv). Feed-ul interactiv: ExploreClient.tsx
+ * → components/explore/FeedScreen.tsx.
  */
-import { headers } from "next/headers";
 import type { Metadata } from "next";
 import ExploreClient from "./ExploreClient";
 import LiveBadge from "@/components/live/LiveBadge";
 import { isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
-import { getAppBaseUrl, getRequestBaseUrl } from "@/lib/url";
+import { getAppBaseUrl } from "@/lib/url";
+import ImmersiveSurface from "@/components/theme/ImmersiveSurface";
 
 export const dynamic = "force-dynamic";
 
@@ -79,37 +78,18 @@ export async function generateMetadata({
   };
 }
 
-async function fetchSeed(category: string, creatorId?: string, pinnedVideoId?: string): Promise<any[]> {
-  try {
-    const h = await headers();
-    let qs = category ? `&taxonomy_node_slug=${encodeURIComponent(category)}` : "";
-    if (creatorId) qs += `&creator_id=${encodeURIComponent(creatorId)}`;
-    if (pinnedVideoId) qs += `&v=${encodeURIComponent(pinnedVideoId)}`;
-    const res = await fetch(`${getRequestBaseUrl(h)}/api/explore/feed?limit=30${qs}`, {
-      cache: "no-store",
-      headers: { cookie: h.get("cookie") || "" },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data?.videos) ? data.videos.slice(0, 30) : [];
-  } catch {
-    return [];
-  }
-}
-
 export default async function ExplorePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const raw = sp.taxonomy_node_slug ?? sp.category ?? "";
   const category = Array.isArray(raw) ? (raw[0] || "") : (raw || "");
-  const rawCreator = sp.creator_id ?? "";
-  const creatorId = Array.isArray(rawCreator) ? (rawCreator[0] || "") : (rawCreator || "");
-  const rawV = sp.v ?? "";
-  const pinnedVideoId = Array.isArray(rawV) ? (rawV[0] || "") : (rawV || "");
-  const initialVideos = await fetchSeed(category, creatorId || undefined, pinnedVideoId || undefined);
+  // Clipurile se încarcă pe client (lib/feed/client/feed-source.ts): seen-set și
+  // snapshot-ul de ranking sunt per viewer, deci nu au ce căuta în HTML-ul randat.
   return (
     <>
       <LiveBadge />
-      <ExploreClient initialVideos={initialVideos} initialCategory={category} />
+      <ImmersiveSurface fullscreen>
+        <ExploreClient initialCategory={category} />
+      </ImmersiveSurface>
     </>
   );
 }
