@@ -8,7 +8,6 @@ import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { getDb } from "@/lib/db";
 import { notifyApplicationDecision } from "@/lib/creator/application-notify";
-import { logger } from "@/lib/logger";
 import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const runtime = "nodejs";

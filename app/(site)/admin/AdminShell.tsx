@@ -33,6 +33,8 @@ import {
   Inbox,
   BedDouble,
   ScrollText,
+  Trophy,
+  Banknote,
 } from "lucide-react";
 
 type NavItem = {
@@ -97,6 +99,7 @@ const sections: NavSection[] = [
     icon: "\u{1F3AC}",
     items: [
       { href: "/admin/videos", labelKey: "nav.item.videos", icon: Video },
+      { href: "/admin/missions", labelKey: "nav.item.missions", icon: Trophy },
       { href: "/admin/movies", labelKey: "nav.item.movies", icon: Film },
       { href: "/admin/music", labelKey: "nav.item.music", icon: Music },
       { href: "/admin/moderation", labelKey: "nav.item.moderation", icon: ShieldAlert },
@@ -109,6 +112,7 @@ const sections: NavSection[] = [
     items: [
       { href: "/admin/payouts", labelKey: "nav.item.payouts", icon: Wallet },
       { href: "/admin/courier-payouts", labelKey: "nav.item.courierPayouts", icon: Truck },
+      { href: "/admin/creator-payouts", labelKey: "nav.item.creatorPayouts", icon: Banknote },
       { href: "/admin/commissions", labelKey: "nav.item.commissions", icon: BarChart3 },
     ],
   },

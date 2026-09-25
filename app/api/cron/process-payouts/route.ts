@@ -177,7 +177,7 @@ async function processSellerPayouts(): Promise<{ paid: number; skippedClaimed: n
         [item.item_id, transfer.id]
       );
       paidSellerCount++;
-    } catch (e: any) {
+    } catch (e) {
       logger.error({ err: e }, `[payout-cron] seller payout failed for item ${item.item_id}`);
       await dbQuery(
         `UPDATE commerce_order_items
@@ -188,7 +188,7 @@ async function processSellerPayouts(): Promise<{ paid: number; skippedClaimed: n
                              'seller_payout_failed_at', NOW()::text
                            )
          WHERE id = $1`,
-        [item.item_id, String(e?.message || 'unknown_error').slice(0, 500)]
+        [item.item_id, String((e as Error)?.message || 'unknown_error').slice(0, 500)]
       );
     }
   }
@@ -232,7 +232,7 @@ async function handleGET(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const result = await runCron("process-payouts", () => handleGET(req as any));
+  const result = await runCron("process-payouts", () => handleGET(req));
   if (result === null) return cronSkippedResponse("process-payouts");
   // Auth failures return a NextResponse — propagate it as-is; otherwise serialize the plain result for cron observability.
   if (result instanceof Response) return result;

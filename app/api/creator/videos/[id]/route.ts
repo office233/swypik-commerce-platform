@@ -70,7 +70,7 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     return NextResponse.json({ video: v, status: v.status });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "[creator/videos/:id GET] error");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
@@ -274,11 +274,12 @@ export async function PATCH(
     }
 
     return NextResponse.json({ success: true, video: updated[0], ...(mission ? { mission: mission.value } : {}) });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "[creator/videos/:id PATCH] error");
-    const status = typeof err?.status === "number" ? err.status : 500;
+    const e = err as { status?: unknown; message?: string };
+    const status = typeof e?.status === "number" ? e.status : 500;
     return NextResponse.json(
-      { error: status === 500 ? "Internal error" : err.message },
+      { error: status === 500 ? "Internal error" : e.message },
       { status },
     );
   }
@@ -321,7 +322,7 @@ export async function DELETE(
       [videoId],
     );
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "[creator/videos/:id DELETE] error");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
