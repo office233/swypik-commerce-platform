@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * Player-ul audio persistent al Swypik Music: suport hibrid pentru:
- * 1. Audio nativ Swypik (R2, <audio> ascuns)
- * 2. YouTube Music (Iframe Player API ascuns offscreen sau floating PIP)
+ * Player-ul audio persistent al Swypik Music: audio nativ Swypik (R2, <audio> ascuns)
+ * + surse legale audio-only (radio live, Audius, Jamendo, podcast).
  * Păstrează starea globală (coadă, poziție, stare redare) și integrarea MediaSession.
  */
 import {
@@ -16,33 +15,18 @@ import {
     useState,
     type ReactNode,
 } from "react";
-import { Maximize2, Minimize2, X } from "lucide-react";
-import { useTranslations } from "next-intl";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import { MUSIC_PLAY_COUNT_AFTER_S } from "@/lib/music/config";
 import {
     lockedAfterAdvance,
-    decideYtPlayerAction,
     nextTrackIndex,
     buildShuffleOrder,
     type AdvanceReason,
     type RepeatMode,
-    type YtTrackKind,
 } from "@/lib/music/player-rules";
 import type { TrackDto } from "@/lib/music/types";
-import { loadYouTubeIframeApi, type YouTubePlayerInstance } from "@/lib/music/youtube-player";
-
-/** API-ul YouTube IFrame expune și metode de volum, nedeclarate în tipul de bază din youtube-player.ts. */
-interface YtPlayerWithVolume extends YouTubePlayerInstance {
-    setVolume(volume: number): void;
-    mute(): void;
-    unMute(): void;
-}
 
 const MUSIC_VOLUME_STORAGE_KEY = "swypik_music_volume";
-/** Docked-ul YT trebuie să stea deasupra MiniPlayer-ului (nu peste el) pe telefon îngust (360px):
- * bottom nav (56px) + gap (8px) + înălțimea MiniPlayer (~68px) + o marjă (16px). */
-const YT_DOCKED_BOTTOM_PX = 148;
 
 export type MusicLockedInfo = {
     track: TrackDto;
@@ -67,11 +51,6 @@ export type MusicPlayerContextValue = {
     close: () => void;
     locked: MusicLockedInfo | null;
     dismissLocked: () => void;
-    /** YouTube video-ul e MEREU vizibil cât timp piesa redă (cerință ToS YouTube) — acest flag comută doar între docked (mic) și expanded (mare). */
-    isVideoExpanded: boolean;
-    toggleVideoExpanded: () => void;
-    /** Setter explicit (nu doar toggle) — FullScreenPlayer forțează expanded=true la deschidere cu o piesă YouTube și collapse la închidere. */
-    setVideoExpanded: (value: boolean) => void;
     shuffle: boolean;
     toggleShuffle: () => void;
     repeat: RepeatMode;
@@ -100,9 +79,6 @@ const DISABLED_CONTEXT: MusicPlayerContextValue = {
     close: noop,
     locked: null,
     dismissLocked: noop,
-    isVideoExpanded: false,
-    toggleVideoExpanded: noop,
-    setVideoExpanded: noop,
     shuffle: false,
     toggleShuffle: noop,
     repeat: "off",
@@ -157,7 +133,7 @@ async function requestPlayUrl(track: TrackDto): Promise<PlayUrlResult> {
 
 /** Best-effort — un eșec de rețea nu trebuie să întrerupă redarea. */
 function countPlay(trackId: string): void {
-    if (!trackId || trackId.startsWith("yt_")) return;
+    if (!trackId) return;
     try {
         void fetch("/api/music/plays", {
             method: "POST",
@@ -171,11 +147,7 @@ function countPlay(trackId: string): void {
 }
 
 function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
-    const t = useTranslations("music");
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const ytPlayerRef = useRef<YouTubePlayerInstance | null>(null);
-    const ytReadyRef = useRef<boolean>(false);
-    const ytPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const [queue, setQueue] = useState<TrackDto[]>([]);
     const [index, setIndex] = useState(0);
@@ -183,8 +155,6 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
     const [positionMs, setPositionMs] = useState(0);
     const [durationMs, setDurationMs] = useState(0);
     const [locked, setLocked] = useState<MusicLockedInfo | null>(null);
-    /** Docked (mic, 16:9 min 200x112) implicit — NICIODATĂ ascuns cât timp piesa YouTube redă. */
-    const [isVideoExpanded, setIsVideoExpanded] = useState(false);
     const [shuffle, setShuffle] = useState(false);
     const [repeat, setRepeat] = useState<RepeatMode>("off");
     const [volume, setVolumeValue] = useState(1);
@@ -202,7 +172,6 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
     const shuffleRef = useRef(shuffle);
     const repeatRef = useRef(repeat);
     const shuffleOrderRef = useRef<number[]>([]);
-    const prevYtKindRef = useRef<YtTrackKind>(null);
     const volumeRef = useRef(volume);
     const mutedRef = useRef(muted);
 
@@ -222,38 +191,6 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
             clearTimeout(refreshTimerRef.current);
             refreshTimerRef.current = null;
         }
-    }
-
-    function stopYtPoll(): void {
-        if (ytPollIntervalRef.current) {
-            clearInterval(ytPollIntervalRef.current);
-            ytPollIntervalRef.current = null;
-        }
-    }
-
-    function startYtPoll(): void {
-        stopYtPoll();
-        ytPollIntervalRef.current = setInterval(() => {
-            const player = ytPlayerRef.current;
-            if (!player || typeof player.getCurrentTime !== "function") return;
-            try {
-                const sec = player.getCurrentTime();
-                const dur = player.getDuration();
-                if (typeof sec === "number" && !isNaN(sec)) {
-                    setPositionMs(Math.round(sec * 1000));
-                    if (!playedCountedRef.current && sec >= MUSIC_PLAY_COUNT_AFTER_S) {
-                        playedCountedRef.current = true;
-                        const track = queueRef.current[indexRef.current];
-                        if (track) countPlay(track.id);
-                    }
-                }
-                if (typeof dur === "number" && !isNaN(dur) && dur > 0) {
-                    setDurationMs(Math.round(dur * 1000));
-                }
-            } catch {
-                // ignorat
-            }
-        }, 250);
     }
 
     /** Calculează piesa care urmează (secvențial sau shuffle, respectând repeat) și pornește redarea; `null` = capătul cozii. */
@@ -279,91 +216,6 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         }
         void playAt(list, idx, gen, reason);
     }
-
-    function destroyYtPlayer(): void {
-        stopYtPoll();
-        const yt = ytPlayerRef.current;
-        if (yt && typeof yt.destroy === "function") {
-            try { yt.destroy(); } catch { /* ignorat */ }
-        }
-        ytPlayerRef.current = null;
-        ytReadyRef.current = false;
-    }
-
-    // (Re)inițializare YouTube Player iframe — vezi decideYtPlayerAction (lib/music/player-rules.ts)
-    // pentru decizia init/load/destroy/none. Necesar pentru ca YT -> alta sursa -> YT sa functioneze:
-    // containerul DOM (deci si iframe-ul) se demonteaza cand piesa curenta nu mai e YouTube, dar
-    // ref-ul ramanea populat inainte de acest fix, asa ca urmatoarea piesa YT nu mai crea un player nou.
-    useEffect(() => {
-        const nextKind: YtTrackKind = current
-            ? {
-                  isYoutube: current.source === "youtube" || Boolean(current.youtubeVideoId),
-                  videoId: current.youtubeVideoId || (current.source === "youtube" ? current.id.replace(/^yt_/, "") : null),
-              }
-            : null;
-        const prevKind = prevYtKindRef.current;
-        const action = decideYtPlayerAction(prevKind, nextKind, Boolean(ytPlayerRef.current));
-        prevYtKindRef.current = nextKind;
-
-        if (action.type === "destroy") {
-            destroyYtPlayer();
-            return;
-        }
-        if (action.type !== "init") return;
-
-        let mounted = true;
-        loadYouTubeIframeApi().then(() => {
-            if (!mounted || !window.YT) return;
-            if (ytPlayerRef.current) return;
-
-            ytPlayerRef.current = new window.YT.Player("swypik-yt-player-element", {
-                width: "100%",
-                height: "100%",
-                playerVars: {
-                    // Player-ul YouTube este MEREU vizibil cât timp piesa redă (cerință ToS
-                    // YouTube) — nu restricționăm tastatura, fullscreen-ul sau brandingul.
-                    autoplay: 1,
-                    controls: 1,
-                    playsinline: 1,
-                    rel: 0,
-                    iv_load_policy: 3,
-                },
-                events: {
-                    onReady: () => {
-                        ytReadyRef.current = true;
-                        applyVolumeToPlayers(volumeRef.current, mutedRef.current);
-                    },
-                    onStateChange: (event) => {
-                        if (event.data === window.YT?.PlayerState.PLAYING) {
-                            setPlaying(true);
-                            startYtPoll();
-                        } else if (event.data === window.YT?.PlayerState.PAUSED) {
-                            setPlaying(false);
-                            stopYtPoll();
-                        } else if (event.data === window.YT?.PlayerState.ENDED) {
-                            setPlaying(false);
-                            stopYtPoll();
-                            if (!playedCountedRef.current) {
-                                playedCountedRef.current = true;
-                                const tr = queueRef.current[indexRef.current];
-                                if (tr) countPlay(tr.id);
-                            }
-                            advance("ended", "forward");
-                        }
-                    },
-                    onError: () => {
-                        stopYtPoll();
-                        advance("error", "forward");
-                    },
-                },
-            });
-        }).catch(() => {});
-
-        return () => {
-            mounted = false;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [current]);
 
     /** Reîmprospătează URL-ul cu token înainte să expire, dacă piesa încă redă. */
     function scheduleRefresh(track: TrackDto, expiresAt: number | null, list: TrackDto[], i: number, gen: number): void {
@@ -402,17 +254,10 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
 
         if (i < 0) {
             // „prev" înainte de prima piesă
-            const currentTrack = list[0];
-            const isYt = currentTrack?.source === "youtube" || Boolean(currentTrack?.youtubeVideoId);
-            if (isYt && ytPlayerRef.current) {
-                try { ytPlayerRef.current.seekTo(0, true); } catch {}
+            const audio = audioRef.current;
+            if (audio && list.length > 0) {
+                audio.currentTime = 0;
                 setPositionMs(0);
-            } else {
-                const audio = audioRef.current;
-                if (audio && list.length > 0) {
-                    audio.currentTime = 0;
-                    setPositionMs(0);
-                }
             }
             return;
         }
@@ -431,13 +276,9 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         playedCountedRef.current = false;
         erroredOnceRef.current = false;
         clearRefreshTimer();
-        stopYtPoll();
 
         // Flux direct pentru Radio Live, Audius, Jamendo, Podcast (100% nativ <audio>)
         if (track.streamUrl) {
-            if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === "function") {
-                try { ytPlayerRef.current.pauseVideo(); } catch {}
-            }
             const audio = audioRef.current;
             if (!audio) return;
             audio.src = track.streamUrl;
@@ -450,51 +291,7 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        const isYouTube = track.source === "youtube" || Boolean(track.youtubeVideoId);
-
-        if (isYouTube) {
-            // Oprim audio nativ dacă rula
-            const audio = audioRef.current;
-            if (audio) {
-                audio.pause();
-                audio.removeAttribute("src");
-            }
-            hasSourceRef.current = true;
-
-            const videoId = track.youtubeVideoId || track.id.replace(/^yt_/, "");
-
-            const triggerYtPlay = () => {
-                const player = ytPlayerRef.current;
-                if (!player) return;
-                try {
-                    player.loadVideoById(videoId);
-                    player.playVideo();
-                } catch {
-                    // Posibil blocat de autoplay pe mobile fără tap
-                }
-            };
-
-            if (ytReadyRef.current && ytPlayerRef.current) {
-                triggerYtPlay();
-            } else {
-                void loadYouTubeIframeApi().then(() => {
-                    const checkInterval = setInterval(() => {
-                        if (ytReadyRef.current && ytPlayerRef.current) {
-                            clearInterval(checkInterval);
-                            triggerYtPlay();
-                        }
-                    }, 100);
-                    setTimeout(() => clearInterval(checkInterval), 6000);
-                });
-            }
-            return;
-        }
-
         // Piese native Swypik (R2)
-        if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === "function") {
-            try { ytPlayerRef.current.pauseVideo(); } catch {}
-        }
-
         const result = await requestPlayUrl(track);
         if (gen !== genRef.current) return;
         if (!result) {
@@ -616,25 +413,6 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const toggle = useCallback(() => {
-        const tr = queueRef.current[indexRef.current];
-        const isYouTube = tr?.source === "youtube" || Boolean(tr?.youtubeVideoId);
-
-        if (isYouTube) {
-            const player = ytPlayerRef.current;
-            if (!player || typeof player.getPlayerState !== "function") return;
-            try {
-                const state = player.getPlayerState();
-                if (state === 1) { // PLAYING
-                    player.pauseVideo();
-                } else {
-                    player.playVideo();
-                }
-            } catch {
-                // ignorat
-            }
-            return;
-        }
-
         const audio = audioRef.current;
         if (!audio || !hasSourceRef.current) return;
         if (audio.paused) void audio.play().catch(() => {});
@@ -654,20 +432,6 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
     const seek = useCallback((ms: number) => {
         const tr = queueRef.current[indexRef.current];
         if (tr?.isLive) return; // Fluxurile radio live nu au seek
-        const isYouTube = tr?.source === "youtube" || Boolean(tr?.youtubeVideoId);
-
-        if (isYouTube) {
-            const player = ytPlayerRef.current;
-            if (player && typeof player.seekTo === "function") {
-                try {
-                    player.seekTo(ms / 1000, true);
-                    setPositionMs(ms);
-                } catch {
-                    // ignorat
-                }
-            }
-            return;
-        }
 
         const audio = audioRef.current;
         if (!audio || !hasSourceRef.current) return;
@@ -679,16 +443,11 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
     const close = useCallback(() => {
         genRef.current++;
         clearRefreshTimer();
-        stopYtPoll();
         const audio = audioRef.current;
         if (audio) {
             audio.pause();
             audio.removeAttribute("src");
             audio.load();
-        }
-        const yt = ytPlayerRef.current;
-        if (yt && typeof yt.stopVideo === "function") {
-            try { yt.stopVideo(); } catch {}
         }
         hasSourceRef.current = false;
         setQueue([]);
@@ -697,33 +456,19 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         setPositionMs(0);
         setDurationMs(0);
         setLocked(null);
-        setIsVideoExpanded(false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const dismissLocked = useCallback(() => setLocked(null), []);
-    const toggleVideoExpanded = useCallback(() => setIsVideoExpanded((prev) => !prev), []);
-    const setVideoExpanded = useCallback((value: boolean) => setIsVideoExpanded(value), []);
     const toggleShuffle = useCallback(() => setShuffle((prev) => !prev), []);
     const cycleRepeat = useCallback(() => {
         setRepeat((prev) => (prev === "off" ? "all" : prev === "all" ? "one" : "off"));
     }, []);
 
-    /** Aplică volumul/mute pe <audio> ȘI pe player-ul YouTube (dacă există) — cele două surse trebuie să sune la fel. */
     function applyVolumeToPlayers(vol: number, isMuted: boolean): void {
         const effective = isMuted ? 0 : vol;
         const audio = audioRef.current;
         if (audio) audio.volume = effective;
-        const yt = ytPlayerRef.current as YtPlayerWithVolume | null;
-        if (yt) {
-            try {
-                if (typeof yt.setVolume === "function") yt.setVolume(Math.round(effective * 100));
-                if (isMuted && typeof yt.mute === "function") yt.mute();
-                else if (!isMuted && typeof yt.unMute === "function") yt.unMute();
-            } catch {
-                // ignorat
-            }
-        }
     }
 
     function persistVolume(vol: number, isMuted: boolean): void {
@@ -768,27 +513,11 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Aplică volumul curent de fiecare dată când pornește o piesă nouă (audio nou/player YT nou).
+    // Aplică volumul curent de fiecare dată când pornește o piesă nouă.
     useEffect(() => {
         applyVolumeToPlayers(volumeRef.current, mutedRef.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [current]);
-
-    // Curățenie la demontarea provider-ului: oprește intervalul de poll, timer-ul
-    // de refresh al URL-ului și distruge instanța player-ului YouTube — evită
-    // leak-uri de listeners/interval și un player „fantomă" care ar continua să redea.
-    useEffect(() => {
-        return () => {
-            stopYtPoll();
-            clearRefreshTimer();
-            const yt = ytPlayerRef.current;
-            if (yt && typeof yt.destroy === "function") {
-                try { yt.destroy(); } catch { /* ignorat */ }
-            }
-            ytPlayerRef.current = null;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     // MediaSession: metadate + comenzi din lock screen / cască
     useEffect(() => {
@@ -836,9 +565,6 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         close,
         locked,
         dismissLocked,
-        isVideoExpanded,
-        toggleVideoExpanded,
-        setVideoExpanded,
         shuffle,
         toggleShuffle,
         repeat,
@@ -849,7 +575,7 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         setMuted,
     }), [
         current, queue, index, playing, positionMs, durationMs, play, toggle, next, prev, seek, close,
-        locked, dismissLocked, isVideoExpanded, toggleVideoExpanded, setVideoExpanded,
+        locked, dismissLocked,
         shuffle, toggleShuffle, repeat, cycleRepeat, volume, muted, setVolume, setMuted,
     ]);
 
@@ -858,57 +584,6 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
             {children}
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <audio ref={audioRef} className="hidden" preload="none" />
-
-            {/*
-              * Container video YouTube: randat MEREU vizibil, la z-[60] (peste MiniPlayer/
-              * FullScreenPlayer), cât timp piesa curentă e de pe YouTube (cerință ToS —
-              * extragerea audio-only cu playerul ascuns off-screen e interzisă). Implicit
-              * „docked" (cutie mică, min 200x112, 16:9), poziționat DEASUPRA MiniPlayer-ului
-              * (nu peste el — vezi YT_DOCKED_BOTTOM_PX); „expanded" îl mărește peste
-              * FullScreenPlayer. Închiderea (X) oprește complet piesa — nu doar o ascunde.
-              */}
-            {current?.source === "youtube" && (
-                <div
-                    id="swypik-yt-container"
-                    className={
-                        isVideoExpanded
-                            ? "fixed inset-x-3 z-[60] mx-auto flex max-w-[560px] flex-col overflow-hidden rounded-2xl border border-white/20 bg-[#0E0C15] shadow-2xl transition-all"
-                            : "fixed right-3 z-[60] flex w-[220px] min-w-[200px] flex-col overflow-hidden rounded-2xl border border-white/20 bg-[#0E0C15] shadow-2xl transition-all"
-                    }
-                    style={isVideoExpanded ? { top: "max(12px, env(safe-area-inset-top, 12px))" } : { bottom: `${YT_DOCKED_BOTTOM_PX}px` }}
-                >
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-[#14121E] border-b border-white/10 select-none">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="h-2 w-2 rounded-full bg-[#7C3AED] animate-pulse" />
-                            <span className="text-[11px] font-black tracking-wider text-white">SWYPIK</span>
-                            <span className="text-[11px] font-black tracking-wider text-[#A78BFA]">PLAYER</span>
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                            <button
-                                type="button"
-                                onClick={() => toggleVideoExpanded()}
-                                aria-label={isVideoExpanded ? t("audio.videoCollapse") : t("audio.videoExpand")}
-                                title={isVideoExpanded ? t("audio.videoCollapse") : t("audio.videoExpand")}
-                                className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                            >
-                                {isVideoExpanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => close()}
-                                aria-label={t("audio.videoClose")}
-                                title={t("audio.videoClose")}
-                                className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                            >
-                                <X size={14} />
-                            </button>
-                        </div>
-                    </div>
-                    <div className="relative aspect-video w-full min-h-[112px] bg-black">
-                        <div id="swypik-yt-player-element" className="h-full w-full" />
-                    </div>
-                </div>
-            )}
         </MusicPlayerContext.Provider>
     );
 }

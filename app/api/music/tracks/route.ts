@@ -10,22 +10,7 @@ import { listTracks, getLikedTrackIds } from "@/lib/music/repository";
 import { toTrackDto } from "@/lib/music/dto";
 import { buildMusicViewer } from "@/lib/music/viewer";
 
-import { searchYouTubeMusic } from "@/lib/music/youtube";
-
 export const dynamic = "force-dynamic";
-
-const GENRE_QUERIES: Record<string, string> = {
-    pop: "pop music top hits",
-    hiphop: "hip hop hits top",
-    trap: "trap music hits",
-    manele: "manele noi top",
-    rock: "rock music hits classic",
-    electronic: "electronic dance music hits",
-    rnb: "r&b soul hits",
-    latino: "latino music top hits",
-    folk: "folk acoustic music",
-    kids: "canticele copii muzica",
-};
 
 const QuerySchema = z.object({
     genre: z.enum(MUSIC_GENRES).optional(),
@@ -54,29 +39,9 @@ export const GET = withErrorHandling(async function GET(req: Request) {
             likedIds = await getLikedTrackIds(user.userId, items.map((t) => t.id)).catch(() => new Set<string>());
         }
 
-        if (items.length > 0) {
-            return NextResponse.json({ items: items.map((t) => toTrackDto(t, viewer, likedIds.has(t.id))) });
-        }
+        return NextResponse.json({ items: items.map((t) => toTrackDto(t, viewer, likedIds.has(t.id))) });
     } catch {
         // Fallback dacă DB local e gol sau indisponibil
-    }
-
-    // Fallback automat pe genuri sau căutare
-    if (offset === 0 && genre) {
-        const query = GENRE_QUERIES[genre] || `${genre} music hits`;
-        const ytTracks = await searchYouTubeMusic(query, 20).catch(() => []);
-        if (ytTracks.length > 0) {
-            return NextResponse.json({
-                items: ytTracks.map((tr) => ({ ...tr, genre })),
-            });
-        }
-    }
-
-    if (offset === 0 && q) {
-        const ytTracks = await searchYouTubeMusic(q, 20).catch(() => []);
-        if (ytTracks.length > 0) {
-            return NextResponse.json({ items: ytTracks });
-        }
     }
 
     return NextResponse.json({ items: [] });

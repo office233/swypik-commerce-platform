@@ -139,10 +139,10 @@ services:
     env_file:
       # Server-only runtime secrets pass through as-is from .env.production —
       # no defaults here, missing values fail loudly in the code that reads
-      # them (lib/messenger/livekit.ts, lib/movies/tmdb.ts, lib/music/youtube.ts,
+      # them (lib/messenger/livekit.ts,
       # lib/audio/jamendo.ts, lib/news/ai-journalist.ts): LIVEKIT_API_KEY,
-      # LIVEKIT_API_SECRET, LIVEKIT_URL, TMDB_API_KEY, GEMINI_API_KEY,
-      # YOUTUBE_API_KEY, JAMENDO_CLIENT_ID.
+      # LIVEKIT_API_SECRET, LIVEKIT_URL, GEMINI_API_KEY,
+      # JAMENDO_CLIENT_ID.
       - .env.production
     depends_on:
       postgres:

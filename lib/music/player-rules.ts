@@ -11,37 +11,6 @@ export function lockedAfterAdvance<L>(previous: L | null, reason: AdvanceReason)
     return reason === "locked" ? previous : null;
 }
 
-/**
- * Decizia de (re)inițializare a player-ului YouTube IFrame, în funcție de piesa
- * anterioară/următoare și de existența unei instanțe deja create.
- *
- * De ce există: `ytPlayerRef` rămâne setat după ce containerul DOM (montat doar
- * cât timp piesa curentă e YouTube) se demontează — fără această decizie
- * explicită, efectul de inițializare făcea early-return pe `if (ytPlayerRef.current)`
- * și YT → non-YT → YT eșua silențios (a doua oară nu se mai crea player-ul nou).
- */
-export type YtTrackKind = { isYoutube: boolean; videoId: string | null } | null;
-
-export type YtPlayerAction =
-    | { type: "none" }
-    | { type: "init"; videoId: string }
-    | { type: "load"; videoId: string }
-    | { type: "destroy" };
-
-export function decideYtPlayerAction(prev: YtTrackKind, next: YtTrackKind, hasPlayer: boolean): YtPlayerAction {
-    const prevIsYt = Boolean(prev?.isYoutube && prev.videoId);
-    const nextIsYt = Boolean(next?.isYoutube && next.videoId);
-
-    if (!nextIsYt) {
-        return prevIsYt && hasPlayer ? { type: "destroy" } : { type: "none" };
-    }
-
-    const videoId = next?.videoId as string;
-    if (!hasPlayer) return { type: "init", videoId };
-    if (prevIsYt && prev?.videoId === videoId) return { type: "none" };
-    return { type: "load", videoId };
-}
-
 /** Modurile de repetare ale coadei: off (fără), all (reia coada), one (reia piesa curentă). */
 export type RepeatMode = "off" | "all" | "one";
 

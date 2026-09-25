@@ -5,7 +5,6 @@
  */
 import { MOVIE_GENRES, isMovieGenre, type MovieGenre } from "./genres";
 import type { SeriesDto } from "./types";
-import type { TrailerItem } from "./tmdb";
 
 export const HOME_TOP_COUNT = 10;
 export const HOME_ROW_MAX = 20;
@@ -18,17 +17,13 @@ export type HomeRow =
     | { kind: "top10"; items: SeriesDto[] }
     | { kind: "originals"; items: SeriesDto[] }
     | { kind: "latest"; items: SeriesDto[] }
-    | { kind: "genre"; genre: MovieGenre; items: SeriesDto[] }
-    // Trailere TMDB: DTO separat (TrailerItem), niciodată amestecat cu catalogul real.
-    | { kind: "trailers"; items: TrailerItem[] };
+    | { kind: "genre"; genre: MovieGenre; items: SeriesDto[] };
 
 export type HomeInput = {
     trending: SeriesDto[];
     latest: SeriesDto[];
     continueWatching: ContinueWatchingItem[];
     watchlist: SeriesDto[];
-    /** Trailere TMDB populare — rând separat, opțional (gol dacă TMDB_API_KEY lipsește). */
-    trailers?: TrailerItem[];
 };
 
 export function buildHomeRows(input: HomeInput): HomeRow[] {
@@ -40,7 +35,6 @@ export function buildHomeRows(input: HomeInput): HomeRow[] {
     const originals = input.trending.filter((s) => s.owner.isOfficial).slice(0, HOME_ROW_MAX);
     if (originals.length) rows.push({ kind: "originals", items: originals });
     if (input.latest.length) rows.push({ kind: "latest", items: input.latest.slice(0, HOME_ROW_MAX) });
-    if (input.trailers?.length) rows.push({ kind: "trailers", items: input.trailers.slice(0, HOME_ROW_MAX) });
 
     // Genuri în ordinea primei apariții în trending; fiecare serial poate fi în mai multe rânduri.
     const order: MovieGenre[] = [];

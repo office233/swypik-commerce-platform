@@ -6,7 +6,6 @@ import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { listPublishedSeries, listContinueWatching, listWatchlist } from "@/lib/movies/repository";
 import { toSeriesDto } from "@/lib/movies/dto";
 import { buildHomeRows, HOME_ROW_MAX } from "@/lib/movies/home";
-import { getPopularTrailers } from "@/lib/movies/tmdb";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +20,11 @@ export const GET = withErrorHandling(async function GET(req: Request) {
 
     const user = await getAuthUser();
     const includeAdult = user.isAdmin;
-    const [trendingRows, latestRows, continueRows, watchlistRows, trailers] = await Promise.all([
+    const [trendingRows, latestRows, continueRows, watchlistRows] = await Promise.all([
         listPublishedSeries({ sort: "trending", limit: TRENDING_POOL, offset: 0, includeAdult }),
         listPublishedSeries({ sort: "new", limit: HOME_ROW_MAX, offset: 0, includeAdult }),
         user.userId ? listContinueWatching(user.userId, CONTINUE_LIMIT) : Promise.resolve([]),
         user.userId ? listWatchlist(user.userId, HOME_ROW_MAX) : Promise.resolve([]),
-        getPopularTrailers(),
     ]);
 
     const trending = trendingRows.map((s) => toSeriesDto(s, s.episode_count, s.owner_name));
@@ -41,7 +39,6 @@ export const GET = withErrorHandling(async function GET(req: Request) {
             durationMs: c.episode.duration_ms,
         })),
         watchlist: watchlistRows.map((s) => toSeriesDto(s, s.episode_count, s.owner_name)),
-        trailers,
     });
 
     return NextResponse.json({ featured: trending[0] ?? null, rows });

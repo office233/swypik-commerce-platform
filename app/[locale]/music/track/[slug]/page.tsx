@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isEnabled } from "@/lib/feature-flags";
 import { getTrackBySlug } from "@/lib/music/repository";
-import { getYouTubeTrackByVideoId } from "@/lib/music/youtube";
 import { safeJsonLd } from "@/lib/seo/json-ld";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { APP_URL } from "@/lib/app-url";
@@ -15,9 +14,6 @@ type Props = {
 };
 
 async function resolveTrack(slug: string) {
-    if (slug.startsWith("yt-") || slug.startsWith("yt_")) {
-        return await getYouTubeTrackByVideoId(slug);
-    }
     let dbTrack = null;
     try {
         dbTrack = await getTrackBySlug(slug);
@@ -39,7 +35,7 @@ async function resolveTrack(slug: string) {
             },
         };
     }
-    return await getYouTubeTrackByVideoId(slug);
+    return null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

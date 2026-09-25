@@ -25,30 +25,6 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
         artist = null;
     }
     if (!artist) {
-        // Fallback pentru artiști externi
-        const artistName = slug
-            .split("-")
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(" ");
-        const { searchYouTubeMusic } = await import("@/lib/music/youtube");
-        const ytTracks = await searchYouTubeMusic(artistName, 15);
-        if (ytTracks.length > 0) {
-            const first = ytTracks[0];
-            return NextResponse.json({
-                artist: {
-                    id: first.artist.id,
-                    slug: slug,
-                    stageName: first.artist.stageName || artistName,
-                    bio: `Ascultă cele mai populare piese ale artistului ${first.artist.stageName || artistName} pe Swypik Music.`,
-                    avatarUrl: first.coverUrl,
-                    coverUrl: first.coverUrl,
-                    isOfficial: false,
-                },
-                tracks: ytTracks,
-                albums: [],
-                reelsCount: 0,
-            });
-        }
         return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 

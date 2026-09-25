@@ -1,24 +1,22 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Info, Play, Volume2, VolumeX, X } from "lucide-react";
+import { Info, Play, Volume2, VolumeX } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { genreLabelKey, isMovieGenre } from "@/lib/movies/genres";
 import type { SeriesDto } from "@/lib/movies/types";
 import { MOVIES_DISPLAY_CLASS } from "./fonts";
 
-/** Billboard stil Netflix: copertă HD/4K, titlu impunător, detalii și redare trailer 4K. */
+/** Billboard stil Netflix: copertă HD/4K, titlu impunător, detalii și redare video HLS local. */
 export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto; playbackUrl: string | null }) {
   const t = useTranslations("movies");
   const [muted, setMuted] = useState(true);
-  const [showTrailerModal, setShowTrailerModal] = useState(false);
-  
+
   const isVideoHls = Boolean(playbackUrl && (playbackUrl.includes(".m3u8") || playbackUrl.includes("/stream/")));
   const videoRef = useHlsVideo(isVideoHls ? playbackUrl : null);
   const heroImage = series.coverUrl ?? series.posterUrl;
   const genres = series.genres.filter(isMovieGenre).map((g) => t(genreLabelKey(g)));
-  const trailerKey = series.trailerVideoId;
 
   return (
     <section className="relative h-[56vh] sm:h-[68vh] md:h-[75vh] w-full overflow-hidden bg-black">
@@ -86,22 +84,12 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
         )}
 
         <div className="mt-4 flex items-center gap-2.5 sm:gap-3">
-          {trailerKey ? (
-            <button
-              type="button"
-              onClick={() => setShowTrailerModal(true)}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] px-4 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-sm font-black text-white shadow-[0_0_20px_rgba(124,58,237,0.5)] active:scale-95 hover:brightness-110 transition-all shrink-0"
-            >
-              <Play size={15} fill="currentColor" /> {t("playTrailer")}
-            </button>
-          ) : (
-            <Link
-              href={`/movies/${series.slug}/1`}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] px-4 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-sm font-black text-white shadow-[0_0_20px_rgba(124,58,237,0.5)] active:scale-95 hover:brightness-110 transition-all shrink-0"
-            >
-              <Play size={15} fill="currentColor" /> {t("play")}
-            </Link>
-          )}
+          <Link
+            href={`/movies/${series.slug}/1`}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] px-4 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-sm font-black text-white shadow-[0_0_20px_rgba(124,58,237,0.5)] active:scale-95 hover:brightness-110 transition-all shrink-0"
+          >
+            <Play size={15} fill="currentColor" /> {t("play")}
+          </Link>
 
           <Link
             href={`/movies/${series.slug}`}
@@ -122,28 +110,6 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
           )}
         </div>
       </div>
-
-      {/* Modal Trailer 4K */}
-      {showTrailerModal && trailerKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
-          <div className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-2xl bg-black border border-white/20 shadow-2xl">
-            <button
-              type="button"
-              onClick={() => setShowTrailerModal(false)}
-              className="absolute right-3 top-3 z-10 rounded-full bg-black/70 p-2 text-white/80 hover:text-white hover:bg-black"
-            >
-              <X size={20} />
-            </button>
-            <iframe
-              src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0&modestbranding=1`}
-              title={series.title}
-              className="h-full w-full border-0"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </div>
-      )}
     </section>
   );
 }

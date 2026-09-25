@@ -93,8 +93,7 @@ export type TrackDto = {
     artist: ArtistDto;
     plays7d: number;
     liked: boolean;
-    source?: "swypik" | "youtube" | "radio" | "audius" | "jamendo" | "podcast";
-    youtubeVideoId?: string;
+    source?: "swypik" | "radio" | "audius" | "jamendo" | "podcast";
     streamUrl?: string;
     isLive?: boolean;
 };

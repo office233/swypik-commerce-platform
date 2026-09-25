@@ -15,17 +15,7 @@ type Props = {
 };
 
 /** Surse externe fără like server-side — Swypik nu are ce persista pentru ele. */
-const NON_LIKEABLE_SOURCES = new Set(["youtube", "radio", "audius", "jamendo", "podcast"]);
-
-/** Lățimea video-ului expandat (vezi containerul din MusicPlayerProvider): min(100vw - 24px, 560px). */
-const YT_VIDEO_WIDTH_CSS = "min(100vw - 24px, 560px)";
-/** Header-ul „SWYPIK PLAYER" din containerul video (px-3 py-1.5 + text ~ 30px). */
-const YT_VIDEO_HEADER_PX = 30;
-/** Offset-ul de sus al containerului video expandat: max(12px, safe-area-inset-top). */
-const YT_VIDEO_TOP_CSS = "max(12px, env(safe-area-inset-top, 12px))";
-/** Înălțimea rezervată în FullScreenPlayer pentru ca video-ul YouTube expandat să nu acopere
- * nimic din bara de sus (chevron, titlu, controale) — safe-area + header + 16:9 din lățimea video. */
-const YT_SPACER_HEIGHT_CSS = `calc(${YT_VIDEO_TOP_CSS} + ${YT_VIDEO_HEADER_PX}px + (${YT_VIDEO_WIDTH_CSS}) * 9 / 16)`;
+const NON_LIKEABLE_SOURCES = new Set(["radio", "audius", "jamendo", "podcast"]);
 
 export default function FullScreenPlayer({ isOpen, onClose }: Props) {
     const t = useTranslations("music");
@@ -38,7 +28,6 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
         next,
         prev,
         seek,
-        setVideoExpanded,
         shuffle,
         toggleShuffle,
         repeat,
@@ -54,19 +43,6 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
     useEffect(() => {
         if (current) setIsLiked(Boolean(current.liked));
     }, [current]);
-
-    const isYouTubeTrack = Boolean(current) && (current?.source === "youtube" || Boolean(current?.youtubeVideoId));
-
-    // Video-ul YouTube trebuie să rămână MEREU vizibil cât timp piesa redă (cerință ToS) — la
-    // deschiderea full-screen cu o piesă YouTube, forțăm modul expanded; la închidere, revenim
-    // la docked. Pentru orice altă sursă, nu atingem starea expanded (rămâne cum a lăsat-o userul).
-    useEffect(() => {
-        if (isOpen && isYouTubeTrack) {
-            setVideoExpanded(true);
-            return () => setVideoExpanded(false);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, isYouTubeTrack]);
 
     if (!isOpen || !current) return null;
 
@@ -98,10 +74,6 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
     return (
         <div className="fixed inset-0 z-50 flex flex-col justify-between bg-gradient-to-b from-[#1E1736] via-[#0E0C18] to-black px-6 py-6 text-white animate-in slide-in-from-bottom duration-300">
             <div>
-                {/* Spațiu rezervat pentru video-ul YouTube expandat (randat de MusicPlayerProvider,
-                    la z-[60], deasupra acestui ecran) — nimic de aici nu trebuie să-l acopere. */}
-                {isYouTubeTrack && <div aria-hidden="true" style={{ height: YT_SPACER_HEIGHT_CSS }} />}
-
                 {/* Top Bar stil Spotify */}
                 <div className="flex items-center justify-between">
                     <button
@@ -125,11 +97,10 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
                 </div>
             </div>
 
-            {/* Artwork Mare Centrat — ascuns pentru piesele YouTube (video-ul expandat îi ia locul) */}
-            {!isYouTubeTrack && (
-                <div className="my-auto flex flex-col items-center">
-                    <div className="relative aspect-square w-[75vw] max-w-[320px] overflow-hidden rounded-3xl bg-neutral-900 shadow-[0_24px_64px_rgba(124,58,237,0.35)] ring-1 ring-white/15">
-                        {current.source === "radio" ? (
+            {/* Artwork Mare Centrat */}
+            <div className="my-auto flex flex-col items-center">
+                <div className="relative aspect-square w-[75vw] max-w-[320px] overflow-hidden rounded-3xl bg-neutral-900 shadow-[0_24px_64px_rgba(124,58,237,0.35)] ring-1 ring-white/15">
+                    {current.source === "radio" ? (
                             <div className="h-full w-full flex items-center justify-center p-8 bg-gradient-to-br from-[#1C162E] to-black">
                                 <StationBadge slug={current.slug} title={current.title} coverUrl={current.coverUrl} size="lg" />
                             </div>
@@ -156,7 +127,6 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
                         )}
                     </div>
                 </div>
-            )}
 
             {/* Informații Piesă & Like */}
             <div className="space-y-4">

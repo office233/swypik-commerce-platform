@@ -3,7 +3,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import PosterCard from "./PosterCard";
-import TrailerRow from "./TrailerRow";
 import { MOVIES_DISPLAY_CLASS } from "./fonts";
 import { genreLabelKey } from "@/lib/movies/genres";
 import type { HomeRow } from "@/lib/movies/home";
@@ -91,8 +90,6 @@ export default function HomeRows({ rows }: { rows: HomeRow[] }) {
             return <Row key="latest" title={t("newReleases")}>{row.items.map((s) => <PosterCard key={s.id} series={s} href={`/movies/${s.slug}`} />)}</Row>;
           case "genre":
             return <Row key={`genre-${row.genre}`} title={t(genreLabelKey(row.genre))}>{row.items.map((s) => <PosterCard key={s.id} series={s} href={`/movies/${s.slug}`} />)}</Row>;
-          case "trailers":
-            return <TrailerRow key="trailers" items={row.items} />;
         }
       })}
     </>

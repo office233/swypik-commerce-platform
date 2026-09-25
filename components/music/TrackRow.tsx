@@ -17,7 +17,7 @@ type Props = {
 
 /**
  * Rând de listă pentru o piesă: copertă 48px, titlu/artist, durată, badge-uri
- * (premium/explicit/youtube) și acțiuni rapide (like, + playlist, folosește în reel).
+ * (premium/explicit) și acțiuni rapide (like, + playlist, folosește în reel).
  */
 export default function TrackRow({ track, queue, index, onLike, onAddToPlaylist }: Props) {
   const t = useTranslations("music");
@@ -63,15 +63,9 @@ export default function TrackRow({ track, queue, index, onLike, onAddToPlaylist 
             <span className="shrink-0 rounded bg-[#7C3AED]/20 px-1 text-[9px] font-black uppercase tracking-wide text-[#A78BFA]">{t("premium")}</span>
           )}
         </div>
-        {track.source === "youtube" ? (
-          <span className="block truncate text-xs text-white/60">
-            {track.artist.stageName}
-          </span>
-        ) : (
-          <Link href={`/music/artist/${track.artist.slug}`} className="block truncate text-xs text-white/60 hover:text-white/80">
-            {track.artist.stageName}
-          </Link>
-        )}
+        <Link href={`/music/artist/${track.artist.slug}`} className="block truncate text-xs text-white/60 hover:text-white/80">
+          {track.artist.stageName}
+        </Link>
       </div>
 
       {track.isLive ? (

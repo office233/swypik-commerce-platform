@@ -2,7 +2,7 @@
 
 import { useState, type MouseEvent } from "react";
 import { useTranslations } from "next-intl";
-import { Maximize2, Pause, Play, SkipForward, Tv, X } from "lucide-react";
+import { Maximize2, Pause, Play, SkipForward, X } from "lucide-react";
 import { usePathname } from "@/lib/i18n/navigation";
 import { haptic } from "@/lib/haptic";
 import StationBadge from "./StationBadge";
@@ -21,7 +21,7 @@ const MOVIES_PLAYER_PATH = /^\/movies\/[^/]+\/\d+/;
 export default function MiniPlayer() {
     const t = useTranslations("music");
     const pathname = usePathname();
-    const { current, playing, positionMs, durationMs, toggle, next, seek, close, isVideoExpanded, toggleVideoExpanded } = useMusicPlayer();
+    const { current, playing, positionMs, durationMs, toggle, next, seek, close } = useMusicPlayer();
     const [showFullScreen, setShowFullScreen] = useState(false);
 
     if (!current) return null;
@@ -126,20 +126,6 @@ export default function MiniPlayer() {
 
                     {/* Controls */}
                     <div className="flex items-center gap-1">
-                        {current.source === "youtube" && (
-                            <button
-                                type="button"
-                                onClick={() => { haptic("tap"); toggleVideoExpanded(); }}
-                                aria-label={isVideoExpanded ? t("audio.videoCollapse") : t("audio.videoExpand")}
-                                title={isVideoExpanded ? t("audio.videoCollapse") : t("audio.videoExpand")}
-                                className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold active:scale-95 transition-colors ${
-                                    isVideoExpanded ? "bg-[#7C3AED] text-white" : "bg-white/10 text-white/70 hover:text-white"
-                                }`}
-                            >
-                                <Tv size={15} />
-                            </button>
-                        )}
-
                         <button
                             type="button"
                             onClick={() => { haptic("tap"); toggle(); }}

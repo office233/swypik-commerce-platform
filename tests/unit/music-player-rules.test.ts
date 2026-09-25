@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   lockedAfterAdvance,
-  decideYtPlayerAction,
   nextTrackIndex,
   buildShuffleOrder,
 } from "@/lib/music/player-rules";
@@ -17,56 +16,6 @@ describe("music/player-rules lockedAfterAdvance", () => {
     expect(lockedAfterAdvance(locked, "ended")).toBeNull();
     expect(lockedAfterAdvance(locked, "error")).toBeNull();
     expect(lockedAfterAdvance(null, "locked")).toBeNull();
-  });
-});
-
-describe("music/player-rules decideYtPlayerAction", () => {
-  it("initializeaza cand nu exista player si piesa urmatoare e YouTube", () => {
-    expect(decideYtPlayerAction(null, { isYoutube: true, videoId: "abc" }, false)).toEqual({
-      type: "init",
-      videoId: "abc",
-    });
-  });
-  it("nu face nimic cand nici piesa anterioara, nici urmatoarea nu sunt YouTube", () => {
-    expect(decideYtPlayerAction(null, null, false)).toEqual({ type: "none" });
-    expect(
-      decideYtPlayerAction({ isYoutube: false, videoId: null }, { isYoutube: false, videoId: null }, false)
-    ).toEqual({ type: "none" });
-  });
-  it("distruge playerul cand piesa curenta nu mai e YouTube (YT -> non-YT)", () => {
-    expect(
-      decideYtPlayerAction({ isYoutube: true, videoId: "abc" }, { isYoutube: false, videoId: null }, true)
-    ).toEqual({ type: "destroy" });
-    // fara player existent, nu are ce distruge
-    expect(
-      decideYtPlayerAction({ isYoutube: true, videoId: "abc" }, { isYoutube: false, videoId: null }, false)
-    ).toEqual({ type: "none" });
-  });
-  it("YT -> YT cu acelasi videoId nu face nimic (playerul deja reda piesa)", () => {
-    expect(
-      decideYtPlayerAction({ isYoutube: true, videoId: "abc" }, { isYoutube: true, videoId: "abc" }, true)
-    ).toEqual({ type: "none" });
-  });
-  it("YT -> YT cu videoId diferit foloseste loadVideoById (load), nu recreeaza playerul", () => {
-    expect(
-      decideYtPlayerAction({ isYoutube: true, videoId: "abc" }, { isYoutube: true, videoId: "xyz" }, true)
-    ).toEqual({ type: "load", videoId: "xyz" });
-  });
-  it("non-YT -> YT cu player deja existent (caz rar) foloseste load, nu recreeaza", () => {
-    expect(
-      decideYtPlayerAction({ isYoutube: false, videoId: null }, { isYoutube: true, videoId: "abc" }, true)
-    ).toEqual({ type: "load", videoId: "abc" });
-  });
-  it("re-initializare dupa distrugere: YT -> non-YT -> YT reuseste sa creeze un player nou", () => {
-    const afterDestroy = decideYtPlayerAction(
-      { isYoutube: true, videoId: "abc" },
-      { isYoutube: false, videoId: null },
-      true
-    );
-    expect(afterDestroy).toEqual({ type: "destroy" });
-    // dupa destroy, ref-ul e null => hasPlayer=false la urmatoarea piesa YT
-    const reinit = decideYtPlayerAction({ isYoutube: false, videoId: null }, { isYoutube: true, videoId: "abc" }, false);
-    expect(reinit).toEqual({ type: "init", videoId: "abc" });
   });
 });
 

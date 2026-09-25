@@ -4,7 +4,6 @@
  * - Main music hub (/music)
  * - Music genres (/music?genre=...)
  * - Local tracks, artists, and albums from DB
- * - Cached tracks and artists
  */
 
 import { NextResponse } from "next/server";
@@ -89,23 +88,6 @@ export async function GET() {
         }
     } catch {
         // Ignorat dacă DB-ul este offline
-    }
-
-    // 5. Piese externe din cache (youtube_tracks)
-    try {
-        const { rows: ytTracks } = await dbQuery<{ video_id: string; created_at: string }>(
-            "SELECT video_id, created_at FROM youtube_tracks ORDER BY created_at DESC LIMIT 10000"
-        );
-        for (const yt of ytTracks) {
-            entries.push({
-                loc: `${BASE_URL}/music/track/yt-${yt.video_id}`,
-                lastmod: yt.created_at ? new Date(yt.created_at).toISOString() : now,
-                changefreq: "monthly",
-                priority: 0.65,
-            });
-        }
-    } catch {
-        // Ignorat dacă tabela nu există încă
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>

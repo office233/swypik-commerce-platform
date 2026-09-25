@@ -288,7 +288,7 @@ function buildStrictCsp(nonce: string): string {
     // erorilor chiar cu DSN valid, iar eșecul e tăcut. A se ține sincronizat cu
     // cele două CSP-uri din `next.config.mjs` (SENTRY_CONNECT_SRC).
     "connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com https://*.ingest.sentry.io",
-    "frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com",
+    "frame-src https://js.stripe.com https://hooks.stripe.com",
     "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",

@@ -31,28 +31,11 @@ async function resolveArtist(slug: string) {
         };
     }
 
-    // Fallback artist extern din slug
+    // Fallback artist necunoscut din slug
     const artistName = slug
         .split("-")
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
-
-    try {
-        const { searchYouTubeMusic } = await import("@/lib/music/youtube");
-        const ytTracks = await searchYouTubeMusic(artistName, 5);
-        if (ytTracks.length > 0) {
-            const first = ytTracks[0];
-            return {
-                slug,
-                stageName: first.artist.stageName || artistName,
-                bio: `Ascultă cele mai populare piese ale artistului ${first.artist.stageName || artistName} pe Swypik Music.`,
-                avatarUrl: first.coverUrl,
-                coverUrl: first.coverUrl,
-            };
-        }
-    } catch {
-        // Fallback la formatul de bază
-    }
 
     return {
         slug,

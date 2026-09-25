@@ -24,7 +24,7 @@ try {
 }
 // Explicit allowlist — do NOT widen back to `https:` (open connect-src let any
 // page/script exfiltrate to arbitrary hosts). New modules (Movies, Music, News,
-// Gaming, Messenger) call third-party APIs (TMDB, YouTube, Audius,
+// Gaming, Messenger) call third-party APIs (Audius,
 // Jamendo, Radio-Browser, CheapShark, OpenTDB, Gemini) ONLY from
 // server code (lib/**), never from the browser — see app/api/* proxies — so
 // none of those hosts need to be here.
@@ -36,12 +36,12 @@ const CONNECT_SRC = `'self' https://swypik.com https://www.swypik.com https://ap
 // arbitrary-host cover art / thumbnails.
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://www.youtube.com https://s.ytimg.com;
+  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: data: https:;
     connect-src ${CONNECT_SRC};
-  frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
+  frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';
@@ -51,12 +51,12 @@ const cspHeader = `
 `.replace(/\s{2,}/g, " ").trim();
 const cspReportOnly = `
   default-src 'self';
-  script-src 'self' https://js.stripe.com https://www.youtube.com https://s.ytimg.com;
+  script-src 'self' https://js.stripe.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: data: https:;
   connect-src ${CONNECT_SRC};
-  frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
+  frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';
@@ -92,8 +92,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'https', hostname: 'cdn.swypik.com' },
       { protocol: 'https', hostname: 'media.swypik.com' },
-      // Swypik Movies posters/thumbnails (lib/movies/tmdb.ts), rendered via next/image.
-      { protocol: 'https', hostname: 'image.tmdb.org' },
     ],
   },
   // ─── Cloudflare + Performance Headers ───
