@@ -63,7 +63,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         <p>{t("descoperaProdusePopulareOferte")}</p>
       </header>
       <ImmersiveSurface fullscreen>
-        <ExploreClient initialVideos={[]} />
+        <ExploreClient />
       </ImmersiveSurface>
     </>
   );

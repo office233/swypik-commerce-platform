@@ -47,6 +47,11 @@ async function handle(request: NextRequest) {
       logger.warn({ err: e?.message }, "refresh-rank concurrent failed, falling back");
       await dbQueryLong(`REFRESH MATERIALIZED VIEW video_rank_14d`);
     }
+    // Statisticile pe 7 zile ale ranker-ului nou (lib/feed, 20260926_0132).
+    // Opțional: lipsa MV-ului (migrare neaplicată) nu strică refresh-ul vechi.
+    await dbQueryLong(`REFRESH MATERIALIZED VIEW CONCURRENTLY video_stats_7d`).catch((err: unknown) =>
+      logger.warn({ err }, "refresh-rank: video_stats_7d refresh failed"),
+    );
 
     const { rows } = await dbQuery(
       `SELECT COUNT(*)::int AS total,
