@@ -1,29 +1,11 @@
 /**
- * GET /api/stays/mine — cazările sellerului logat (pentru panoul de calendar).
+ * RETRAS (20260926_0051, model unic de gazdă): calendarul vechi de seller.
+ * Listările sellerilor cu cont au fost mutate la gazda lor; panoul e /stays/manage.
  */
-import { NextResponse } from "next/server";
-import { dbQuery } from "@/lib/db";
-import { getSellerSessionId } from "@/lib/security/seller-auth";
-import { withErrorHandling } from "@/lib/api-handler";
+import { staysError } from "@/lib/stays/errors";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function GET_impl(): Promise<Response> {
-  const sellerId = await getSellerSessionId();
-  if (!sellerId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  }
-  const { rows } = await dbQuery(
-    `SELECT id, title, currency, status, vertical_attributes
-       FROM marketplace_products
-      WHERE seller_id = $1
-        AND taxonomy_node_slug LIKE 'vacation-rentals%'
-      ORDER BY created_at DESC
-      LIMIT 100`,
-    [sellerId],
-  );
-  return NextResponse.json({ success: true, stays: rows });
+export function GET(): Response {
+    return staysError("legacy_retired");
 }
-
-export const GET = withErrorHandling(GET_impl);

@@ -61,6 +61,13 @@ export async function POST(req: Request) {
         }
         const d = parsed.data;
 
+        // Cazările au un singur model de gazdă (20260926_0051): se publică din
+        // /stays/manage după aprobarea aplicației, nu ca anunț universal —
+        // altfel gazda n-ar fi plătită niciodată (lipsea host_user_id).
+        if (d.taxonomy_node_slug === "vacation-rentals" || d.taxonomy_node_slug.startsWith("vacation-rentals/")) {
+            return NextResponse.json({ success: false, error: "use_host_onboarding" }, { status: 409 });
+        }
+
         // Verticala determină ce câmpuri sunt permise/obligatorii.
         const vertical = verticalForSlug(d.taxonomy_node_slug);
         if (!vertical) {

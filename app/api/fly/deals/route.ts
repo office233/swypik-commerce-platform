@@ -8,11 +8,14 @@
  */
 import { NextResponse } from "next/server";
 import { getFlyDeals } from "@/lib/fly/deals-service";
+import { flyBookingGuard } from "@/lib/fly/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+    const closed = flyBookingGuard();
+    if (closed) return closed;
     const { searchParams } = new URL(req.url);
     const originRaw = (searchParams.get("origin") ?? "OTP").toUpperCase();
     const result = await getFlyDeals(originRaw);

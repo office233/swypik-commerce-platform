@@ -30,6 +30,7 @@ const ENTITY_TYPES = [
 export default function HostApplyClient() {
   const t = useTranslations("hostApply");
     const tj = useTranslations("join");
+    const th = useTranslations("staysHost");
     const [form, setForm] = useState({
         full_name: "", phone: "", email: "",
         entity_type: "persoana_fizica", company_name: "", cui: "", cnp: "",
@@ -70,10 +71,12 @@ export default function HostApplyClient() {
                 }),
             });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(data.error ?? "Trimiterea a eșuat."); return; }
+            // Aplicația cere cont: fără el, o aplicație aprobată n-ar putea deveni gazdă.
+            if (res.status === 401) { setError(th("loginToApply")); return; }
+            if (!res.ok) { setError(data.error ?? th("applyFailed")); return; }
             setDone(true);
         } catch {
-            setError("Trimiterea a eșuat. Încearcă din nou.");
+            setError(th("applyFailed"));
         } finally {
             setLoading(false);
         }

@@ -1,53 +1,36 @@
 /**
- * POST /api/host/upload — upload poză pentru o cazare (multipart/form-data).
- * Doar gazde aprobate. Validarea tipului/semnăturii e în lib/storage/upload.
- * Returnează URL-ul public, folosit apoi la crearea/editarea listingului.
+ * POST /api/host/upload — poză pentru o cazare (multipart/form-data, `file`).
+ * Doar gazde active. Tipul/semnătura/mărimea se validează în lib/storage/upload;
+ * cheia e `stays/<userId>/…` — listările acceptă DOAR poze din acest spațiu.
  */
 import { NextResponse } from "next/server";
-import { dbQuery } from "@/lib/db";
-import { getAuthSession } from "@/lib/auth/session";
-import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
-import { uploadFile } from "@/lib/storage/upload";
 import { logger } from "@/lib/logger";
+import { uploadFile } from "@/lib/storage/upload";
+import { staysError } from "@/lib/stays/errors";
+import { requireHost } from "@/lib/stays/hosts";
+import { limitOrThrow, requireSession, staysRoute } from "@/lib/stays/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export async function POST(req: Request) {
-    const session = await getAuthSession().catch(() => null);
-    if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+export const POST = staysRoute("host/upload", async (req: Request) => {
+    const session = await requireSession();
+    await limitOrThrow(req, "host-upload", session.userId, { limit: 60, window: 3600 });
+    await requireHost(session.userId);
 
-    const rl = await rateLimit("host:upload", getClientIP(req), { limit: 30, window: 3600 });
-    if (!rl.success) return NextResponse.json({ error: "Prea multe încărcări." }, { status: 429 });
-
-    const approved = await dbQuery(
-        `SELECT 1 FROM host_applications WHERE user_id = $1 AND status = 'approved' LIMIT 1`,
-        [session.userId],
-    );
-    if (!approved.rows.length) {
-        return NextResponse.json({ error: "Doar gazdele aprobate pot încărca poze." }, { status: 403 });
-    }
-
-    let file: File | null = null;
-    try {
-        const form = await req.formData();
-        const f = form.get("file");
-        if (f instanceof File) file = f;
-    } catch {
-        return NextResponse.json({ error: "Formular invalid." }, { status: 400 });
-    }
-    if (!file) return NextResponse.json({ error: "Lipsește fișierul." }, { status: 400 });
+    const form = await req.formData().catch(() => null);
+    const file = form?.get("file");
+    if (!(file instanceof File)) return staysError("invalid_input");
 
     try {
-        const buf = Buffer.from(await file.arrayBuffer());
-        const result = await uploadFile(buf, file.name || "poza.jpg", file.type, {
+        const result = await uploadFile(Buffer.from(await file.arrayBuffer()), file.name || "photo.jpg", file.type, {
             keyPrefix: `stays/${session.userId}`,
         });
-        logger.info({ user: session.userId, size: result.size }, "host photo uploaded");
+        logger.info({ user: session.userId, size: result.size }, "stays: host photo uploaded");
         return NextResponse.json({ ok: true, url: result.url });
-    } catch (err: any) {
-        logger.warn({ err }, "host upload failed");
-        return NextResponse.json({ error: err?.message ?? "Încărcare eșuată." }, { status: 400 });
+    } catch (err) {
+        logger.warn({ err }, "stays: host upload rejected");
+        return staysError("invalid_input");
     }
-}
+});

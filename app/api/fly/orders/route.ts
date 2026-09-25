@@ -13,6 +13,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { startBooking, listUserBookings } from "@/lib/fly/booking";
 import { logger } from "@/lib/logger";
+import { flyBookingGuard } from "@/lib/fly/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +38,8 @@ const orderSchema = z.object({
 });
 
 export async function POST(req: Request) {
+    const closed = flyBookingGuard();
+    if (closed) return closed;
     const session = await getAuthSession();
     if (!session) return NextResponse.json({ error: "Autentifică-te pentru a rezerva" }, { status: 401 });
 
@@ -85,6 +88,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
+    const closed = flyBookingGuard();
+    if (closed) return closed;
     const session = await getAuthSession();
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const bookings = await listUserBookings(session.userId);

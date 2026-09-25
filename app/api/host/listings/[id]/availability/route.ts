@@ -1,119 +1,95 @@
 /**
- * Calendar disponibilitate — gazda blochează/deblochează zile.
- *
- * GET  /api/host/listings/[id]/availability?from=..&to=..
- *   → zile blocate de gazdă + zile ocupate de rezervări (read-only).
- * POST /api/host/listings/[id]/availability
- *   Body: { dates: ["YYYY-MM-DD", ...], available: boolean, priceCentsOverride?: number|null }
- *   → setează blocare sau preț special pe zilele date (max 366 / apel).
- *
- * Autorizare: doar proprietarul listingului.
+ * Calendarul gazdei pentru o listare.
+ * GET  ?from=&to= → zile blocate, prețuri speciale, intervale rezervate (active)
+ * POST { dates[], available, priceCentsOverride? } → blochează/deblochează
+ *      zile sau setează preț special (max 366/apel). Zilele cu rezervări
+ *      active nu pot fi blocate.
  */
 import { NextResponse } from "next/server";
-import { withErrorHandling } from "@/lib/api-handler";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
-import { getAuthSession } from "@/lib/auth/session";
+import { staysConfig } from "@/lib/stays/config";
+import { addDays, todayIso } from "@/lib/stays/dates";
+import { staysError } from "@/lib/stays/errors";
+import { requireHost } from "@/lib/stays/hosts";
+import { assertOwnsListing } from "@/lib/stays/listings";
+import { idParam, limitOrThrow, requireSession, staysRoute } from "@/lib/stays/route";
+import { BLOCKING_BOOKING_SQL } from "@/lib/stays/sql";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+type Ctx = { params: Promise<{ id: string }> };
 
-async function ownsListing(id: string, userId: string): Promise<boolean> {
-    const { rows } = await dbQuery(
-        `SELECT 1 FROM marketplace_products
-          WHERE id = $1::uuid AND listing_type = 'listing' AND metadata->>'host_user_id' = $2`,
-        [id, userId],
-    );
-    return rows.length > 0;
-}
-
-export const GET = withErrorHandling(async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const session = await getAuthSession().catch(() => null);
-    if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    const { id } = await params;
-    if (!(await ownsListing(id, session.userId))) {
-        return NextResponse.json({ error: "Listing inexistent" }, { status: 404 });
-    }
-
+export const GET = staysRoute("host/availability:get", async (req: Request, ctx: Ctx) => {
+    const session = await requireSession();
+    const id = await idParam(ctx.params);
+    await assertOwnsListing(id, session.userId);
     const sp = new URL(req.url).searchParams;
-    const from = DATE.test(sp.get("from") ?? "") ? sp.get("from")! : new Date().toISOString().slice(0, 10);
-    const to = DATE.test(sp.get("to") ?? "")
-        ? sp.get("to")!
-        : new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+    const from = DATE.test(sp.get("from") ?? "") ? sp.get("from")! : todayIso();
+    const to = DATE.test(sp.get("to") ?? "") ? sp.get("to")! : addDays(from, 92);
 
-    const blocked = await dbQuery<{ day: string; price_cents_override: number | null }>(
-        `SELECT day::text, price_cents_override FROM stay_availability
-          WHERE product_id = $1::uuid AND day >= $2::date AND day <= $3::date AND is_available = false`,
-        [id, from, to],
-    );
-    const priced = await dbQuery<{ day: string; price_cents_override: number }>(
-        `SELECT day::text, price_cents_override FROM stay_availability
-          WHERE product_id = $1::uuid AND day >= $2::date AND day <= $3::date
-            AND is_available = true AND price_cents_override IS NOT NULL`,
-        [id, from, to],
-    );
-    const booked = await dbQuery<{ check_in: string; check_out: string }>(
-        `SELECT check_in::text, check_out::text FROM stay_bookings
-          WHERE product_id = $1::uuid AND status IN ('pending','confirmed')
-            AND check_out >= $2::date AND check_in <= $3::date`,
-        [id, from, to],
-    );
-
+    const [days, booked] = await Promise.all([
+        dbQuery<{ day: string; is_available: boolean; price_cents_override: number | null }>(
+            `SELECT day::text, is_available, price_cents_override FROM stay_availability
+              WHERE product_id = $1::uuid AND day >= $2::date AND day <= $3::date`,
+            [id, from, to],
+        ),
+        dbQuery<{ check_in: string; check_out: string; status: string }>(
+            `SELECT b.check_in::text, b.check_out::text, b.status FROM stay_bookings b
+              WHERE b.product_id = $1::uuid AND ${BLOCKING_BOOKING_SQL}
+                AND b.check_out > $2::date AND b.check_in <= $3::date`,
+            [id, from, to],
+        ),
+    ]);
     return NextResponse.json({
-        blockedDays: blocked.rows.map((r) => r.day),
-        pricedDays: priced.rows,
+        blockedDays: days.rows.filter((d) => !d.is_available).map((d) => d.day),
+        pricedDays: days.rows.filter((d) => d.is_available && d.price_cents_override !== null),
         bookedRanges: booked.rows,
     });
 });
 
-const postSchema = z.object({
-    dates: z.array(z.string().regex(DATE)).min(1).max(366),
-    available: z.boolean(),
-    priceCentsOverride: z.number().int().min(2000).max(100000000).nullable().optional(),
-});
+export const POST = staysRoute("host/availability:post", async (req: Request, ctx: Ctx) => {
+    const session = await requireSession();
+    await limitOrThrow(req, "host-calendar", session.userId, { limit: 120, window: 3600 });
+    await requireHost(session.userId);
+    const id = await idParam(ctx.params);
+    await assertOwnsListing(id, session.userId);
 
-export const POST = withErrorHandling(async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const session = await getAuthSession().catch(() => null);
-    if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    const { id } = await params;
-    if (!(await ownsListing(id, session.userId))) {
-        return NextResponse.json({ error: "Listing inexistent" }, { status: 404 });
-    }
-
-    const parsed = postSchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) return NextResponse.json({ error: "Date invalide" }, { status: 400 });
+    const parsed = z
+        .object({
+            dates: z.array(z.string().regex(DATE)).min(1).max(366),
+            available: z.boolean(),
+            priceCentsOverride: z
+                .number()
+                .int()
+                .min(staysConfig.minPricePerNightCents())
+                .max(staysConfig.maxPricePerNightCents())
+                .nullable()
+                .optional(),
+        })
+        .safeParse(await req.json().catch(() => null));
+    if (!parsed.success) return staysError("invalid_input");
     const { dates, available, priceCentsOverride } = parsed.data;
 
-    // Nu permite blocarea zilelor cu rezervări active — clientul a plătit deja.
     if (!available) {
-        const clash = await dbQuery<{ n: string }>(
-            `SELECT COUNT(*)::text AS n FROM stay_bookings
-              WHERE product_id = $1::uuid AND status IN ('pending','confirmed')
-                AND daterange(check_in, check_out) && ANY(
-                    SELECT daterange(d::date, (d::date + 1))
-                      FROM unnest($2::text[]) AS d
-                )`,
+        const clash = await dbQuery<{ n: number }>(
+            `SELECT COUNT(*)::int AS n FROM stay_bookings b
+              WHERE b.product_id = $1::uuid AND ${BLOCKING_BOOKING_SQL}
+                AND EXISTS (SELECT 1 FROM unnest($2::date[]) d
+                             WHERE d >= b.check_in AND d < b.check_out)`,
             [id, dates],
         );
-        if (Number(clash.rows[0]?.n ?? 0) > 0) {
-            return NextResponse.json(
-                { error: "Unele zile au rezervări plătite — nu pot fi blocate." },
-                { status: 409 },
-            );
-        }
+        if (Number(clash.rows[0]?.n ?? 0) > 0) return staysError("dates_booked");
     }
 
     await dbQuery(
         `INSERT INTO stay_availability (product_id, day, is_available, price_cents_override)
-         SELECT $1::uuid, d::date, $3, $4
-           FROM unnest($2::text[]) AS d
+         SELECT $1::uuid, d, $3, $4 FROM unnest($2::date[]) AS d
          ON CONFLICT (product_id, day)
-         DO UPDATE SET is_available = EXCLUDED.is_available,
-                       price_cents_override = EXCLUDED.price_cents_override`,
+         DO UPDATE SET is_available = EXCLUDED.is_available, price_cents_override = EXCLUDED.price_cents_override`,
         [id, dates, available, priceCentsOverride ?? null],
     );
-
     return NextResponse.json({ ok: true, updated: dates.length });
 });

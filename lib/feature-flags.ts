@@ -34,6 +34,10 @@ export const FEATURES = {
   news: flag('FEATURE_NEWS', false),
   gaming: flag('FEATURE_GAMING', false),
   messenger: flag('FEATURE_MESSENGER', false),
+  // Swypik Fly: fără furnizor de zboruri (audit fly.md) → /fly e „în curând /
+  // anunță-mă”. Căutarea/rezervarea (lib/fly, /api/fly/*) rămân în cod dar
+  // sunt închise până există un furnizor contractat (ex. Duffel) + avizul juridic.
+  flyBooking: flag('FEATURE_FLY_BOOKING', false),
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

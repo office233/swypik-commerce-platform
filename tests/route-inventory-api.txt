@@ -110,6 +110,7 @@
 /api/cron/reconcile-wallets
 /api/cron/refresh-fx
 /api/cron/refresh-rank
+/api/cron/stays-lifecycle
 /api/cron/strikes-decay
 /api/cron/suspend-unverified
 /api/cron/watchdog-videos
@@ -131,6 +132,7 @@
 /api/fly/orders
 /api/fly/price-check
 /api/fly/search
+/api/fly/waitlist
 /api/founding-slots
 /api/fx
 /api/geo
@@ -144,6 +146,8 @@
 /api/health/r2
 /api/health/redis
 /api/host/bookings
+/api/host/bookings/[id]/accept
+/api/host/bookings/[id]/decline
 /api/host/listings
 /api/host/listings/[id]
 /api/host/listings/[id]/availability
@@ -236,9 +240,12 @@
 /api/seller/stripe-connect
 /api/stays/availability
 /api/stays/bookings
+/api/stays/bookings/[id]
 /api/stays/bookings/[id]/cancel
+/api/stays/bookings/[id]/confirm-card
 /api/stays/bookings/[id]/create-intent
 /api/stays/bookings/[id]/pay
+/api/stays/bookings/[id]/review
 /api/stays/cities
 /api/stays/local
 /api/stays/mine

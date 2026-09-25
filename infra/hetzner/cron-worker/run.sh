@@ -70,6 +70,9 @@ while true; do
   # Every 5 min
   if [ $((TICK % 300)) -lt 60 ]; then
     run_job publish-scheduled POST
+    # Stays: hold-uri neplatite / cereri fara raspuns expira (elibereaza
+    # calendarul si banii), sejururile incheiate devin completed. (2026-09-26)
+    run_job stays-lifecycle POST
   fi
   # Every 10 min
   if [ $((TICK % 600)) -lt 60 ]; then

@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { isExternalStaysConfigured } from "@/lib/stays/provider";
 import { getFlyDeals } from "@/lib/fly/deals-service";
+import { flyBookingGuard } from "@/lib/fly/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,8 @@ const TRIP_NIGHTS: Record<string, number> = {
 };
 
 export async function GET(req: Request) {
+    const closed = flyBookingGuard();
+    if (closed) return closed;
     const origin = (new URL(req.url).searchParams.get("origin") ?? "OTP").toUpperCase();
 
     // Refolosim cache-ul deals fără apel HTTP loopback (in-process direct)

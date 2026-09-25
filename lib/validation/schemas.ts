@@ -464,22 +464,6 @@ export const DonationCreateSchema = z.object({
   source: z.enum(["direct", "checkout_roundup", "recurring"]).optional(),
 });
 
-export const StayBookingCreateSchema = z.object({
-  product_id: z.string().uuid(),
-  check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dată invalidă"),
-  check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dată invalidă"),
-  guests_count: z.number().int().min(1).max(50).default(1),
-  guest_name: z.string().trim().min(2).max(120),
-  guest_email: z.string().trim().email().max(254).optional(),
-  guest_phone: z.string().trim().min(5).max(32).optional(),
-}).refine((d) => new Date(d.check_out) > new Date(d.check_in), {
-  message: "Check-out trebuie să fie după check-in",
-  path: ["check_out"],
-}).refine((d) => Boolean(d.guest_email || d.guest_phone), {
-  message: "Trebuie să lași un email sau un telefon",
-  path: ["guest_email"],
-});
-
 export const SellerProductClassifySchema = z.object({
   title: z.string().trim().min(3).max(200),
   description: z.string().trim().max(2000).optional(),
@@ -489,16 +473,6 @@ export const SellerProductClassifySchema = z.object({
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_HHMM_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
-
-/** POST /api/stays/availability — gazda blochează/deblochează zile + preț. */
-export const StayAvailabilitySchema = z.object({
-  product_id: z.string().uuid(),
-  days: z.array(z.object({
-    day: z.string().regex(DATE_RE, "Dată invalidă (YYYY-MM-DD)"),
-    is_available: z.boolean().default(false),
-    price_cents_override: z.number().int().min(0).max(100_000_000).nullable().optional(),
-  })).min(1, "Minim o zi").max(366, "Maxim 366 de zile per cerere"),
-});
 
 /** POST /api/causes — înregistrare beneficiar/ONG. */
 export const CauseRegisterSchema = z.object({

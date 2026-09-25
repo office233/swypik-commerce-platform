@@ -1,220 +1,125 @@
 /**
- * Notificări Swypik Stays.
- *
- * La rezervare confirmată:
- *   - gazda: push + email („ai o rezervare nouă")
- *   - clientul: push + email de confirmare
- * Toate sunt best-effort: o eroare de notificare NU anulează rezervarea.
+ * Notificări Swypik Stays (push + email), în limba destinatarului
+ * (users.locale, fallback ro). Textele: namespace-ul `staysNotify`.
+ * Toate sunt best-effort: o eroare de notificare NU afectează rezervarea.
  */
+import { createTranslator } from "next-intl";
 import { dbQuery } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/service";
 import { logger } from "@/lib/logger";
 import { APP_URL } from "@/lib/app-url";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/lib/i18n/config";
 
-function fmtDate(d: string): string {
-    try {
-        return new Date(d).toLocaleDateString("ro-RO", { day: "2-digit", month: "long", year: "numeric" });
-    } catch {
-        return d;
-    }
-}
-
-const lei = (cents: number) =>
-    new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(cents / 100);
-
-type BookingInfo = {
-    bookingId: string;
-    propertyTitle: string;
-    checkIn: string;
-    checkOut: string;
-    guests: number;
-    totalCents: number;
-    hostUserId: string | null;
-    guestUserId: string | null;
-    guestName: string;
-    guestEmail: string | null;
-    guestPhone: string | null;
+type Info = {
+    id: string;
+    title: string;
+    check_in: string;
+    check_out: string;
+    guests_count: number;
+    total_cents: number;
+    currency: string;
+    refund_cents: number;
+    guest_user_id: string | null;
+    guest_name: string;
+    guest_email: string | null;
+    host_user_id: string | null;
+    host_email: string | null;
 };
 
-/** Datele necesare notificărilor, dintr-un singur query. */
-export async function loadBookingInfo(bookingId: string): Promise<BookingInfo | null> {
-    const { rows } = await dbQuery<any>(
-        `SELECT b.id::text AS booking_id, p.title AS property_title,
-                b.check_in::text, b.check_out::text, b.guests_count, b.total_cents,
-                p.metadata->>'host_user_id' AS host_user_id,
-                b.guest_user_id::text, b.guest_name, b.guest_email, b.guest_phone
+type Event = "hostRequest" | "guestConfirmed" | "guestDeclined" | "guestExpired" | "guestCancelled" | "hostCancelled" | "hostGuestCancelled";
+
+function escapeHtml(v: unknown): string {
+    return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+}
+
+async function loadInfo(bookingId: string): Promise<Info | null> {
+    const { rows } = await dbQuery<Info>(
+        `SELECT b.id::text, p.title, b.check_in::text, b.check_out::text, b.guests_count, b.total_cents,
+                b.currency, b.refund_cents, b.guest_user_id::text, b.guest_name, b.guest_email,
+                COALESCE(b.host_user_id::text, p.metadata->>'host_user_id') AS host_user_id,
+                hu.email AS host_email
            FROM stay_bookings b
            JOIN marketplace_products p ON p.id = b.product_id
+           LEFT JOIN users hu ON hu.id::text = COALESCE(b.host_user_id::text, p.metadata->>'host_user_id')
           WHERE b.id = $1::uuid`,
         [bookingId],
     );
-    const r = rows[0];
-    if (!r) return null;
-    return {
-        bookingId: r.booking_id,
-        propertyTitle: r.property_title,
-        checkIn: r.check_in,
-        checkOut: r.check_out,
-        guests: r.guests_count,
-        totalCents: r.total_cents,
-        hostUserId: r.host_user_id,
-        guestUserId: r.guest_user_id,
-        guestName: r.guest_name,
-        guestEmail: r.guest_email,
-        guestPhone: r.guest_phone,
-    };
+    return rows[0] ?? null;
 }
 
-async function hostEmail(hostUserId: string): Promise<string | null> {
-    const { rows } = await dbQuery<{ email: string | null }>(
-        `SELECT COALESCE(
-                  (SELECT email FROM host_applications WHERE user_id = $1 AND status='approved'
-                    ORDER BY reviewed_at DESC LIMIT 1),
-                  (SELECT email FROM users WHERE id = $1)
-                ) AS email`,
-        [hostUserId],
+async function localeOf(userId: string | null): Promise<Locale> {
+    if (!userId) return DEFAULT_LOCALE;
+    const { rows } = await dbQuery<{ locale: string | null }>(`SELECT locale FROM users WHERE id = $1::uuid`, [userId]).catch(
+        () => ({ rows: [] as { locale: string | null }[] }),
     );
-    return rows[0]?.email ?? null;
+    return isLocale(rows[0]?.locale) ? (rows[0]!.locale as Locale) : DEFAULT_LOCALE;
 }
 
-/** Notifică gazda că are o rezervare nouă (plătită). */
-export async function notifyHostNewBooking(bookingId: string): Promise<void> {
-    try {
-        const b = await loadBookingInfo(bookingId);
-        if (!b?.hostUserId) return;
-
-        const period = `${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}`;
-        const url = `${APP_URL}/stays/manage`;
-
-        await sendPushToUser(b.hostUserId, {
-            title: "Rezervare nouă! 🎉",
-            body: `${b.propertyTitle}: ${period} · ${b.guests} ${b.guests === 1 ? "oaspete" : "oaspeți"} · ${lei(b.totalCents)}`,
-            url: "/stays/manage",
-            tag: `stay-booking-${b.bookingId}`,
-            data: { bookingId: b.bookingId },
-        }).catch((err) => logger.warn({ err, bookingId }, "stays: push gazdă eșuat"));
-
-        const email = await hostEmail(b.hostUserId);
-        if (email) {
-            await sendEmail({
-                to: email,
-                subject: `Rezervare nouă: ${b.propertyTitle}`,
-                html: `
-                    <h2>Ai o rezervare nouă 🎉</h2>
-                    <p><strong>${b.propertyTitle}</strong></p>
-                    <table style="border-collapse:collapse">
-                      <tr><td style="padding:4px 12px 4px 0">Perioadă:</td><td><strong>${period}</strong></td></tr>
-                      <tr><td style="padding:4px 12px 4px 0">Oaspeți:</td><td>${b.guests}</td></tr>
-                      <tr><td style="padding:4px 12px 4px 0">Client:</td><td>${b.guestName}${b.guestPhone ? ` · ${b.guestPhone}` : ""}</td></tr>
-                      <tr><td style="padding:4px 12px 4px 0">Total plătit:</td><td><strong>${lei(b.totalCents)}</strong></td></tr>
-                    </table>
-                    <p style="margin-top:16px">Suma, minus comisionul Swypik, a fost virată în portofelul tău.</p>
-                    <p><a href="${url}" style="background:#0D9488;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Vezi rezervările</a></p>
-                `,
-            }).catch((err) => logger.warn({ err, bookingId }, "stays: email gazdă eșuat"));
-        }
-        logger.info({ bookingId, hostUserId: b.hostUserId }, "stays: gazdă notificată");
-    } catch (err) {
-        logger.error({ err, bookingId }, "stays: notificare gazdă eșuată");
+async function send(event: Event, to: { userId: string | null; email: string | null }, b: Info, path: string): Promise<void> {
+    const locale = await localeOf(to.userId);
+    const messages = (await import(`../../messages/${locale}.json`)).default;
+    const t = createTranslator({ locale, messages, namespace: "staysNotify" });
+    const date = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(locale, { day: "numeric", month: "long", timeZone: "UTC" });
+    const money = (c: number) => new Intl.NumberFormat(locale, { style: "currency", currency: b.currency || "RON" }).format(c / 100);
+    const vars = {
+        title: b.title,
+        period: `${date(b.check_in)} – ${date(b.check_out)}`,
+        guests: b.guests_count,
+        guest: b.guest_name,
+        total: money(b.total_cents),
+        refund: money(b.refund_cents),
+    };
+    const title = t(`${event}.title`, vars);
+    const body = t(`${event}.body`, vars);
+    if (to.userId) {
+        await sendPushToUser(to.userId, { title, body, url: path, tag: `stay-${event}-${b.id}` }).catch((err) =>
+            logger.warn({ err, bookingId: b.id, event }, "stays: push failed"),
+        );
+    }
+    if (to.email) {
+        const href = `${APP_URL}${path}`;
+        await sendEmail({
+            to: to.email,
+            subject: t(`${event}.title`, vars),
+            html: `<h2>${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p>
+                   <p><a href="${escapeHtml(href)}">${escapeHtml(t("cta"))}</a></p>`,
+        }).catch((err) => logger.warn({ err, bookingId: b.id, event }, "stays: email failed"));
     }
 }
 
-/** Confirmare pentru client. */
-export async function notifyGuestBookingConfirmed(bookingId: string): Promise<void> {
+async function notify(bookingId: string, fn: (b: Info) => Promise<void>): Promise<void> {
     try {
-        const b = await loadBookingInfo(bookingId);
-        if (!b) return;
-
-        const period = `${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}`;
-
-        if (b.guestUserId) {
-            await sendPushToUser(b.guestUserId, {
-                title: "Rezervare confirmată ✅",
-                body: `${b.propertyTitle}: ${period}`,
-                url: "/account",
-                tag: `stay-guest-${b.bookingId}`,
-            }).catch((err) => logger.warn({ err, bookingId }, "stays: push client eșuat"));
-        }
-
-        if (b.guestEmail) {
-            await sendEmail({
-                to: b.guestEmail,
-                subject: `Rezervare confirmată: ${b.propertyTitle}`,
-                html: `
-                    <h2>Rezervarea ta e confirmată ✅</h2>
-                    <p><strong>${b.propertyTitle}</strong></p>
-                    <table style="border-collapse:collapse">
-                      <tr><td style="padding:4px 12px 4px 0">Perioadă:</td><td><strong>${period}</strong></td></tr>
-                      <tr><td style="padding:4px 12px 4px 0">Oaspeți:</td><td>${b.guests}</td></tr>
-                      <tr><td style="padding:4px 12px 4px 0">Total:</td><td><strong>${lei(b.totalCents)}</strong></td></tr>
-                    </table>
-                    <p style="margin-top:16px">Prețul afișat a fost prețul final — fără taxe ascunse.</p>
-                    <p><a href="${APP_URL}/account" style="background:#0D9488;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Vezi rezervarea</a></p>
-                `,
-            }).catch((err) => logger.warn({ err, bookingId }, "stays: email client eșuat"));
-        }
+        const b = await loadInfo(bookingId);
+        if (b) await fn(b);
     } catch (err) {
-        logger.error({ err, bookingId }, "stays: notificare client eșuată");
+        logger.error({ err, bookingId }, "stays: notification failed");
     }
 }
 
-/** Notifică ambele părți la anulare (cu detalii de refund). */
-export async function notifyCancellation(
-    bookingId: string,
-    cancelledBy: "guest" | "host",
-    refundCents: number,
-    refundPct: number,
-): Promise<void> {
-    try {
-        const b = await loadBookingInfo(bookingId);
-        if (!b) return;
-        const period = `${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}`;
-        const refundTxt = refundCents > 0 ? `Refund: ${lei(refundCents)} (${refundPct}%) în wallet.` : "Fără sumă de refundat.";
+const guestPath = (b: Info) => `/account/stays/${b.id}`;
+const HOST_PATH = "/stays/manage";
 
-        // Clientul
-        if (b.guestUserId) {
-            await sendPushToUser(b.guestUserId, {
-                title: cancelledBy === "host" ? "Rezervare anulată de gazdă" : "Rezervare anulată",
-                body: `${b.propertyTitle}: ${period}. ${refundTxt}`,
-                url: "/account",
-                tag: `stay-cancel-${bookingId}`,
-            }).catch(() => { });
-        }
-        if (b.guestEmail) {
-            await sendEmail({
-                to: b.guestEmail,
-                subject: `Rezervare anulată: ${b.propertyTitle}`,
-                html: `<h2>Rezervarea a fost anulată</h2>
-                       <p><strong>${b.propertyTitle}</strong> · ${period}</p>
-                       <p>${refundTxt}</p>
-                       ${cancelledBy === "host" ? "<p>Ne pare rău — gazda a anulat. Primești banii înapoi integral.</p>" : ""}`,
-            }).catch(() => { });
-        }
+/** Gazda: cerere nouă, plătită (hold) — trebuie acceptată sau refuzată. */
+export function notifyHostNewRequest(bookingId: string): Promise<void> {
+    return notify(bookingId, (b) => send("hostRequest", { userId: b.host_user_id, email: b.host_email }, b, HOST_PATH));
+}
 
-        // Gazda
-        if (b.hostUserId) {
-            await sendPushToUser(b.hostUserId, {
-                title: cancelledBy === "guest" ? "Client a anulat o rezervare" : "Ai anulat rezervarea",
-                body: `${b.propertyTitle}: ${period}.`,
-                url: "/stays/manage",
-                tag: `stay-cancel-h-${bookingId}`,
-            }).catch(() => { });
-            const email = await hostEmail(b.hostUserId);
-            if (email) {
-                await sendEmail({
-                    to: email,
-                    subject: `Rezervare anulată: ${b.propertyTitle}`,
-                    html: `<h2>Rezervare anulată</h2>
-                           <p><strong>${b.propertyTitle}</strong> · ${period} · client: ${b.guestName}</p>
-                           <p>${cancelledBy === "guest"
-                            ? `Clientul a anulat. Suma corespunzătoare refund-ului (${refundPct}%) a fost retrasă din portofelul tău.`
-                            : "Ai anulat rezervarea — clientul primește refund integral, iar suma încasată a fost retrasă din portofelul tău."}</p>`,
-                }).catch(() => { });
-            }
+export function notifyGuestBookingConfirmed(bookingId: string): Promise<void> {
+    return notify(bookingId, (b) => send("guestConfirmed", { userId: b.guest_user_id, email: b.guest_email }, b, guestPath(b)));
+}
+
+export function notifyGuestDeclined(bookingId: string, why: "declined" | "expired"): Promise<void> {
+    const event: Event = why === "declined" ? "guestDeclined" : "guestExpired";
+    return notify(bookingId, (b) => send(event, { userId: b.guest_user_id, email: b.guest_email }, b, guestPath(b)));
+}
+
+/** La anulare: partea care NU a anulat e anunțată; clientul primește mereu detaliile de refund. */
+export function notifyCancellation(bookingId: string, by: "guest" | "host"): Promise<void> {
+    return notify(bookingId, async (b) => {
+        await send(by === "host" ? "hostCancelled" : "guestCancelled", { userId: b.guest_user_id, email: b.guest_email }, b, guestPath(b));
+        if (by === "guest") {
+            await send("hostGuestCancelled", { userId: b.host_user_id, email: b.host_email }, b, HOST_PATH);
         }
-        logger.info({ bookingId, cancelledBy, refundPct }, "stays: notificări anulare trimise");
-    } catch (err) {
-        logger.error({ err, bookingId }, "stays: notificare anulare eșuată");
-    }
+    });
 }

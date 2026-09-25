@@ -1,163 +1,94 @@
 /**
- * Anulări rezervări Stays + refund în wallet.
- *
- * Politica (STAYS_FREE_CANCEL_DAYS, default 5 zile înainte de check-in):
- *   - anulare de CLIENT cu ≥N zile înainte → refund 100%
- *   - anulare de CLIENT cu <N zile        → refund 50% (gazda păstrează 50%
- *     din partea ei; comisionul Swypik pe partea reținută rămâne)
- *   - anulare de GAZDĂ, oricând           → refund 100% client, gazda pierde
- *     tot (și e debitată cu ce primise)
- *
- * Contabilitate: refund client = credit wallet client; partea gazdei se
- * debitează corespunzător (idempotent pe refId derivat din bookingId).
+ * Anulări Stays (client sau gazdă) cu refund conform politicii (policy.ts):
+ *  - 'pending'   → nimic plătit; hold-ul de card rămas (dacă există) e anulat
+ *  - 'requested' → plata doar autorizată: hold eliberat integral
+ *  - 'confirmed' → refund: gazda 100%; clientul 100% cu ≥ N zile înainte,
+ *                  altfel STAYS_LATE_CANCEL_REFUND_PCT; card → Stripe (metoda
+ *                  originală), wallet → ledger; gazdei i se retrage partea ei.
  */
 import { dbQuery } from "@/lib/db";
-import { creditUser, debitUser } from "@/lib/wallet/ledger";
-import { commissionPct } from "./booking";
 import { logger } from "@/lib/logger";
+import type { Q } from "./booking";
+import { loadBooking, relationTo } from "./bookings-repo";
+import { freeCancelDays, lateCancelRefundPct } from "./config";
+import { todayIso } from "./dates";
+import { StaysError } from "./errors";
+import { refundPaid, releaseHold, voidCardHold } from "./money";
+import { notifyCancellation } from "./notifications";
+import { guestCanCancel, refundFor } from "./policy";
 
-export function freeCancelDays(): number {
-    const v = Number(process.env.STAYS_FREE_CANCEL_DAYS ?? 5);
-    return Number.isFinite(v) && v >= 0 ? Math.round(v) : 5;
+const db: Q = (text, params) => dbQuery(text, params ?? []);
+
+export type CancelResult = { refundCents: number; refundPct: number; cancelledBy: "guest" | "host" };
+
+export async function cancelBooking(bookingId: string, userId: string, now: Date = new Date()): Promise<CancelResult> {
+    const b = await loadBooking(db, bookingId);
+    const rel = b ? relationTo(b, userId) : null;
+    if (!b || !rel) throw new StaysError("not_found");
+
+    const today = todayIso(now);
+    const allowed =
+        rel === "guest"
+            ? guestCanCancel(b.status, b.check_in, today)
+            : ["requested", "confirmed"].includes(b.status) && b.check_in >= today;
+    if (!allowed) throw new StaysError("bad_state");
+
+    // Tranziție atomică; o cerere 'requested' deja revendicată de gazdă (accept în curs) nu se anulează.
+    const { rows } = await dbQuery<{ id: string }>(
+        `UPDATE stay_bookings
+            SET status = 'cancelled', cancelled_at = now(), cancelled_by = $2, expires_at = NULL, updated_at = now()
+          WHERE id = $1::uuid AND status = $3
+            AND (status <> 'requested' OR decided_at IS NULL)
+          RETURNING id::text`,
+        [b.id, rel, b.status],
+    );
+    if (!rows.length) throw new StaysError("bad_state");
+
+    let refundCents = 0;
+    let refundPct = 0;
+    let paymentStatus: string = b.payment_status;
+    if (b.status === "pending") {
+        await voidCardHold(b.id, b.stripe_payment_intent_id).catch(() => undefined);
+        paymentStatus = b.stripe_payment_intent_id ? "voided" : b.payment_status;
+    } else if (b.status === "requested") {
+        const released = await releaseHold(b);
+        refundCents = released.refundCents;
+        refundPct = 100;
+        paymentStatus = released.paymentStatus;
+    } else if (b.payment_status === "paid") {
+        const decision = refundFor({
+            totalCents: b.total_cents,
+            checkIn: b.check_in,
+            now,
+            by: rel,
+            freeDays: freeCancelDays(),
+            latePct: lateCancelRefundPct(),
+        });
+        const refunded = await refundPaid(b, decision.refundCents);
+        refundCents = decision.refundCents;
+        refundPct = decision.refundPct;
+        paymentStatus = refunded.paymentStatus;
+    }
+
+    await dbQuery(
+        `UPDATE stay_bookings SET payment_status = $2, refund_cents = $3, updated_at = now() WHERE id = $1::uuid`,
+        [b.id, paymentStatus, refundCents],
+    );
+    logger.info({ bookingId, by: rel, refundCents, refundPct }, "stays: booking cancelled");
+    void notifyCancellation(b.id, rel);
+    return { refundCents, refundPct, cancelledBy: rel };
 }
 
-type BookingRow = {
-    id: string;
-    product_id: string;
-    guest_user_id: string | null;
-    check_in: string;
-    total_cents: number;
-    status: string;
-    payment_status: string;
-    title: string;
-    host_user_id: string | null;
-};
-
-async function loadBooking(bookingId: string): Promise<BookingRow | null> {
-    const { rows } = await dbQuery<BookingRow>(
-        `SELECT b.id::text, b.product_id::text, b.guest_user_id::text, b.check_in::text,
-                b.total_cents, b.status, b.payment_status,
-                p.title, p.metadata->>'host_user_id' AS host_user_id
-           FROM stay_bookings b
-           JOIN marketplace_products p ON p.id = b.product_id
-          WHERE b.id = $1::uuid`,
-        [bookingId],
-    );
-    return rows[0] ?? null;
-}
-
-export type CancelResult =
-    | { ok: true; refundCents: number; refundPct: 100 | 50 | 0 }
-    | { ok: false; error: string; status: number };
-
-/**
- * Anulare de către client. `byUserId` trebuie să fie guest-ul rezervării.
- */
-export async function cancelByGuest(bookingId: string, byUserId: string): Promise<CancelResult> {
-    const b = await loadBooking(bookingId);
-    if (!b || b.guest_user_id !== byUserId) return { ok: false, error: "Rezervare inexistentă.", status: 404 };
-    if (b.status === "cancelled") return { ok: false, error: "Deja anulată.", status: 409 };
-    if (b.status === "completed") return { ok: false, error: "Sejur încheiat — nu se poate anula.", status: 409 };
-    if (new Date(b.check_in) <= new Date(new Date().toISOString().slice(0, 10))) {
-        return { ok: false, error: "Check-in-ul a început — contactează gazda.", status: 409 };
-    }
-
-    // Anulare atomică: doar dacă statusul e încă pending/confirmed (anti-dublu-click).
-    const upd = await dbQuery<{ id: string }>(
-        `UPDATE stay_bookings SET status='cancelled'
-          WHERE id=$1::uuid AND status IN ('pending','confirmed') RETURNING id::text`,
-        [bookingId],
-    );
-    if (!upd.rows.length) return { ok: false, error: "Deja procesată.", status: 409 };
-
-    // Nu s-a plătit → nimic de refundat.
-    if (b.payment_status !== "paid") return { ok: true, refundCents: 0, refundPct: 0 };
-
-    const daysBefore = Math.floor((new Date(b.check_in).getTime() - Date.now()) / 86400000);
-    const refundPct: 100 | 50 = daysBefore >= freeCancelDays() ? 100 : 50;
-    const refundCents = Math.round((b.total_cents * refundPct) / 100);
-
-    // 1. Refund client (idempotent).
-    if (b.guest_user_id && refundCents > 0) {
-        await creditUser({
-            userId: b.guest_user_id,
-            amountCents: refundCents,
-            refType: "stay_refund",
-            refId: b.id,
-            description: `Refund ${refundPct}%: ${b.title}`,
-        });
-    }
-
-    // 2. Recuperare de la gazdă: primise total - comision; îi rămâne doar
-    //    partea proporțională cu ce s-a reținut de la client.
-    if (b.host_user_id) {
-        const commission = Math.round((b.total_cents * commissionPct()) / 100);
-        const hostReceived = b.total_cents - commission;
-        const keptFromClient = b.total_cents - refundCents; // 0% sau 50%
-        const hostKeeps = Math.round((hostReceived * keptFromClient) / b.total_cents);
-        const clawback = hostReceived - hostKeeps;
-        if (clawback > 0) {
-            await debitUser({
-                userId: b.host_user_id,
-                amountCents: clawback,
-                refType: "stay_refund_clawback",
-                refId: b.id,
-                description: `Anulare client (${refundPct}% refund): ${b.title}`,
-                allowNegative: true, // gazda poate intra temporar pe minus
-            }).catch((err) => {
-                logger.error({ err, bookingId }, "stays cancel: clawback gazdă eșuat — de recuperat manual");
-            });
-        }
-    }
-
-    await dbQuery(`UPDATE stay_bookings SET payment_status='refunded' WHERE id=$1::uuid`, [bookingId]);
-    logger.info({ bookingId, refundPct, refundCents }, "stay cancelled by guest");
-    return { ok: true, refundCents, refundPct };
-}
-
-/**
- * Anulare de către gazdă → refund integral client, gazda pierde tot.
- */
-export async function cancelByHost(bookingId: string, hostUserId: string): Promise<CancelResult> {
-    const b = await loadBooking(bookingId);
-    if (!b || b.host_user_id !== hostUserId) return { ok: false, error: "Rezervare inexistentă.", status: 404 };
-    if (b.status === "cancelled") return { ok: false, error: "Deja anulată.", status: 409 };
-    if (b.status === "completed") return { ok: false, error: "Sejur încheiat.", status: 409 };
-
-    const upd = await dbQuery<{ id: string }>(
-        `UPDATE stay_bookings SET status='cancelled'
-          WHERE id=$1::uuid AND status IN ('pending','confirmed') RETURNING id::text`,
-        [bookingId],
-    );
-    if (!upd.rows.length) return { ok: false, error: "Deja procesată.", status: 409 };
-
-    if (b.payment_status !== "paid") return { ok: true, refundCents: 0, refundPct: 0 };
-
-    if (b.guest_user_id) {
-        await creditUser({
-            userId: b.guest_user_id,
-            amountCents: b.total_cents,
-            refType: "stay_refund",
-            refId: b.id,
-            description: `Refund integral (anulare gazdă): ${b.title}`,
-        });
-    }
-    const commission = Math.round((b.total_cents * commissionPct()) / 100);
-    const hostReceived = b.total_cents - commission;
-    if (hostReceived > 0) {
-        await debitUser({
-            userId: hostUserId,
-            amountCents: hostReceived,
-            refType: "stay_refund_clawback",
-            refId: b.id,
-            description: `Anulare de către tine: ${b.title}`,
-            allowNegative: true,
-        }).catch((err) => {
-            logger.error({ err, bookingId }, "stays cancel(host): clawback eșuat — de recuperat manual");
-        });
-    }
-
-    await dbQuery(`UPDATE stay_bookings SET payment_status='refunded' WHERE id=$1::uuid`, [bookingId]);
-    logger.info({ bookingId }, "stay cancelled by host (full refund)");
-    return { ok: true, refundCents: b.total_cents, refundPct: 100 };
+/** Previzualizarea refundului (pentru dialogul de confirmare din UI). */
+export function previewGuestRefund(b: { status: string; total_cents: number; check_in: string }, now: Date = new Date()) {
+    if (b.status === "requested") return { refundPct: 100, refundCents: b.total_cents };
+    if (b.status !== "confirmed") return { refundPct: 0, refundCents: 0 };
+    return refundFor({
+        totalCents: b.total_cents,
+        checkIn: b.check_in,
+        now,
+        by: "guest",
+        freeDays: freeCancelDays(),
+        latePct: lateCancelRefundPct(),
+    });
 }

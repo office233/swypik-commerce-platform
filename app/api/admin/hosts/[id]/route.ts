@@ -13,6 +13,7 @@ import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminToken } from "@/lib/security/admin-auth";
 import { logger } from "@/lib/logger";
 import { logAdminAction } from "@/lib/security/admin-audit";
+import { ensureHostFromApplication } from "@/lib/stays/hosts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,16 +45,21 @@ export const POST = withErrorHandling(async function POST(req: Request, { params
     }
 
     const status = action === "approve" ? "approved" : action === "reject" ? "rejected" : "needs_info";
-    const { rows } = await dbQuery<{ id: string; email: string; property_name: string }>(
+    const { rows } = await dbQuery<{ id: string; email: string; property_name: string; user_id: string | null }>(
         `UPDATE host_applications
             SET status = $1, admin_notes = COALESCE($2, admin_notes),
                 reviewed_by = 'admin', reviewed_at = NOW(), updated_at = NOW()
           WHERE id = $3 AND status IN ('pending','needs_info')
-          RETURNING id, email, property_name`,
+          RETURNING id, email, property_name, user_id::text`,
         [status, note?.trim() || null, id],
     );
     if (!rows.length) {
         return NextResponse.json({ error: "application_not_found_or_processed" }, { status: 404 });
+    }
+
+    // Model unic de gazdă (20260926_0051): aprobarea creează gazda activă.
+    if (action === "approve" && rows[0].user_id) {
+        await ensureHostFromApplication(rows[0].user_id, rows[0].id);
     }
 
     logger.info({ applicationId: id, action }, "host application reviewed");

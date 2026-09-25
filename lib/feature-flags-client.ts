@@ -52,6 +52,9 @@ export const CLIENT_FEATURES = {
   food: flag(process.env.NEXT_PUBLIC_FEATURE_FOOD, true),
   stays: flag(process.env.NEXT_PUBLIC_FEATURE_STAYS, true),
   fly: flag(process.env.NEXT_PUBLIC_FEATURE_FLY, true),
+  // Rezervarea de zboruri (pereche cu FEATURE_FLY_BOOKING). OFF: /fly arată
+  // „în curând / anunță-mă”, fără zboruri sau prețuri inventate.
+  flyBooking: flag(process.env.NEXT_PUBLIC_FEATURE_FLY_BOOKING, false),
   live: flag(process.env.NEXT_PUBLIC_FEATURE_LIVE, true),
   missions: flag(process.env.NEXT_PUBLIC_FEATURE_MISSIONS, true),
 } as const;

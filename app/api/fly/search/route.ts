@@ -9,6 +9,7 @@ import { z } from "zod";
 import { searchFlights, activeProviders } from "@/lib/fly/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { flyBookingGuard } from "@/lib/fly/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,8 @@ const searchSchema = z.object({
 });
 
 export async function POST(req: Request) {
+    const closed = flyBookingGuard();
+    if (closed) return closed;
     const rl = await rateLimit("fly:search", getClientIP(req), { limit: 20, window: 60 });
     if (!rl.success) {
         return NextResponse.json({ error: "Prea multe căutări. Încearcă peste un minut." }, { status: 429 });

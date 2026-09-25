@@ -11,6 +11,7 @@ import { handleChargeRefunded, handleIntentDead } from "./_handlers/refunds";
 import { handleAccountUpdated } from "./_handlers/connect";
 import { handleDisputeEvent } from "./_handlers/disputes";
 import { CREATOR_UNLOCK_KINDS, handleCreatorUnlockPaymentSucceeded } from "./_handlers/creator-unlocks";
+import { handlePaymentIntentCapturable } from "./_handlers/stays";
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ const HANDLERS: Record<string, EventHandler> = {
   "checkout.session.completed": handleCheckoutCompletedEvent,
   "payment_intent.succeeded": handlePaymentIntentSucceededRouted,
   "payment_intent.payment_failed": handlePaymentIntentFailed,
+  "payment_intent.amount_capturable_updated": handlePaymentIntentCapturable,
   "account.updated": handleAccountUpdated,
   "charge.refunded": handleChargeRefunded,
   "payment_intent.canceled": handleIntentDead,

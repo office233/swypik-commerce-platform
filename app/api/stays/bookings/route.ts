@@ -1,191 +1,85 @@
 /**
- * Cazări de vacanță — rezervări pe nopți.
+ * Rezervări Stays.
  *
- * POST /api/stays/bookings — rezervă un interval.
- *   Prețul se calculează server-side din vertical_attributes.price_per_night,
- *   cu override pe zi din stay_availability. Dubla-rezervare e imposibilă:
- *   constraint EXCLUDE pe (product_id, daterange) în DB.
- *
- * GET /api/stays/bookings?product_id=... — zilele ocupate (calendar public).
+ * POST /api/stays/bookings — cerere de rezervare (DOAR utilizatori logați;
+ *   anonimii blocau calendarul, audit „calendar DoS”). Creează un hold
+ *   'pending' care expiră dacă nu se plătește (STAYS_PENDING_TTL_MIN).
+ * GET  /api/stays/bookings?product_id=… — nopțile ocupate/blocate (calendar public).
+ * GET  /api/stays/bookings?mine=1 — rezervările clientului logat.
  */
 import { NextResponse } from "next/server";
-import { dbQuery, withTransaction } from "@/lib/db";
-import { getAuthSession } from "@/lib/auth/session";
-import { rateLimit } from "@/lib/security/rate-limit";
-import { StayBookingCreateSchema, parseBody } from "@/lib/validation/schemas";
-import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { dbQuery } from "@/lib/db";
+import { createBookingRequest } from "@/lib/stays/booking";
+import { listGuestBookings } from "@/lib/stays/bookings-repo";
+import { addDays, todayIso } from "@/lib/stays/dates";
+import { staysError } from "@/lib/stays/errors";
+import { limitOrThrow, requireSession, staysRoute, UUID_RE } from "@/lib/stays/route";
+import { BLOCKING_BOOKING_SQL } from "@/lib/stays/sql";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function nightsBetween(checkIn: string, checkOut: string): string[] {
-    const out: string[] = [];
-    const d = new Date(checkIn + "T00:00:00Z");
-    const end = new Date(checkOut + "T00:00:00Z");
-    while (d < end) {
-        out.push(d.toISOString().slice(0, 10));
-        d.setUTCDate(d.getUTCDate() + 1);
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const createSchema = z
+    .object({
+        product_id: z.string().uuid(),
+        check_in: z.string().regex(DATE),
+        check_out: z.string().regex(DATE),
+        guests_count: z.number().int().min(1).max(50),
+        guest_name: z.string().trim().min(2).max(120),
+        guest_email: z.string().trim().email().max(254).optional(),
+        guest_phone: z.string().trim().min(5).max(32).optional(),
+    })
+    .refine((d) => Boolean(d.guest_email || d.guest_phone));
+
+export const POST = staysRoute("stays/bookings:create", async (req: Request) => {
+    const session = await requireSession();
+    await limitOrThrow(req, "book", session.userId, { limit: 10, window: 3600 });
+    const parsed = createSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) return staysError("invalid_input");
+    const d = parsed.data;
+    const booking = await createBookingRequest({
+        productId: d.product_id,
+        userId: session.userId,
+        guestName: d.guest_name,
+        guestEmail: d.guest_email ?? null,
+        guestPhone: d.guest_phone ?? null,
+        checkIn: d.check_in,
+        checkOut: d.check_out,
+        guests: d.guests_count,
+    });
+    return NextResponse.json({ ok: true, booking });
+});
+
+export const GET = staysRoute("stays/bookings:get", async (req: Request) => {
+    const url = new URL(req.url);
+    if (url.searchParams.get("mine") === "1") {
+        const session = await requireSession();
+        return NextResponse.json({ bookings: await listGuestBookings(session.userId) });
     }
-    return out;
-}
+    const productId = url.searchParams.get("product_id") ?? "";
+    if (!UUID_RE.test(productId)) return staysError("invalid_input");
+    await limitOrThrow(req, "calendar", null, { limit: 60, window: 60 });
 
-export async function POST(req: Request) {
-    try {
-        const session = await getAuthSession();
-        const userId = session?.userId ?? null;
+    const today = todayIso();
+    const fromRaw = url.searchParams.get("from") ?? "";
+    const toRaw = url.searchParams.get("to") ?? "";
+    const from = DATE.test(fromRaw) && fromRaw >= today ? fromRaw : today;
+    const to = DATE.test(toRaw) && toRaw > from && toRaw <= addDays(today, 400) ? toRaw : addDays(from, 365);
 
-        const rl = await rateLimit("stayBookings", userId ?? req.headers.get("cf-connecting-ip") ?? "anon");
-        if (!rl.success) {
-            return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
-        }
-
-        const raw = await req.json().catch(() => null);
-        const parsed = parseBody(StayBookingCreateSchema, raw);
-        if (!parsed.ok) {
-            return NextResponse.json({ success: false, error: parsed.error, code: parsed.code }, { status: 400 });
-        }
-        const d = parsed.data;
-
-        const nights = nightsBetween(d.check_in, d.check_out);
-        if (nights.length === 0 || nights.length > 365) {
-            return NextResponse.json({ success: false, error: "Interval invalid." }, { status: 400 });
-        }
-
-        const { rows: products } = await dbQuery(
-            `SELECT id, title, currency, vertical_attributes, status, taxonomy_node_slug,
-                    price_cents, metadata
-         FROM marketplace_products
-        WHERE id = $1 AND status = 'active'`,
-            [d.product_id],
-        );
-        const p = products[0];
-        const isStay =
-            String(p?.taxonomy_node_slug ?? "").startsWith("vacation-rentals") ||
-            (p?.metadata as any)?.vertical === "stays";
-        if (!p || !isStay) {
-            return NextResponse.json({ success: false, error: "Cazarea nu există." }, { status: 404 });
-        }
-
-        const attrs = (p.vertical_attributes ?? {}) as Record<string, unknown>;
-        // Listingurile gazdelor Swypik au price_cents; cele vechi price_per_night (lei).
-        const basePerNight = Number.isFinite(Number(attrs.price_per_night)) && Number(attrs.price_per_night) > 0
-            ? Number(attrs.price_per_night)
-            : (Number(p.price_cents) > 0 ? Number(p.price_cents) / 100 : NaN);
-        if (!Number.isFinite(basePerNight) || basePerNight <= 0) {
-            return NextResponse.json({ success: false, error: "Cazarea nu are preț configurat." }, { status: 409 });
-        }
-        const maxGuests = Number(attrs.max_guests ?? (p.metadata as any)?.max_guests);
-        if (Number.isFinite(maxGuests) && d.guests_count > maxGuests) {
-            return NextResponse.json(
-                { success: false, error: `Maxim ${maxGuests} oaspeți pentru această cazare.` },
-                { status: 400 },
-            );
-        }
-
-        const baseCents = Math.round(basePerNight * 100);
-
-        const booking = await withTransaction(async (q) => {
-            // Zile blocate explicit de gazdă?
-            const { rows: blocked } = await q(
-                `SELECT day FROM stay_availability
-          WHERE product_id = $1 AND day = ANY($2::date[]) AND is_available = false`,
-                [d.product_id, nights],
-            );
-            if (blocked.length) {
-                return { ok: false as const, error: "Unele nopți nu sunt disponibile.", code: 409 };
-            }
-
-            // Prețuri speciale pe zi
-            const { rows: overrides } = await q(
-                `SELECT day::text AS day, price_cents_override FROM stay_availability
-          WHERE product_id = $1 AND day = ANY($2::date[]) AND price_cents_override IS NOT NULL`,
-                [d.product_id, nights],
-            );
-            const overrideMap = new Map(overrides.map((o: any) => [o.day, o.price_cents_override as number]));
-            const total = nights.reduce((sum, n) => sum + (overrideMap.get(n) ?? baseCents), 0);
-
-            const { rows } = await q(
-                `INSERT INTO stay_bookings (
-           product_id, guest_user_id, guest_name, guest_email, guest_phone,
-           check_in, check_out, guests_count, total_cents, currency
-         ) VALUES ($1, $2, $3, $4, $5, $6::date, $7::date, $8, $9, $10)
-         RETURNING id, check_in, check_out, guests_count, total_cents, currency, status`,
-                [
-                    d.product_id,
-                    userId,
-                    d.guest_name,
-                    d.guest_email ?? null,
-                    d.guest_phone ?? null,
-                    d.check_in,
-                    d.check_out,
-                    d.guests_count,
-                    total,
-                    p.currency ?? "RON",
-                ],
-            );
-            return { ok: true as const, booking: rows[0] };
-        });
-
-        if (!booking.ok) {
-            return NextResponse.json({ success: false, error: booking.error }, { status: booking.code });
-        }
-        return NextResponse.json({ success: true, booking: booking.booking });
-    } catch (error: unknown) {
-        // Constraint-ul EXCLUDE lovește exact aici la dublă rezervare concurentă.
-        if ((error as { code?: string })?.code === "23P01") {
-            return NextResponse.json(
-                { success: false, error: "Intervalul tocmai a fost rezervat de altcineva." },
-                { status: 409 },
-            );
-        }
-        logger.error({ err: error }, "[stays/bookings] POST error");
-        return NextResponse.json({ success: false, error: "Eroare la rezervare." }, { status: 500 });
-    }
-}
-
-export async function GET(req: Request) {
-    try {
-        const url = new URL(req.url);
-        const productId = url.searchParams.get("product_id");
-        // Fără product_id: rezervările clientului logat.
-        if (!productId && url.searchParams.get("mine") === "1") {
-            const session = await getAuthSession().catch(() => null);
-            if (!session) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
-            const { rows } = await dbQuery(
-                `SELECT b.id::text, b.check_in::text, b.check_out::text, b.guests_count,
-                        b.total_cents, b.currency, b.status, b.payment_status, b.created_at::text,
-                        p.title, p.image_url, p.location_city
-                   FROM stay_bookings b
-                   JOIN marketplace_products p ON p.id = b.product_id
-                  WHERE b.guest_user_id = $1
-                  ORDER BY b.created_at DESC LIMIT 50`,
-                [session.userId],
-            );
-            return NextResponse.json({ success: true, bookings: rows });
-        }
-        if (!productId) {
-            return NextResponse.json({ success: false, error: "product_id lipsă." }, { status: 400 });
-        }
-        const from = url.searchParams.get("from") || new Date().toISOString().slice(0, 10);
-        const to =
-            url.searchParams.get("to") ||
-            new Date(Date.now() + 365 * 864e5).toISOString().slice(0, 10);
-
-        const { rows: booked } = await dbQuery(
-            `SELECT check_in::text, check_out::text FROM stay_bookings
-        WHERE product_id = $1 AND status IN ('pending','confirmed')
-          AND check_out >= $2::date AND check_in <= $3::date`,
+    const [booked, blocked] = await Promise.all([
+        dbQuery<{ check_in: string; check_out: string }>(
+            `SELECT b.check_in::text, b.check_out::text FROM stay_bookings b
+              WHERE b.product_id = $1::uuid AND ${BLOCKING_BOOKING_SQL}
+                AND b.check_out > $2::date AND b.check_in < $3::date`,
             [productId, from, to],
-        );
-        const { rows: blocked } = await dbQuery(
-            `SELECT day::text AS day, price_cents_override FROM stay_availability
-        WHERE product_id = $1 AND day BETWEEN $2::date AND $3::date`,
+        ),
+        dbQuery<{ day: string }>(
+            `SELECT day::text AS day FROM stay_availability
+              WHERE product_id = $1::uuid AND is_available = false AND day >= $2::date AND day < $3::date`,
             [productId, from, to],
-        );
-
-        return NextResponse.json({ success: true, booked, calendar: blocked });
-    } catch (error: unknown) {
-        logger.error({ err: error }, "[stays/bookings] GET error");
-        return NextResponse.json({ success: false, error: "Eroare." }, { status: 500 });
-    }
-}
+        ),
+    ]);
+    return NextResponse.json({ from, to, booked: booked.rows, blockedDays: blocked.rows.map((r) => r.day) });
+});

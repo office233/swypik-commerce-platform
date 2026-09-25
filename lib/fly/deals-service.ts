@@ -44,6 +44,11 @@ export async function getFlyDeals(originRaw = "OTP"): Promise<FlyDealsResult> {
         }
     }
 
+    // Fără cheie Duffel nu interogăm nimic (înainte pleca `Bearer undefined` ×12 și cache-uia null-uri 12h).
+    if (!duffelProvider.isConfigured()) {
+        return { origin, departDate, deals: [], cached: false };
+    }
+
     const targets = POPULAR_DESTINATIONS.filter((d) => d.iata !== origin);
     const results = await Promise.allSettled(
         targets.map(async (d) => {
