@@ -52,7 +52,10 @@ async function POST_impl(req: NextRequest) {
     `INSERT INTO live_streams (creator_id, title, description, stream_key, rtmp_url, hls_url, scheduled_at, status)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      RETURNING id`,
-    [session.userId, title, description, streamKey, urls.rtmp_url, urls.hls_url, scheduled_at, scheduled_at ? "scheduled" : "live"],
+    // Mereu 'scheduled': devine 'live' DOAR când media serverul confirmă publicarea
+    // (POST /api/internal/live/started, runOnReady în mediamtx). Înainte, un stream
+    // apărea „LIVE" pe /live fără niciun cadru video (audit live #5).
+    [session.userId, title, description, streamKey, urls.rtmp_url, urls.hls_url, scheduled_at, "scheduled"],
   );
 
   return NextResponse.json({
@@ -60,7 +63,7 @@ async function POST_impl(req: NextRequest) {
     stream_key: streamKey,
     rtmp_url: urls.rtmp_url,
     hls_url: urls.hls_url,
-    status: scheduled_at ? "scheduled" : "live",
+    status: "scheduled",
   });
 }
 
