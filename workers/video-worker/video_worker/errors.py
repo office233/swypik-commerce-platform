@@ -19,6 +19,14 @@ class FfmpegMissingError(RuntimeError):
     pass
 
 
+class ShutdownRequested(BaseException):
+    """SIGTERM/SIGINT în timpul unui job (VIDEO_SHUTDOWN_MODE=release).
+
+    Subclasă de BaseException ca `except Exception` din procesor să NU o
+    înghită: urcă până în bucla principală, care eliberează jobul în coadă.
+    """
+
+
 class FfmpegTimeoutError(RuntimeError):
     """ffmpeg a depășit bugetul de timp alocat și a fost omorât."""
 
