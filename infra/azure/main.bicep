@@ -230,6 +230,8 @@ var dataRules = [
         '5432'
         '5434'
         '6379'
+        // MinIO temporar (profil interim-media) până se activează R2
+        '9000'
       ]
     }
   }
@@ -246,6 +248,7 @@ var dataRules = [
       destinationPortRanges: [
         '5432'
         '6379'
+        '9000'
       ]
     }
   }

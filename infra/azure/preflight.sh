@@ -140,11 +140,13 @@ done
 # MinIO a dispărut: storage-ul trebuie să fie R2
 ep=$(first_of S S3_ENDPOINT S3_ENDPOINT_URL R2_ENDPOINT_URL R2_ENDPOINT)
 if [ -n "$ep" ]; then
-  if [[ "$ep" =~ (minio|localhost|127\.0\.0\.1|:9000) ]]; then err "STORAGE endpoint" "indică MinIO/local — pe Azure media e pe Cloudflare R2"
+  if [[ "$ep" =~ (minio|localhost|127\.0\.0\.1|:9000) ]]; then
+    if [ "${S[STORAGE_INTERIM_MINIO]:-}" = "1" ]; then warn "STORAGE endpoint" "MinIO TEMPORAR (STORAGE_INTERIM_MINIO=1) — treci pe R2 după deblocare"
+    else err "STORAGE endpoint" "indică MinIO/local — pe Azure media e pe Cloudflare R2 (sau STORAGE_INTERIM_MINIO=1 temporar)"; fi
   elif [[ "$ep" != *r2.cloudflarestorage.com* ]]; then warn "STORAGE endpoint" "nu pare Cloudflare R2 (*.r2.cloudflarestorage.com)"; fi
 fi
 pub=$(first_of S S3_PUBLIC_URL S3_PUBLIC_BASE_URL R2_PUBLIC_URL R2_PUBLIC_BASE_URL)
-[ -n "$pub" ] && [[ "$pub" =~ (minio|localhost|:9000|cdn\.swypik\.com/minio) ]] && err "STORAGE URL public" "indică MinIO"
+[ -n "$pub" ] && [[ "$pub" =~ (minio|localhost|:9000|cdn\.swypik\.com/minio) ]] && [ "${S[STORAGE_INTERIM_MINIO]:-}" != "1" ] && err "STORAGE URL public" "indică MinIO"
 
 # Coada video: web și worker trebuie să vorbească același stream
 q1=${S[REDIS_STREAM_VIDEO_JOBS]:-}; q2=${S[VIDEO_QUEUE_NAME]:-}
