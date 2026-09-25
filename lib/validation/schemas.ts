@@ -440,6 +440,7 @@ export const MenuItemCreateSchema = z.object({
 
 export const MenuItemUpdateSchema = z.object({
   item_id: z.string().uuid(),
+  category_id: z.string().uuid().nullable().optional(),
   name: z.string().trim().min(2).max(160).optional(),
   description: z.string().trim().max(1000).optional(),
   price: z.coerce.number().min(0).max(1_000_000).optional(),

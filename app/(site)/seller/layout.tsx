@@ -15,11 +15,13 @@ import {
   Undo2,
   Settings,
   Megaphone,
+  UtensilsCrossed,
 } from "lucide-react";
 
 export default async function SellerLayout({ children }: { children: ReactNode }) {
   const t = await getTranslations("sellerGrowthLayout");
   const td = await getTranslations("sellerdashboard");
+  const tf = await getTranslations("foodMerchant");
 
   const sellerNavItems = [
     { href: "/seller", icon: "barChart3", label: td("dashboard") || "Dashboard" },
@@ -27,6 +29,7 @@ export default async function SellerLayout({ children }: { children: ReactNode }
     { href: "/seller/pos", icon: "store", label: t("navPos") },
     { href: "/seller/invoices", icon: "fileText", label: t("navInvoicesFull") },
     { href: "/seller/orders", icon: "shoppingBag", label: t("navOrders") },
+    { href: "/seller/merchant", icon: "utensilsCrossed", label: tf("navRestaurant") },
     { href: "/seller/clients", icon: "users", label: t("navClientsShort") },
     { href: "/seller/ads", icon: "megaphone", label: t("navAds") },
     { href: "/seller/payouts", icon: "coins", label: td("payouts") || "Balanță & Încasări" },
@@ -67,6 +70,9 @@ export default async function SellerLayout({ children }: { children: ReactNode }
           <div className="px-3 pt-3 pb-1.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">{t("sectionChannel")}</div>
           <Link href="/seller/orders" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-sm font-semibold text-neutral-700 transition">
             <ShoppingBag size={17} /> {t("navOrders")}
+          </Link>
+          <Link href="/seller/merchant" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-sm font-semibold text-neutral-700 transition">
+            <UtensilsCrossed size={17} /> {tf("navRestaurant")}
           </Link>
           <Link href="/seller/ads" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-sm font-semibold text-neutral-700 transition">
             <Megaphone size={17} className="text-violet-600" /> {t("navAds")}

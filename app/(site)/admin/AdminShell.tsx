@@ -33,6 +33,7 @@ import {
   Inbox,
   BedDouble,
   ScrollText,
+  UtensilsCrossed,
 } from "lucide-react";
 
 type NavItem = {
@@ -57,6 +58,7 @@ const sections: NavSection[] = [
     items: [
       { href: "/admin", labelKey: "nav.item.dashboard", icon: LayoutDashboard },
       { href: "/admin/aplicatii", labelKey: "nav.item.partnerApplications", icon: Inbox },
+      { href: "/admin/merchant-claims", labelKey: "nav.item.merchantClaims", icon: UtensilsCrossed },
       { href: "/admin/health", labelKey: "nav.item.health", icon: Activity },
       { href: "/admin/cron", labelKey: "nav.item.cron", icon: Clock },
       { href: "/admin/audit", labelKey: "nav.item.audit", icon: ScrollText },

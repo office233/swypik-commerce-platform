@@ -30,58 +30,96 @@ async function ownsMerchant(merchantId: string, sellerId: string): Promise<boole
   return rows.length > 0;
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+type MenuItemRow = {
+  id: string;
+  category_id: string | null;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  currency: string;
+  image_url: string | null;
+  options: unknown;
+  allergens: string[] | null;
+  sort_order: number;
+  is_available: boolean;
+};
+
+/** Seller logat + proprietar + rate limit; întoarce răspunsul de refuz sau null. */
+async function guardOwner(merchantId: string): Promise<NextResponse | null> {
+  const sellerId = await getSellerSessionId();
+  if (!sellerId) {
+    return NextResponse.json({ success: false, error: "Unauthorized", code: "unauthorized" }, { status: 401 });
+  }
+  if (!(await ownsMerchant(merchantId, sellerId))) {
+    return NextResponse.json({ success: false, error: "Nu e comerciantul tău.", code: "forbidden" }, { status: 403 });
+  }
+  const rl = await rateLimit("sellerMenu", sellerId);
+  if (!rl.success) {
+    return NextResponse.json({ success: false, error: "rate_limited", code: "rate_limited" }, { status: 429 });
+  }
+  return null;
+}
+
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
-    const { rows: merchants } = await dbQuery(
+    const { rows: merchants } = await dbQuery<{ id: string; name: string; status: string; seller_id: string | null }>(
       // id e uuid, slug e text -> fara cast, pg nu poate rezolva "$1" pentru ambele (42883 text=uuid)
-      `SELECT id, name, status FROM local_merchants WHERE id::text = $1 OR slug = $1`,
+      `SELECT id, name, status, seller_id FROM local_merchants WHERE id::text = $1 OR slug = $1`,
       [id],
     );
     const merchant = merchants[0];
-    if (!merchant || merchant.status !== "active") {
+    // ?all=1 — panoul restaurantului: și articolele indisponibile + categoriile goale
+    // (altfel un articol dezactivat dispărea din panou și nu mai putea fi reactivat).
+    const wantsAll = new URL(req.url).searchParams.get("all") === "1";
+    const sellerId = wantsAll ? await getSellerSessionId() : null;
+    const ownerView = !!merchant && !!sellerId && merchant.seller_id === sellerId;
+    if (!merchant || (merchant.status !== "active" && !ownerView)) {
       return NextResponse.json({ success: false, error: "Comerciantul nu există." }, { status: 404 });
     }
 
     const [{ rows: categories }, { rows: items }] = await Promise.all([
-      dbQuery(
+      dbQuery<{ id: string; name: string; sort_order: number }>(
         `SELECT id, name, sort_order FROM menu_categories
           WHERE merchant_id = $1 AND is_active ORDER BY sort_order, name`,
         [merchant.id],
       ),
-      dbQuery(
+      dbQuery<MenuItemRow>(
         `SELECT id, category_id, name, description, price_cents, currency,
-                image_url, options, allergens, sort_order
+                image_url, options, allergens, sort_order, is_available
            FROM menu_items
-          WHERE merchant_id = $1 AND is_available
+          WHERE merchant_id = $1 AND (is_available OR $2::boolean)
           ORDER BY sort_order, name`,
-        [merchant.id],
+        [merchant.id, ownerView],
       ),
     ]);
 
-    // Grupăm articolele pe categorii; cele fără categorie merg în „Altele”.
-    const byCat = new Map<string | null, unknown[]>();
-    for (const it of items as any[]) {
-      const k = it.category_id ?? null;
+    // Grupăm articolele pe categorii; cele fără categorie au id/name null
+    // (eticheta „Altele” vine din i18n în client).
+    const byCat = new Map<string | null, MenuItemRow[]>();
+    const activeCats = new Set(categories.map((c) => c.id));
+    for (const it of items) {
+      // Articolele dintr-o categorie inactivă/ștearsă nu dispar: merg la „Altele”.
+      const k = it.category_id && activeCats.has(it.category_id) ? it.category_id : null;
       if (!byCat.has(k)) byCat.set(k, []);
       byCat.get(k)!.push(it);
     }
 
-    const menu = (categories as any[]).map((c) => ({
+    const menu: { id: string | null; name: string | null; items: MenuItemRow[] }[] = categories.map((c) => ({
       id: c.id,
       name: c.name,
       items: byCat.get(c.id) ?? [],
     }));
     const uncategorised = byCat.get(null) ?? [];
     if (uncategorised.length) {
-      menu.push({ id: null, name: "Altele", items: uncategorised });
+      menu.push({ id: null, name: null, items: uncategorised });
     }
 
     return NextResponse.json({
       success: true,
       merchant: { id: merchant.id, name: merchant.name },
-      menu: menu.filter((c) => c.items.length > 0),
+      menu: ownerView ? menu : menu.filter((c) => c.items.length > 0),
     });
   } catch (error: unknown) {
     logger.error({ err: error }, "[menu] GET error");
@@ -92,17 +130,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const sellerId = await getSellerSessionId();
-    if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-    if (!(await ownsMerchant(id, sellerId))) {
-      return NextResponse.json({ success: false, error: "Nu e comerciantul tău." }, { status: 403 });
-    }
-    const rl = await rateLimit("sellerMenu", sellerId);
-    if (!rl.success) {
-      return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
-    }
+    const denied = await guardOwner(id);
+    if (denied) return denied;
 
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null;
     const body = { ...(raw ?? {}), merchant_id: id };
@@ -169,17 +198,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const sellerId = await getSellerSessionId();
-    if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-    if (!(await ownsMerchant(id, sellerId))) {
-      return NextResponse.json({ success: false, error: "Nu e comerciantul tău." }, { status: 403 });
-    }
-    const rl = await rateLimit("sellerMenu", sellerId);
-    if (!rl.success) {
-      return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
-    }
+    const denied = await guardOwner(id);
+    if (denied) return denied;
 
     const raw = await req.json().catch(() => null);
     const parsed = parseBody(MenuItemUpdateSchema, raw);
@@ -195,6 +215,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       sets.push(`${col} = $${p.length}`);
     };
 
+    if (d.category_id) {
+      const { rows: cat } = await dbQuery(
+        `SELECT 1 FROM menu_categories WHERE id = $1 AND merchant_id = $2`,
+        [d.category_id, id],
+      );
+      if (!cat.length) {
+        return NextResponse.json({ success: false, error: "invalid_category", code: "invalid_category" }, { status: 400 });
+      }
+    }
+    if (d.category_id !== undefined) push("category_id", d.category_id);
     if (d.name !== undefined) push("name", d.name);
     if (d.description !== undefined) push("description", d.description);
     if (d.price !== undefined) push("price_cents", Math.round(d.price * 100));
@@ -230,17 +260,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const sellerId = await getSellerSessionId();
-    if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-    if (!(await ownsMerchant(id, sellerId))) {
-      return NextResponse.json({ success: false, error: "Nu e comerciantul tău." }, { status: 403 });
-    }
-    const rl = await rateLimit("sellerMenu", sellerId);
-    if (!rl.success) {
-      return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
-    }
+    const denied = await guardOwner(id);
+    if (denied) return denied;
 
     const url = new URL(req.url);
     const itemId = url.searchParams.get("item_id");

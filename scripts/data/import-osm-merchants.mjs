@@ -14,6 +14,7 @@
  * nu suprascrie profiluri revendicate - skip dacă seller_id IS NOT NULL).
  * Atribuire date: © OpenStreetMap contributors (ODbL).
  */
+import { readFileSync } from "node:fs";
 import pg from "pg";
 
 const OVERPASS_URL = process.env.OVERPASS_URL || "https://overpass-api.de/api/interpreter";
@@ -62,17 +63,13 @@ function kindFor(tags) {
 }
 
 /** cuisine OSM "pizza;kebab" -> text[] normalizat */
-const CUISINE_MAP = {
-  regional: "romaneasca", romanian: "romaneasca", local: "romaneasca",
-  kebab: "kebab", pizza: "pizza", burger: "burger", sandwich: "sandvisuri",
-  chicken: "pui", fish: "peste", seafood: "peste", sushi: "sushi",
-  asian: "asiatica", chinese: "asiatica", japanese: "asiatica", thai: "asiatica",
-  italian: "italiana", turkish: "turceasca", greek: "greceasca",
-  american: "americana", mexican: "mexicana", indian: "indiana",
-  coffee_shop: "cafenea", cake: "cofetarie", ice_cream: "inghetata",
-  bakery: "patiserie", pastry: "patiserie", grill: "gratar", barbecue: "gratar",
-  vegetarian: "vegetariana", vegan: "vegana", international: "internationala",
-};
+// Taxonomia unică (aceeași ca API-ul și chip-urile din /food): lib/merchants/cuisines.json.
+const CUISINE_TAXONOMY = JSON.parse(
+  readFileSync(new URL("../../lib/merchants/cuisines.json", import.meta.url), "utf8"),
+).cuisines;
+const CUISINE_MAP = Object.fromEntries(
+  CUISINE_TAXONOMY.flatMap((c) => [c.id, ...c.aliases].map((a) => [a.toLowerCase().replace(/\s+/g, "_"), c.id])),
+);
 function cuisinesFor(tags) {
   const out = new Set();
   const raw = (tags.cuisine || "").toLowerCase();
@@ -82,10 +79,10 @@ function cuisinesFor(tags) {
     out.add(CUISINE_MAP[k] || k.replace(/_/g, " "));
   }
   if (out.size === 0) {
-    if (tags.amenity === "fast_food") out.add("fast food");
-    else if (tags.amenity === "cafe") out.add("cafenea");
-    else if (tags.amenity === "ice_cream") out.add("inghetata");
-    else out.add("romaneasca");
+    if (tags.amenity === "fast_food") out.add("fast_food");
+    else if (tags.amenity === "cafe") out.add("cafe");
+    else if (tags.amenity === "ice_cream") out.add("desserts");
+    else out.add("romanian");
   }
   return [...out].slice(0, 5);
 }

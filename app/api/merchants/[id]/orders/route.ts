@@ -13,7 +13,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ACTIVE_STATUSES = ["placed", "accepted", "preparing", "ready", "picked_up"];
+const ACTIVE_STATUSES: readonly string[] = ["placed", "accepted", "preparing", "ready", "picked_up", "delivering"];
 
 async function GET_impl(
   req: Request,
@@ -67,7 +67,8 @@ async function GET_impl(
     `SELECT id, order_number, status, customer_name, customer_phone,
             delivery_address, delivery_notes, items,
             subtotal_cents, delivery_fee_cents, tip_cents, total_cents, currency,
-            payment_method, courier_id, placed_at, accepted_at, ready_at,
+            payment_method, payment_status, refund_status, dispatch_status, cancel_reason,
+            courier_id, placed_at, accepted_at, ready_at,
             picked_up_at, delivered_at, updated_at
        FROM local_orders
       WHERE ${where.join(" AND ")}

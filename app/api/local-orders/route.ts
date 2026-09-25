@@ -19,6 +19,9 @@ import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 import { resolveDeliveryFee } from "@/lib/pricing/delivery";
 import { haversineKm } from "@/lib/pricing/distance";
 import { createLocalOrderPaymentIntent } from "@/lib/payments/eats-stripe";
+import { isOpenNow } from "@/lib/merchants/hours";
+import { etaMinutesForOrder } from "@/lib/food/config";
+import { newGuestToken } from "@/lib/food/guest-token";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
 
         const rl = await rateLimit("localOrders", userId ?? req.headers.get("cf-connecting-ip") ?? "anon");
         if (!rl.success) {
-            return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
+            return NextResponse.json({ success: false, error: "rate_limited", code: "rate_limited" }, { status: 429 });
         }
 
         const raw = await req.json().catch(() => null);
@@ -58,21 +61,23 @@ export async function POST(req: Request) {
         // Merchant activ + deschis
         const { rows: merchants } = await dbQuery(
             `SELECT id, name, status, min_order_cents, delivery_fee_cents, is_open_override, avg_prep_minutes,
-                delivery_radius_km, location_city, location_country, location_lat, location_lng, listing_mode
+                delivery_radius_km, location_city, location_country, location_lat, location_lng, listing_mode,
+                opening_hours
          FROM local_merchants WHERE id = $1`,
             [d.merchant_id],
         );
         const merchant = merchants[0];
         if (!merchant || merchant.status !== "active") {
-            return NextResponse.json({ success: false, error: "Restaurantul nu e disponibil." }, { status: 404 });
+            return NextResponse.json({ success: false, code: "merchant_unavailable", error: "Restaurantul nu e disponibil." }, { status: 404 });
         }
         // Profilurile nerevendicate (ex. importate din OpenStreetMap) sunt doar
         // „sugerează proprietarului" — nu se poate comanda de la ele.
         if (!isMerchantOrderable(merchant)) {
             return NextResponse.json({ success: false, code: "merchant_not_orderable", error: "Restaurantul nu primește încă comenzi prin Swypik." }, { status: 409 });
         }
-        if (merchant.is_open_override === false) {
-            return NextResponse.json({ success: false, error: "Restaurantul este închis momentan." }, { status: 409 });
+        // Program verificat și pe server (înainte doar clientul dezactiva butonul).
+        if (!isOpenNow(merchant.opening_hours, merchant.is_open_override)) {
+            return NextResponse.json({ success: false, code: "merchant_closed", error: "Restaurantul este închis momentan." }, { status: 409 });
         }
 
         // Prețuri DIN DB, nu din client.
@@ -99,7 +104,7 @@ export async function POST(req: Request) {
             const mi = byId.get(item.menu_item_id);
             if (!mi || !mi.is_available) {
                 return NextResponse.json(
-                    { success: false, error: `Un produs din coș nu mai e disponibil.` },
+                    { success: false, code: "item_unavailable", error: "Un produs din coș nu mai e disponibil.", menu_item_id: item.menu_item_id },
                     { status: 409 },
                 );
             }
@@ -113,7 +118,7 @@ export async function POST(req: Request) {
                 for (const oid of item.option_ids) {
                     const choice = allChoices.find((c) => c._id === oid || c.name === oid);
                     if (!choice) {
-                        return NextResponse.json({ success: false, error: "Opțiune invalidă." }, { status: 400 });
+                        return NextResponse.json({ success: false, code: "invalid_option", error: "Opțiune invalidă." }, { status: 400 });
                     }
                     unit += choice.price_cents ?? 0;
                     chosenOptions.push({ name: choice.name, price_cents: choice.price_cents ?? 0 });
@@ -134,6 +139,8 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     success: false,
+                    code: "below_min_order",
+                    min_order_cents: merchant.min_order_cents ?? 0,
                     error: `Comanda minimă este ${((merchant.min_order_cents ?? 0) / 100).toFixed(2)} RON.`,
                 },
                 { status: 400 },
@@ -174,6 +181,9 @@ export async function POST(req: Request) {
 
         const total = subtotal + deliveryFee + d.tip_cents;
 
+        // Comenzile fără cont primesc un token de tracking (doar hash-ul în DB).
+        const guest = userId ? null : newGuestToken();
+
         const order = await withTransaction(async (q) => {
             const { rows } = await q(
                 `INSERT INTO local_orders (
@@ -181,12 +191,13 @@ export async function POST(req: Request) {
            delivery_address, delivery_lat, delivery_lng, delivery_notes,
            items, subtotal_cents, delivery_fee_cents, tip_cents, total_cents,
                      payment_method, estimated_delivery_at,
-                     delivery_distance_km, delivery_fee_breakdown, surge_multiplier, pricing_zone_id
+                     delivery_distance_km, delivery_fee_breakdown, surge_multiplier, pricing_zone_id,
+                     guest_token_hash
          ) VALUES (
            $1, $2, $3, $4, $5, $6, $7, $8,
            $9::jsonb, $10, $11, $12, $13, $14,
                      now() + make_interval(mins => $15),
-                     $16, $17::jsonb, $18, $19
+                     $16, $17::jsonb, $18, $19, $20
          )
          RETURNING id, order_number, status, total_cents, currency, estimated_delivery_at`,
                 [
@@ -204,11 +215,12 @@ export async function POST(req: Request) {
                     d.tip_cents,
                     total,
                     d.payment_method,
-                    (merchant.avg_prep_minutes ?? 20) + 25,
+                    etaMinutesForOrder(merchant.avg_prep_minutes),
                     feeResult.distance_km,
                     feeResult.breakdown ? JSON.stringify(feeResult.breakdown) : null,
                     feeResult.surge_multiplier,
                     feeResult.zone_id,
+                    guest?.hash ?? null,
                 ],
             );
             return rows[0];
@@ -224,6 +236,7 @@ export async function POST(req: Request) {
                 return NextResponse.json({
                     success: true,
                     order,
+                    tracking_token: guest?.token ?? null,
                     payment: pay
                         ? { client_secret: pay.client_secret, amount_cents: pay.amount_cents }
                         : null,
@@ -233,13 +246,14 @@ export async function POST(req: Request) {
                 return NextResponse.json({
                     success: true,
                     order,
+                    tracking_token: guest?.token ?? null,
                     payment: null,
                     payment_error: "Inițializarea plății a eșuat — reîncearcă din comanda ta.",
                 });
             }
         }
 
-        return NextResponse.json({ success: true, order });
+        return NextResponse.json({ success: true, order, tracking_token: guest?.token ?? null });
     } catch (error: unknown) {
         logger.error({ err: error }, "[local-orders] POST error");
         return NextResponse.json({ success: false, error: "Eroare la plasarea comenzii." }, { status: 500 });
@@ -257,7 +271,7 @@ export async function GET(req: Request) {
 
         const { rows } = await dbQuery(
             `SELECT lo.id, lo.order_number, lo.status, lo.items, lo.total_cents, lo.currency,
-              lo.payment_method, lo.placed_at, lo.estimated_delivery_at,
+              lo.payment_method, lo.payment_status, lo.refund_status, lo.placed_at, lo.estimated_delivery_at,
                             m.name AS merchant_name, m.slug AS merchant_slug, m.image_url AS merchant_image,
               c.full_name AS courier_name, c.current_lat AS courier_lat, c.current_lng AS courier_lng
          FROM local_orders lo

@@ -11,12 +11,14 @@ import { getAuthSession } from "@/lib/auth/session";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { logger } from "@/lib/logger";
+import { guestTokenFromRequest, guestTokenMatches } from "@/lib/food/guest-token";
+import { CUSTOMER_CANCELLABLE, type OrderStatus } from "@/lib/food/order-status";
 
 export const dynamic = "force-dynamic";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
         if (!UUID_RE.test(id)) {
@@ -31,6 +33,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
               lo.customer_user_id, lo.customer_name, lo.customer_phone,
               lo.placed_at, lo.accepted_at, lo.ready_at, lo.picked_up_at,
               lo.delivered_at, lo.estimated_delivery_at, lo.cancel_reason,
+              lo.refund_status, lo.refunded_at, lo.cancelled_by, lo.guest_token_hash,
               m.id AS merchant_id, m.name AS merchant_name, m.slug AS merchant_slug,
               m.image_url AS merchant_image, m.phone AS merchant_phone,
               m.location_lat AS merchant_lat, m.location_lng AS merchant_lng,
@@ -59,12 +62,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         // ── autorizare ──
         const authUser = await getAuthUser().catch(() => null);
         let allowed = authUser?.isAdmin === true;
+        let isCustomer = false;
         if (!allowed) {
             const session = await getAuthSession();
             if (session?.userId) {
-                allowed =
-                    o.customer_user_id === session.userId || o.courier_user_id === session.userId;
+                isCustomer = o.customer_user_id === session.userId;
+                allowed = isCustomer || o.courier_user_id === session.userId;
             }
+        }
+        // Comandă guest: token-ul primit la plasare (?t= sau x-order-token).
+        if (!allowed && guestTokenMatches(guestTokenFromRequest(req), o.guest_token_hash)) {
+            allowed = true;
+            isCustomer = true;
         }
         if (!allowed) {
             const sellerId = await getSellerSessionId().catch(() => null);
@@ -100,6 +109,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
                 delivered_at: o.delivered_at,
                 estimated_delivery_at: o.estimated_delivery_at,
                 cancel_reason: o.cancel_reason,
+                cancelled_by: o.cancelled_by,
+                refund_status: o.refund_status,
+                refunded_at: o.refunded_at,
+                can_cancel: isCustomer && CUSTOMER_CANCELLABLE.includes(o.status as OrderStatus),
                 merchant: {
                     id: o.merchant_id,
                     name: o.merchant_name,

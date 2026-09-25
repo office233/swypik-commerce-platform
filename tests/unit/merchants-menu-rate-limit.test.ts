@@ -61,7 +61,7 @@ describe("Merchant menu mutating routes — rate limiting", () => {
     );
     expect(res.status).toBe(429);
     const json = await res.json();
-    expect(json).toEqual({ success: false, error: "rate_limited" });
+    expect(json).toEqual({ success: false, error: "rate_limited", code: "rate_limited" });
   });
 
   it("POST proceeds when under the limit", async () => {

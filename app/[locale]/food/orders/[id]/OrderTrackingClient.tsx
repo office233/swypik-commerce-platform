@@ -1,430 +1,141 @@
 "use client";
 
 /**
- * /food/orders/[id] — tracking live pentru o comandă Swypik Food.
- *
- *  - timeline statusuri: plasată → acceptată → în preparare → gata → curier → în livrare → livrată
- *  - poziția curierului pe hartă, live prin SSE (/api/dispatch/[jobId]/stream) +
- *    fallback polling la 20s (GET /api/local-orders/[id]);
- *  - ETA: estimated_delivery_at de la server (prep + 15 min livrare), iar după
- *    pickup — distanța curier→client / viteza medie a vehiculului.
+ * /food/orders/[id] — tracking live al unei comenzi Swypik Food, cu statusurile
+ * reale din DB (placed → … → delivered / cancelled / rejected), rambursare
+ * afișată onest, anulare de către client cât timp restaurantul nu a confirmat.
+ * Comenzile guest se deschid cu token-ul din link (?t=) sau din dispozitiv.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Car, Check, ChefHat, Bike, MapPin, Phone, ShoppingBag } from "lucide-react";
+import Link from "next/link";
+import { Bike, Car, MapPin, Phone } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { haptic } from "@/lib/haptic";
-import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useOrderTracking } from "@/components/food/tracking/useOrderTracking";
+import TrackingTimeline from "@/components/food/tracking/TrackingTimeline";
+import TrackingMap, { etaMinutes } from "@/components/food/tracking/TrackingMap";
+import OrderSummaryCard from "@/components/food/tracking/OrderSummaryCard";
+import CancelOrderButton from "@/components/food/tracking/CancelOrderButton";
 
-const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
-const LiveMarker = dynamic(() => import("@/components/map/LiveMarker"), { ssr: false });
-const RoutePolyline = dynamic(() => import("@/components/map/RoutePolyline"), { ssr: false });
-
-const ACCENT = "#2DBE60";
-
-type OrderItem = {
-    menu_item_id: string;
-    name: string;
-    qty: number;
-    unit_price_cents: number;
-    options?: { name: string; price_cents?: number }[];
-};
-
-type Order = {
-    id: string;
-    order_number: string;
-    status: string;
-    dispatch_status: string | null;
-    items: OrderItem[];
-    subtotal_cents: number;
-    delivery_fee_cents: number;
-    tip_cents: number;
-    total_cents: number;
-    currency: string;
-    payment_method: string;
-    payment_status: string;
-    delivery_address: string;
-    delivery_lat: number | null;
-    delivery_lng: number | null;
-    placed_at: string;
-    estimated_delivery_at: string | null;
-    delivered_at: string | null;
-    cancel_reason: string | null;
-    merchant: {
-        id: string;
-        name: string;
-        slug: string;
-        image_url: string | null;
-        phone: string | null;
-        lat: number | null;
-        lng: number | null;
-        avg_prep_minutes: number;
-    };
-    courier: {
-        id: string;
-        name: string;
-        phone: string | null;
-        vehicle_type: string;
-        lat: number | null;
-        lng: number | null;
-    } | null;
-    dispatch_job_id: string | null;
-};
-
-/** Pașii afișați în timeline, în ordine. Etichetele vin din food.tracking.step_<key>. */
-const STEPS: { key: string; matches: string[] }[] = [
-    { key: "placed", matches: ["placed"] },
-    { key: "accepted", matches: ["accepted"] },
-    { key: "preparing", matches: ["preparing"] },
-    { key: "ready", matches: ["ready"] },
-    { key: "picked_up", matches: ["picked_up"] },
-    { key: "delivering", matches: ["delivering"] },
-    { key: "delivered", matches: ["delivered"] },
-];
-
-const STATUS_ORDER = ["placed", "accepted", "preparing", "ready", "picked_up", "delivering", "delivered"];
-
-import { VEHICLE_SPEED_KMH } from "@/lib/dispatch/constants";
-
-function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-    const R = 6371;
-    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-    const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-    const s =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(s));
-}
+const card = "flex items-center gap-3 rounded-card border border-subtle bg-surface p-4";
 
 export default function OrderTrackingClient({ orderId }: { orderId: string }) {
-  const tx = useTranslations("ordersOrderTracking");
-    const router = useRouter();
-    const tShell = useTranslations("shell");
-    const t = useTranslations("foodTracking");
-    const tf = useTranslations("food");
-    const [order, setOrder] = useState<Order | null>(null);
-    const [courierPos, setCourierPos] = useState<{ lat: number; lng: number } | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const esRef = useRef<EventSource | null>(null);
+  const t = useTranslations("foodHub");
+  const tt = useTranslations("food.tracking");
+  const tShell = useTranslations("shell");
+  const { order, error, courierPos, token, isFinal, refresh } = useOrderTracking(orderId);
 
-    const refresh = useCallback(async () => {
-        const res = await fetch(`/api/local-orders/${orderId}`, { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.success) {
-            setError(res.status === 401 ? tf("tracking.noAccess") : tf("tracking.notFound"));
-            return;
-        }
-        setOrder(data.order);
-        if (data.order.courier?.lat != null) {
-            setCourierPos({ lat: data.order.courier.lat, lng: data.order.courier.lng });
-        }
-    }, [orderId, tf]);
-
-    useEffect(() => {
-        void refresh();
-    }, [refresh]);
-
-    const isFinal = order != null && ["delivered", "cancelled", "rejected"].includes(order.status);
-
-    // SSE pe job-ul de dispatch: status + poziția curierului.
-    useEffect(() => {
-        if (!order?.dispatch_job_id || isFinal) return;
-        const es = new EventSource(`/api/dispatch/${order.dispatch_job_id}/stream`);
-        esRef.current = es;
-        es.onmessage = (ev) => {
-            try {
-                const msg = JSON.parse(ev.data);
-                if (msg.type === "location" && msg.lat != null) {
-                    setCourierPos({ lat: msg.lat, lng: msg.lng });
-                } else if (msg.type === "status" || msg.type === "snapshot") {
-                    void refresh();
-                }
-            } catch { /* ignoră mesaje corupte */ }
-        };
-        return () => es.close();
-    }, [order?.dispatch_job_id, isFinal, refresh]);
-
-    // Fallback polling 20s cât timp comanda e activă (acoperă și pre-dispatch).
-    // Dependența e `order != null`, nu `order` — obiectul se re-creează la fiecare
-    // refresh(), iar dacă am depinde de el intervalul s-ar reseta la fiecare 20s.
-    const hasOrder = order != null;
-    useEffect(() => {
-        if (!hasOrder || isFinal) return;
-        const intervalId = setInterval(() => void refresh(), 20_000);
-        return () => clearInterval(intervalId);
-    }, [hasOrder, isFinal, refresh]);
-
-    const currentIdx = order ? STATUS_ORDER.indexOf(order.status) : -1;
-
-    // ETA: după pickup — distanță curier→client / viteză vehicul; altfel estimated_delivery_at.
-    const etaText = useMemo(() => {
-        if (!order || isFinal) return null;
-        if (
-            courierPos &&
-            order.delivery_lat != null &&
-            order.delivery_lng != null &&
-            ["picked_up", "delivering"].includes(order.status)
-        ) {
-            const km = haversineKm(courierPos, { lat: order.delivery_lat, lng: order.delivery_lng });
-            const speed = VEHICLE_SPEED_KMH[order.courier?.vehicle_type ?? "bike"] ?? 20;
-            const min = Math.max(2, Math.round((km / speed) * 60) + 2); // +2 min buffer predare
-            return `~${min} min`;
-        }
-        if (order.estimated_delivery_at) {
-            const diff = Math.round((new Date(order.estimated_delivery_at).getTime() - Date.now()) / 60_000);
-            if (diff > 0) return `~${diff} min`;
-        }
-        return null;
-    }, [order, courierPos, isFinal]);
-
-    const fmt = useFormatPrice();
-    const fmtLei = (c: number) => fmt(c);
-
-    if (error) {
-        return (
-            <div className="grid min-h-dvh place-items-center bg-white dark:bg-black px-6 text-center">
-                <div>
-                    <p className="text-lg font-black dark:text-white">{error}</p>
-                    <button
-                        type="button"
-                        onClick={() => router.push("/food")}
-                        style={{ backgroundColor: ACCENT }}
-                        className="mt-4 h-11 rounded-xl px-5 text-sm font-bold text-white"
-                    >
-                        {t("backToRestaurants")}
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    if (!order) {
-        return (
-            <div className="grid min-h-dvh place-items-center bg-white dark:bg-black">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2DBE60] border-t-transparent" aria-label={t("loading")} />
-            </div>
-        );
-    }
-
-    const cancelled = ["cancelled", "rejected"].includes(order.status);
-    const mapPoints: { lat: number; lng: number }[] = [];
-    if (order.merchant.lat != null && order.merchant.lng != null) mapPoints.push({ lat: order.merchant.lat, lng: order.merchant.lng });
-    if (courierPos) mapPoints.push(courierPos);
-    if (order.delivery_lat != null && order.delivery_lng != null) mapPoints.push({ lat: order.delivery_lat, lng: order.delivery_lng });
-    const mapCenter = courierPos ?? mapPoints[0] ?? null;
-
+  if (error && !order) {
     return (
-        <div className="min-h-dvh bg-[#F7F7F8] dark:bg-black pb-8">
-            {/* Header */}
-            <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] px-4 py-3">
-                <button type="button" onClick={() => router.push("/food/orders")} aria-label={t("back")} className="grid h-9 w-9 place-items-center rounded-full bg-[#F7F7F8] dark:bg-[#1F1F23] dark:text-white active:scale-95">
-                    <ArrowLeft size={18} />
-                </button>
-                <div className="min-w-0 flex-1">
-                    <h1 className="truncate text-sm font-black dark:text-white">{order.merchant.name}</h1>
-                    <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">#{order.order_number}</p>
-                </div>
-                {etaText && (
-                    <span style={{ backgroundColor: ACCENT }} className="rounded-full px-3 py-1.5 text-xs font-black text-white">
-                        {etaText}
-                    </span>
-                )}
-            </header>
-
-            {/* Hartă live */}
-            {mapCenter && !cancelled && (
-                <div className="relative h-64 w-full">
-                    <MapView center={mapCenter} fitBounds={mapPoints.length >= 2 ? mapPoints : null} className="h-full w-full">
-                        {order.merchant.lat != null && order.merchant.lng != null && (
-                            <LiveMarker position={{ lat: order.merchant.lat, lng: order.merchant.lng }} kind="pickup" label={order.merchant.name} />
-                        )}
-                        {order.delivery_lat != null && order.delivery_lng != null && (
-                            <LiveMarker position={{ lat: order.delivery_lat, lng: order.delivery_lng }} kind="dropoff" label={tf("tracking.yourAddress")} />
-                        )}
-                        {courierPos && <LiveMarker position={courierPos} kind="driver" label={order.courier?.name ?? tf("tracking.courierFallback")} />}
-                        {courierPos && order.delivery_lat != null && order.delivery_lng != null && (
-                            <RoutePolyline points={[courierPos, { lat: order.delivery_lat, lng: order.delivery_lng }]} color={ACCENT} />
-                        )}
-                    </MapView>
-                </div>
-            )}
-
-            <main className="mx-auto max-w-lg space-y-4 px-4 pt-4">
-                {/* Anulată */}
-                {cancelled && (
-                    <div className="rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-4 text-center">
-                        <p className="text-base font-black text-red-600 dark:text-red-400">
-                            {order.status === "rejected" ? tf("tracking.orderRejected") : tf("tracking.orderCancelled")}
-                        </p>
-                        {order.cancel_reason && <p className="mt-1 text-sm text-red-500 dark:text-red-400">{order.cancel_reason}</p>}
-                    </div>
-                )}
-
-                {/* Timeline statusuri */}
-                {!cancelled && (
-                    <div className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
-                        <ol className="space-y-0">
-                            {STEPS.map((step, i) => {
-                                const stepIdx = STATUS_ORDER.indexOf(step.matches[0]);
-                                const done = currentIdx > stepIdx || order.status === "delivered";
-                                const active = step.matches.includes(order.status);
-                                return (
-                                    <li key={step.key} className="flex gap-3">
-                                        <div className="flex flex-col items-center">
-                                            <span
-                                                className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-white ${done || active ? "" : "bg-[#E5E5E5] dark:bg-[#2A2A2E]"}`}
-                                                style={done || active ? { backgroundColor: ACCENT } : undefined}
-                                            >
-                                                {done ? <Check size={14} /> : active ? (
-                                                    step.key === "preparing" ? <ChefHat size={14} /> :
-                                                        step.key === "delivering" || step.key === "picked_up" ? <Bike size={14} /> :
-                                                            <ShoppingBag size={14} />
-                                                ) : (
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                                                )}
-                                            </span>
-                                            {i < STEPS.length - 1 && (
-                                                <span className={`w-0.5 flex-1 ${done ? "" : "bg-[#E5E5E5] dark:bg-[#2A2A2E]"}`} style={done ? { backgroundColor: ACCENT } : undefined} />
-                                            )}
-                                        </div>
-                                        <div className={`pb-4 ${i === STEPS.length - 1 ? "pb-0" : ""}`}>
-                                            <p className={`text-sm ${active ? "font-black dark:text-white" : done ? "font-semibold dark:text-[#D4D4D8]" : "font-medium text-[#9C9CAB]"}`}>
-                                                {tf(`tracking.step_${step.key}` as never)}
-                                            </p>
-                                            {active && step.key === "placed" && (
-                                                <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{t("waitingConfirmation")}</p>
-                                            )}
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                        </ol>
-                    </div>
-                )}
-
-                {/* Curier */}
-                {order.courier && !cancelled && (
-                    <div className="flex items-center gap-3 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
-                        <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F0FAF4] dark:bg-[#0F2A1B] dark:text-white" aria-hidden><Bike size={20} /></span>
-                        <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-black dark:text-white">{order.courier.name}</p>
-                            <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{t("yourCourier")}</p>
-                        </div>
-                        {order.courier.phone && (
-                            <a
-                                href={`tel:${order.courier.phone}`}
-                                onClick={() => haptic("tap")}
-                                aria-label={t("callCourier")}
-                                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white active:scale-95"
-                                style={{ backgroundColor: ACCENT }}
-                            >
-                                <Phone size={16} />
-                            </a>
-                        )}
-                    </div>
-                )}
-
-                {/* Adresă */}
-                <div className="flex items-start gap-3 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
-                    <MapPin size={18} className="mt-0.5 shrink-0 text-[#6E6E80] dark:text-[#A1A1AA]" />
-                    <div className="min-w-0">
-                        <p className="text-sm font-semibold dark:text-white">{order.delivery_address}</p>
-                        <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{tx("adresaDeLivrare")}</p>
-                    </div>
-                </div>
-
-                {/* Deep link Go: cursă către adresa de livrare */}
-                {!cancelled && (
-                    <a
-                        href={`/go?dropoff=${encodeURIComponent(order.delivery_address)}${order.delivery_lat != null && order.delivery_lng != null
-                            ? `&dlat=${order.delivery_lat}&dlng=${order.delivery_lng}`
-                            : ""
-                            }`}
-                        onClick={() => haptic("tap")}
-                        className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] dark:text-white text-sm font-bold active:scale-[0.98]"
-                    >
-                        <Car size={16} />  {tx("aiNevoieDeO")}
-                    </a>
-                )}
-
-                {/* Sumar comandă */}
-                <div className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
-                    <h2 className="text-sm font-black dark:text-white">{tx("comandaTa")}</h2>
-                    <div className="mt-2 space-y-1.5">
-                        {(order.items ?? []).map((it, i) => (
-                            <div key={i} className="flex justify-between gap-2 text-sm">
-                                <span className="text-[#3B3B4F] dark:text-[#D4D4D8]">
-                                    {it.qty}× {it.name}
-                                    {it.options?.length ? (
-                                        <span className="block text-xs text-[#9C9CAB]">{it.options.map((o) => o.name).join(", ")}</span>
-                                    ) : null}
-                                </span>
-                                <span className="shrink-0 font-semibold dark:text-white">{fmtLei(it.unit_price_cents * it.qty)}</span>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="mt-3 border-t border-[#E5E5E5] dark:border-[#1F1F1F] pt-2 text-sm">
-                        <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{tf("tracking.products")}</span><span>{fmtLei(order.subtotal_cents)}</span></div>
-                        <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{tf("tracking.deliveryLabel")}</span><span>{order.delivery_fee_cents === 0 ? tf("tracking.freeDelivery") : fmtLei(order.delivery_fee_cents)}</span></div>
-                        {order.tip_cents > 0 && (
-                            <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{t("courierTip")}</span><span>{fmtLei(order.tip_cents)}</span></div>
-                        )}
-                        <div className="mt-1 flex justify-between font-black dark:text-white"><span>{tf("tracking.total")}</span><span>{fmtLei(order.total_cents)}</span></div>
-                        <p className="mt-1 text-xs text-[#9C9CAB]">
-                            {order.payment_method === "cash" ? tf("tracking.paymentCash") : order.payment_status === "paid" ? tf("tracking.paymentPaidCard") : tf("tracking.paymentPendingCard")}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Sună restaurantul */}
-                {order.merchant.phone && !cancelled && order.status !== "delivered" && (
-                    <a
-                        href={`tel:${order.merchant.phone}`}
-                        onClick={() => haptic("tap")}
-                        className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] dark:text-white text-sm font-bold active:scale-[0.98]"
-                    >
-                        <Phone size={16} />  {tx("sunaRestaurantul")}
-                    </a>
-                )}
-
-                {/* Re-comandă după livrare */}
-                {order.status === "delivered" && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            haptic("tap");
-                            router.push(`/food/${order.merchant.slug}?reorder=${order.id}`);
-                        }}
-                        style={{ backgroundColor: ACCENT }}
-                        className="h-12 w-full rounded-2xl text-sm font-black text-white active:scale-[0.98]"
-                    >
-                        
-                        {tx("comandaDinNou")}
-                    </button>
-                )}
-
-                {/* Cross-sell: după livrare, trimitem clientul înapoi în feed */}
-                {order.status === "delivered" && (
-                    <section
-                        aria-label={tShell("discoverFeed")}
-                        className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4"
-                    >
-                        <p className="text-sm font-black dark:text-white">{tShell("discoverAfterDelivery")}</p>
-                        <p className="mt-1 text-xs text-[#6B6B6B] dark:text-[#A1A1AA]">{tShell("discoverFeedSub")}</p>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                haptic("tap");
-                                router.push(`/?utm_source=food&utm_medium=order_delivered&utm_campaign=cross_sell`);
-                            }}
-                            className="mt-3 flex h-11 w-full items-center justify-center rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] dark:text-white text-sm font-bold active:scale-[0.98]"
-                        >
-                            {tShell("openFeed")}
-                        </button>
-                    </section>
-                )}
-            </main>
-        </div>
+      <div className="min-h-dvh bg-canvas">
+        <PageHeader back="/food/orders" title={t("trackingTitle")} />
+        <ErrorState
+          title={error === "no_access" ? tt("noAccess") : error === "not_found" ? tt("notFound") : t("errors.server_error")}
+          onRetry={error === "network" ? () => void refresh() : undefined}
+        />
+      </div>
     );
+  }
+  if (!order) {
+    return (
+      <div className="min-h-dvh bg-canvas" aria-busy="true">
+        <PageHeader back="/food/orders" title={t("trackingTitle")} />
+        <div className="space-y-3 p-gutter">
+          <Skeleton className="h-64 rounded-card" />
+          <Skeleton className="h-40 rounded-card" />
+        </div>
+      </div>
+    );
+  }
+
+  const cancelled = order.status === "cancelled" || order.status === "rejected";
+  const eta = isFinal ? null : etaMinutes(order, courierPos);
+  const goHref = `/go?dropoff=${encodeURIComponent(order.delivery_address)}${
+    order.delivery_lat != null && order.delivery_lng != null ? `&dlat=${order.delivery_lat}&dlng=${order.delivery_lng}` : ""
+  }`;
+
+  return (
+    <div className="min-h-dvh bg-canvas">
+      <PageHeader
+        back="/food/orders"
+        title={order.merchant.name}
+        subtitle={`#${order.order_number}`}
+        actions={eta != null ? <Badge tone="solid">{t("etaShort", { min: eta })}</Badge> : null}
+      />
+      {!cancelled ? <TrackingMap order={order} courierPos={courierPos} /> : null}
+
+      <main className="mx-auto max-w-lg space-y-4 px-gutter pt-4">
+        {cancelled ? (
+          <div className="rounded-card bg-danger-soft p-4 text-center" role="status">
+            <p className="text-base font-bold text-danger">
+              {order.status === "rejected" ? tt("orderRejected") : tt("orderCancelled")}
+            </p>
+            {order.cancel_reason && order.cancelled_by !== "customer" ? <p className="mt-1 text-sm text-danger">{order.cancel_reason}</p> : null}
+          </div>
+        ) : (
+          <TrackingTimeline status={order.status} dispatchStatus={order.dispatch_status} />
+        )}
+
+        {order.courier && !cancelled ? (
+          <div className={card}>
+            <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-soft text-brand-soft-fg" aria-hidden><Bike size={20} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-fg">{order.courier.name}</p>
+              <p className="text-xs text-muted">{t("yourCourier")}</p>
+            </div>
+            {order.courier.phone ? (
+              <Button asChild size="sm" variant="soft" aria-label={t("callCourier")} className="min-h-11">
+                <a href={`tel:${order.courier.phone}`}><Phone size={16} aria-hidden /></a>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className={card}>
+          <MapPin size={18} className="shrink-0 text-muted" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-fg">{order.delivery_address}</p>
+            <p className="text-xs text-muted">{t("deliveryAddress")}</p>
+          </div>
+        </div>
+
+        <OrderSummaryCard order={order} />
+
+        {order.can_cancel ? (
+          <CancelOrderButton orderId={order.id} token={token} card={order.payment_method === "card_online"} onDone={() => void refresh()} />
+        ) : null}
+
+        {order.merchant.phone && !isFinal ? (
+          <Button asChild variant="secondary" block>
+            <a href={`tel:${order.merchant.phone}`}><Phone size={16} aria-hidden /> {t("callRestaurant")}</a>
+          </Button>
+        ) : null}
+
+        {!cancelled ? (
+          <Button asChild variant="ghost" block>
+            <Link href={goHref}><Car size={16} aria-hidden /> {t("needRide")}</Link>
+          </Button>
+        ) : null}
+
+        {order.status === "delivered" || cancelled ? (
+          <Button asChild block>
+            <Link href={`/food/${order.merchant.slug}?reorder=${order.id}`}>{t("orderAgain")}</Link>
+          </Button>
+        ) : null}
+
+        {order.status === "delivered" ? (
+          <section className="rounded-card border border-subtle bg-surface p-4" aria-label={tShell("discoverFeed")}>
+            <p className="text-sm font-bold text-fg">{tShell("discoverAfterDelivery")}</p>
+            <p className="mt-1 text-xs text-muted">{tShell("discoverFeedSub")}</p>
+            <Button asChild variant="secondary" block className="mt-3">
+              <Link href="/?utm_source=food&utm_medium=order_delivered&utm_campaign=cross_sell">{tShell("openFeed")}</Link>
+            </Button>
+          </section>
+        ) : null}
+      </main>
+    </div>
+  );
 }

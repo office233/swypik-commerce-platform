@@ -1,7 +1,7 @@
 /**
  * Comercianți locali (restaurante, magazine, farmacii) — înregistrare + listare.
  *
- * GET  /api/merchants?city=&kind=&open=1  → listă publică, filtrată pe oraș
+ * GET  /api/merchants?city=&kind=&cuisine=&q=&sort=&mode=&open=1&lat=&lng=  → listă publică (lib/food/merchant-list.ts)
  * POST /api/merchants                      → seller își creează comerciantul
  * PATCH /api/merchants                     → actualizare (program, taxe, status)
  */
@@ -10,9 +10,12 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { MerchantCreateSchema, MerchantUpdateSchema, parseBody } from "@/lib/validation/schemas";
-import { isOpenNow, hasKnownHours } from "@/lib/merchants/hours";
 import { logger } from "@/lib/logger";
 import { LISTING_MODE_SELECT_SQL } from "@/lib/merchants/listing-mode";
+import { merchantSlug } from "@/lib/merchants/slug";
+import { normalizeCuisines } from "@/lib/merchants/cuisines";
+import { buildMerchantListSql, parseMerchantListQuery } from "@/lib/food/merchant-list";
+import { toMerchantSummary, type MerchantRow } from "@/lib/food/merchant-view";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,83 +31,23 @@ const PUBLIC_COLS = `
   ${LISTING_MODE_SELECT_SQL}
 `;
 
-function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 70);
-}
-
 export async function GET(req: Request) {
   try {
-    const url = new URL(req.url);
-    const city = url.searchParams.get("city")?.trim() || null;
-    const kind = url.searchParams.get("kind")?.trim() || null;
-    const cuisine = url.searchParams.get("cuisine")?.trim() || null;
-    const onlyOpen = url.searchParams.get("open") === "1";
-    const lat = Number(url.searchParams.get("lat"));
-    const lng = Number(url.searchParams.get("lng"));
-    const hasGeo = Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0;
-    const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 24, 1), 100);
-    const page = Math.max(Number(url.searchParams.get("page")) || 1, 1);
-
-    const where: string[] = ["status = 'active'"];
-    const params: unknown[] = [];
-
-    if (city) {
-      params.push(city);
-      where.push(`location_city ILIKE $${params.length}`);
-    }
-    if (kind && ["restaurant", "grocery", "pharmacy", "flowers", "other"].includes(kind)) {
-      params.push(kind);
-      where.push(`kind = $${params.length}`);
-    }
-    if (cuisine) {
-      params.push(cuisine);
-      where.push(`$${params.length} = ANY(cuisine_types)`);
-    }
-
-    // Filtrare geo: doar comercianți în a căror rază de livrare se află clientul.
-    // Distanță haversine aproximată (suficientă la <50km).
-    let distanceSelect = "NULL::float AS distance_km";
-    if (hasGeo) {
-      params.push(lat, lng);
-      const pLat = `$${params.length - 1}::float`, pLng = `$${params.length}::float`;
-      const distExpr = `(6371 * acos(least(1, cos(radians(${pLat})) * cos(radians(location_lat)) * cos(radians(location_lng) - radians(${pLng})) + sin(radians(${pLat})) * sin(radians(location_lat)))))`;
-      distanceSelect = `${distExpr} AS distance_km`;
-      where.push(`location_lat IS NOT NULL AND location_lng IS NOT NULL AND ${distExpr} <= COALESCE(delivery_radius_km, 5.0)`);
-    }
-
-    params.push(limit, (page - 1) * limit);
-    const { rows } = await dbQuery(
-      `SELECT ${PUBLIC_COLS},
-              ${distanceSelect},
-              (SELECT count(1) FROM menu_items mi WHERE mi.merchant_id = m.id AND mi.is_available) AS menu_count
-         FROM local_merchants m
-        WHERE ${where.join(" AND ")}
-        ORDER BY (listing_mode = 'orderable') DESC, ${hasGeo ? "distance_km ASC NULLS LAST," : ""} created_at DESC
-        LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params,
-    );
-
-    // Calculăm "deschis acum" în aplicație (opening_hours e jsonb).
-    const merchants = rows.map((m: any) => ({
-      ...m,
-      is_open: isOpenNow(m.opening_hours, m.is_open_override),
-      hours_known: hasKnownHours(m.opening_hours) || m.is_open_override != null,
-    }));
-
+    const query = parseMerchantListQuery(new URL(req.url));
+    const { sql, params } = buildMerchantListSql(query);
+    const { rows } = await dbQuery<MerchantRow>(sql, params);
+    const now = new Date();
+    const merchants = rows.map((r) => toMerchantSummary(r, now));
     return NextResponse.json({
       success: true,
-      merchants: onlyOpen ? merchants.filter((m: any) => m.is_open) : merchants,
-      page,
+      // „Deschis acum” se calculează în aplicație (opening_hours e jsonb).
+      merchants: query.open ? merchants.filter((m) => m.is_open === true) : merchants,
+      page: query.page,
+      has_more: rows.length === query.limit,
     });
   } catch (error: unknown) {
     logger.error({ err: error }, "[merchants] GET error");
-    return NextResponse.json({ success: false, error: "Eroare la încărcarea comercianților." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "server_error", code: "server_error" }, { status: 500 });
   }
 }
 
@@ -128,7 +71,7 @@ export async function POST(req: Request) {
     const d = parsed.data;
 
     // Un seller poate avea mai mulți comercianți (lanț), dar slug-ul e unic.
-    const slug = `${slugify(d.name)}-${Date.now().toString(36).slice(-4)}`;
+    const slug = merchantSlug(d.name);
 
     const { rows } = await dbQuery(
       `INSERT INTO local_merchants (
@@ -151,7 +94,7 @@ export async function POST(req: Request) {
         d.name,
         slug,
         d.description ?? null,
-        d.cuisine_types ?? [],
+        normalizeCuisines(d.cuisine_types),
         d.phone,
         d.email ?? null,
         d.address,
@@ -202,7 +145,7 @@ export async function PATCH(req: Request) {
 
     if (d.name !== undefined) push("name", d.name);
     if (d.description !== undefined) push("description", d.description);
-    if (d.cuisine_types !== undefined) push("cuisine_types", d.cuisine_types);
+    if (d.cuisine_types !== undefined) push("cuisine_types", normalizeCuisines(d.cuisine_types));
     if (d.phone !== undefined) push("phone", d.phone);
     if (d.address !== undefined) push("address", d.address);
     if (d.location_lat !== undefined) push("location_lat", d.location_lat);

@@ -1,376 +1,122 @@
 "use client";
 
 /**
- * Panou comerciant local: comenzi live (polling 10s, sunet la comandă nouă),
- * toggle „închid acum" (is_open_override) + meniu (adăugare rapidă articole).
+ * Panoul restaurantului (seller): comenzi live (polling + sunet), acceptă /
+ * refuză / gata / anulează cu motiv, caută curier prin API-ul de dispatch,
+ * deschis/închis acum, editor de meniu.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Store } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { logger } from "@/lib/logger";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { useToast } from "@/components/ui/Toast";
+import { useMerchantOrders } from "@/components/food/merchant/useMerchantOrders";
+import MerchantOrderCard from "@/components/food/merchant/MerchantOrderCard";
+import MenuEditor from "@/components/food/merchant/MenuEditor";
+import { useFoodError } from "@/components/food/useFoodError";
 
-type Merchant = {
-  id: string;
-  name: string;
-  kind: string;
-  status: string;
-  is_open_override: boolean | null;
-};
-
-type OrderItem = { name: string; qty: number; unit_price_cents: number };
-
-type LocalOrder = {
-  id: string;
-  order_number: string;
-  status: string;
-  customer_name: string;
-  customer_phone: string;
-  delivery_address: string;
-  delivery_notes: string | null;
-  items: OrderItem[];
-  total_cents: number;
-  currency: string;
-  placed_at: string;
-};
-
-type MenuItem = {
-  id: string;
-  name: string;
-  price_cents: number;
-  is_available: boolean;
-  category_id: string | null;
-};
-
-function lei(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
-
-function playDing(): void {
-  try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.8);
-  } catch {
-    // audio indisponibil — ignorăm
-  }
-}
+type Merchant = { id: string; name: string; slug: string; status: string; is_open: boolean; is_open_override: boolean | null; opening_hours: Record<string, unknown> | null };
 
 export default function MerchantPanelClient() {
-  const t = useTranslations("sellerMerchant");
-  const STATUS_LABELS: Record<string, string> = {
-    placed: t("statusPlaced"),
-    accepted: t("statusAccepted"),
-    preparing: t("statusPreparing"),
-    ready: t("statusReady"),
-    picked_up: t("statusPickedUp"),
-    delivered: t("statusDelivered"),
-    cancelled: t("statusCancelled"),
-    rejected: t("statusRejected"),
-  };
-  const NEXT_STATUS: Record<string, { to: string; label: string }[]> = {
-    placed: [
-      { to: "accepted", label: t("actionAccept") },
-      { to: "rejected", label: t("actionReject") },
-    ],
-    accepted: [{ to: "preparing", label: t("actionStartPreparing") }],
-    preparing: [{ to: "ready", label: t("actionReadyForPickup") }],
-  };
+  const t = useTranslations("foodMerchant");
+  const errorText = useFoodError();
+  const { toast } = useToast();
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [merchantId, setMerchantId] = useState<string | null>(null);
-  const [orders, setOrders] = useState<LocalOrder[]>([]);
-  const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [newItem, setNewItem] = useState({ name: "", price: "" });
-  const knownIds = useRef<Set<string>>(new Set());
-  const firstPoll = useRef(true);
-
+  const [state, setState] = useState<"loading" | "ok" | "unauthorized" | "error">("loading");
+  const { orders, loaded, setStatus, findCourier } = useMerchantOrders(merchantId);
   const merchant = merchants.find((m) => m.id === merchantId) ?? null;
-  const isClosed = merchant?.is_open_override === false;
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/merchants/mine");
-        if (res.status === 401) {
-          if (!cancelled) setError(t("errorUnauthorized"));
-          return;
-        }
-        if (!res.ok) {
-          if (!cancelled) setError(t("errorNetwork"));
-          return;
-        }
+    fetch("/api/merchants/mine", { cache: "no-store" })
+      .then(async (res) => {
+        if (res.status === 401) return setState("unauthorized");
+        if (!res.ok) return setState("error");
         const data = (await res.json()) as { merchants?: Merchant[] };
-        if (!cancelled) {
-          const list = data.merchants ?? [];
-          setMerchants(list);
-          if (list.length > 0) setMerchantId(list[0].id);
-          if (list.length === 0) setError(t("errorNoMerchant"));
-        }
-      } catch (err) {
-        logger.error({ err }, "Failed to load seller merchants");
-        if (!cancelled) setError(t("errorNetwork"));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is stable from useTranslations; adding it would just re-run this fetch-once effect on every render.
+        const list = data.merchants ?? [];
+        setMerchants(list);
+        setMerchantId(list[0]?.id ?? null);
+        setState("ok");
+      })
+      .catch(() => setState("error"));
   }, []);
 
-  const pollOrders = useCallback(async () => {
-    if (!merchantId) return;
-    try {
-      const res = await fetch(`/api/merchants/${merchantId}/orders?status=active&limit=100`);
-      if (!res.ok) return;
-      const data = (await res.json()) as { orders?: LocalOrder[] };
-      const list = data.orders ?? [];
-      const hasNew = list.some((o) => !knownIds.current.has(o.id));
-      if (hasNew && !firstPoll.current) playDing();
-      list.forEach((o) => knownIds.current.add(o.id));
-      firstPoll.current = false;
-      setOrders(list);
-    } catch (err) {
-      logger.warn({ err, merchantId }, "Merchant order poll failed, will retry next tick");
-    }
-  }, [merchantId]);
+  const hasHours = !!merchant?.opening_hours && Object.keys(merchant.opening_hours).length > 0;
+  const openNow = merchant?.is_open === true;
 
-  useEffect(() => {
-    if (!merchantId) return;
-    firstPoll.current = true;
-    knownIds.current = new Set();
-    void pollOrders();
-    const t = setInterval(() => void pollOrders(), 10_000);
-    return () => clearInterval(t);
-  }, [merchantId, pollOrders]);
-
-  const loadMenu = useCallback(async () => {
-    if (!merchantId) return;
-    const res = await fetch(`/api/merchants/${merchantId}/menu`);
-    if (!res.ok) return;
-    const data = (await res.json()) as { menu?: { id: string | null; name: string; items: MenuItem[] }[] };
-    setMenu((data.menu ?? []).flatMap((c) => c.items));
-  }, [merchantId]);
-
-  useEffect(() => {
-    void loadMenu();
-  }, [loadMenu]);
-
-  async function toggleOpen(): Promise<void> {
+  async function toggleOpen() {
     if (!merchant) return;
-    const next = isClosed ? null : false; // null = program normal, false = închis forțat
+    // Deschis → închis forțat; închis forțat cu program → revine la program; altfel → deschis acum.
+    const next = openNow ? false : hasHours && merchant.is_open_override === false ? null : true;
     const res = await fetch("/api/merchants", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ merchant_id: merchant.id, is_open_override: next }),
     });
-    if (res.ok) {
-      setMerchants((prev) => prev.map((m) => (m.id === merchant.id ? { ...m, is_open_override: next } : m)));
+    if (!res.ok) {
+      toast({ title: t("saveFailed"), tone: "danger" });
+      return;
     }
+    // „Deschis acum” se recalculează pe server (program + override).
+    const mine = (await fetch("/api/merchants/mine", { cache: "no-store" }).then((r) => r.json()).catch(() => null)) as { merchants?: Merchant[] } | null;
+    if (mine?.merchants) setMerchants(mine.merchants);
   }
 
-  async function setOrderStatus(orderId: string, status: string): Promise<void> {
-    const res = await fetch(`/api/local-orders/${orderId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (res.ok) void pollOrders();
-  }
+  const onStatus = async (id: string, status: string, reason?: string) => {
+    const code = await setStatus(id, status, reason);
+    if (code) toast({ title: errorText(code), tone: "danger" });
+  };
+  const onFindCourier = async (id: string) => {
+    const ok = await findCourier(id);
+    toast({ title: ok ? t("courierSearchStarted") : t("courierSearchFailed"), tone: ok ? "success" : "danger" });
+  };
 
-  async function addMenuItem(e: React.FormEvent): Promise<void> {
-    e.preventDefault();
-    if (!merchantId || !newItem.name.trim()) return;
-    const price = Number(newItem.price);
-    if (!Number.isFinite(price) || price <= 0) return;
-    const res = await fetch(`/api/merchants/${merchantId}/menu`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newItem.name.trim(), price }),
-    });
-    if (res.ok) {
-      setNewItem({ name: "", price: "" });
-      void loadMenu();
-    }
+  if (state === "loading") return <div className="space-y-3 p-gutter"><Skeleton className="h-14 rounded-card" /><Skeleton className="h-40 rounded-card" /></div>;
+  if (state === "unauthorized") {
+    return <EmptyState icon={Store} title={t("signInTitle")} description={t("signInSub")} action={<Button asChild><Link href="/seller/login?next=/seller/merchant">{t("signIn")}</Link></Button>} />;
   }
-
-  async function toggleItemAvailable(item: MenuItem): Promise<void> {
-    const res = await fetch(`/api/merchants/${merchantId}/menu`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item_id: item.id, is_available: !item.is_available }),
-    });
-    if (res.ok) void loadMenu();
+  if (state === "error") return <ErrorState onRetry={() => window.location.reload()} />;
+  if (!merchant) {
+    return <EmptyState icon={Store} title={t("noMerchantTitle")} description={t("noMerchantSub")} action={<Button asChild><Link href="/food">{t("findYourRestaurant")}</Link></Button>} />;
   }
-
-  async function editItemPrice(item: MenuItem): Promise<void> {
-    const input = window.prompt(t("promptNewPrice", { name: item.name }), (item.price_cents / 100).toFixed(2));
-    if (input === null) return;
-    const price = Number(input.replace(",", "."));
-    if (!Number.isFinite(price) || price <= 0) return;
-    const res = await fetch(`/api/merchants/${merchantId}/menu`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item_id: item.id, price }),
-    });
-    if (res.ok) void loadMenu();
-  }
-
-  async function deleteItem(item: MenuItem): Promise<void> {
-    if (!window.confirm(t("confirmDelete", { name: item.name }))) return;
-    const res = await fetch(`/api/merchants/${merchantId}/menu?item_id=${item.id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) void loadMenu();
-  }
-
-  if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
-  if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
-  if (!merchant) return <div className="p-8 text-center text-gray-500">{t("noMerchant")}</div>;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">{merchant.name}</h1>
-          <p className="text-sm text-gray-500">{t("subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {merchants.length > 1 && (
-            <select
-              className="rounded border px-2 py-1 text-sm"
-              value={merchantId ?? ""}
-              onChange={(e) => setMerchantId(e.target.value)}
-            >
-              {merchants.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-          )}
-          <button
-            onClick={() => void toggleOpen()}
-            className={`rounded-full px-4 py-2 text-sm font-semibold text-white ${isClosed ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
-              }`}
-          >
-            {isClosed ? t("reopen") : t("closeNow")}
-          </button>
-        </div>
-      </header>
-
-      {isClosed && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-          {t("closedNotice")}
-        </div>
-      )}
-
-      <section>
-        <h2 className="mb-2 text-lg font-semibold">{t("activeOrders", { count: orders.length })}</h2>
-        {orders.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-400">
-            {t("noActiveOrders")}
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {orders.map((o) => (
-              <li key={o.id} className="rounded-lg border bg-white p-4 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <span className="font-mono text-sm font-bold">{o.order_number}</span>{" "}
-                    <span className="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-                      {STATUS_LABELS[o.status] ?? o.status}
-                    </span>
-                  </div>
-                  <span className="font-semibold">{lei(o.total_cents)} {o.currency}</span>
-                </div>
-                <p className="mt-1 text-sm text-gray-600">
-                  {o.customer_name} · {o.customer_phone} · {o.delivery_address}
-                </p>
-                {o.delivery_notes && <p className="text-xs italic text-gray-500 break-words">&bdquo;{o.delivery_notes}&rdquo;</p>}
-                <ul className="mt-2 text-sm">
-                  {(o.items ?? []).map((it, i) => (
-                    <li key={i} className="break-words">{it.qty}× {it.name} — {lei(it.unit_price_cents * it.qty)} lei</li>
-                  ))}
-                </ul>
-                <div className="mt-3 flex gap-2">
-                  {(NEXT_STATUS[o.status] ?? []).map((a) => (
-                    <button
-                      key={a.to}
-                      onClick={() => void setOrderStatus(o.id, a.to)}
-                      className={`rounded px-3 py-1.5 text-sm font-medium text-white ${a.to === "rejected" ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
-                        }`}
-                    >
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-2 text-lg font-semibold">{t("menuTitle", { count: menu.length })}</h2>
-        <form onSubmit={(e) => void addMenuItem(e)} className="mb-3 flex flex-wrap gap-2">
-          <input
-            className="flex-1 rounded border px-3 py-2 text-sm min-w-0"
-            placeholder={t("itemNamePlaceholder")}
-            value={newItem.name}
-            onChange={(e) => setNewItem((p) => ({ ...p, name: e.target.value }))}
-          />
-          <input
-            className="w-28 rounded border px-3 py-2 text-sm"
-            placeholder={t("pricePlaceholder")}
-            inputMode="decimal"
-            value={newItem.price}
-            onChange={(e) => setNewItem((p) => ({ ...p, price: e.target.value }))}
-          />
-          <button type="submit" className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-            {t("add")}
-          </button>
-        </form>
-        <ul className="divide-y rounded-lg border bg-white">
-          {menu.map((it) => (
-            <li key={it.id} className="flex items-center justify-between gap-2 p-3 text-sm">
-              <span className={`min-w-0 break-words ${it.is_available ? "" : "text-gray-400 line-through"}`}>
-                {it.name} — {lei(it.price_cents)} lei
-              </span>
-              <span className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={() => void editItemPrice(it)}
-                  className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
-                >
-                  {t("price")}
-                </button>
-                <button
-                  onClick={() => void toggleItemAvailable(it)}
-                  className={`rounded px-2 py-1 text-xs font-medium ${it.is_available ? "bg-gray-200 text-gray-700" : "bg-green-100 text-green-700"
-                    }`}
-                >
-                  {it.is_available ? t("deactivate") : t("activate")}
-                </button>
-                <button
-                  onClick={() => void deleteItem(it)}
-                  className="rounded bg-red-50 px-2 py-1 text-xs font-medium text-red-600"
-                >
-                  {t("delete")}
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+    <div className="min-h-dvh bg-canvas">
+      <PageHeader
+        back="/seller"
+        title={merchant.name}
+        subtitle={openNow ? t("openNow") : t("closedNow")}
+        actions={<Button size="sm" className="min-h-11" variant={openNow ? "secondary" : "primary"} onClick={() => void toggleOpen()}>{openNow ? t("closeNow") : t("openNowAction")}</Button>}
+      />
+      <div className="mx-auto max-w-3xl space-y-4 px-gutter pt-4">
+        {merchants.length > 1 ? (
+          <Select aria-label={t("chooseRestaurant")} value={merchantId ?? ""} onChange={(e) => setMerchantId(e.target.value)} options={merchants.map((m) => ({ value: m.id, label: m.name }))} />
+        ) : null}
+        {!openNow ? <p className="rounded-control bg-warning-soft px-3 py-2 text-sm font-semibold text-warning">{t("closedNotice")}</p> : null}
+        <Tabs defaultValue="orders">
+          <TabsList variant="pill">
+            <TabsTrigger value="orders">{t("tabOrders", { count: orders.length })}</TabsTrigger>
+            <TabsTrigger value="menu">{t("tabMenu")}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="orders" className="space-y-3 pt-3">
+            {!loaded ? <Skeleton className="h-32 rounded-card" /> : orders.length === 0 ? (
+              <EmptyState title={t("noActiveOrders")} description={t("noActiveOrdersSub")} />
+            ) : (
+              orders.map((o) => <MerchantOrderCard key={o.id} o={o} onStatus={onStatus} onFindCourier={onFindCourier} />)
+            )}
+          </TabsContent>
+          <TabsContent value="menu" className="pt-3">
+            <MenuEditor merchantId={merchant.id} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

@@ -16,6 +16,7 @@
 /api/admin/login
 /api/admin/logout
 /api/admin/marketplace
+/api/admin/merchant-claims/[id]
 /api/admin/merchants/[id]/approve
 /api/admin/merchants/[id]/reject
 /api/admin/missions/submissions
@@ -164,15 +165,18 @@
 /api/live/streams/[id]/poll
 /api/local-orders
 /api/local-orders/[id]
+/api/local-orders/[id]/cancel
 /api/local-orders/[id]/dispatch
 /api/local-orders/[id]/status
 /api/me/activity
 /api/me/notifications
 /api/me/referral
 /api/merchants
+/api/merchants/[id]/claim
 /api/merchants/[id]/delivery-quote
 /api/merchants/[id]/menu
 /api/merchants/[id]/orders
+/api/merchants/[id]/suggest
 /api/merchants/apply
 /api/merchants/mine
 /api/missions
