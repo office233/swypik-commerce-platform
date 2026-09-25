@@ -37,6 +37,7 @@ export const PAYOUT_TONE: Record<string, BadgeTone> = {
 
 const KNOWN_ERRORS = new Set([
   "not_pending",
+  "nothing_to_pay",
   "transfer_failed",
   "invalid_body",
   "invalid_status",

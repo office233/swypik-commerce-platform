@@ -1,125 +1,123 @@
+/**
+ * GET  /api/seller/products?limit=&offset=&status=  → catalogul seller-ului
+ *      (+ comisionul platformei și moneda, ca UI-ul să nu le scrie în cod)
+ * POST /api/seller/products                          → produs nou (cu variante)
+ *
+ * `video_url` nu mai creează rânduri `videos` publicate direct (ocolea
+ * transcodarea și moderarea): clipurile trec prin fluxul de upload standard.
+ */
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { labelProduct } from "@/lib/moderation/labelProduct";
 import { autoEmbedProduct } from "@/lib/ai/auto-embed";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { SellerProductCreateSchema, parseBody } from "@/lib/validation/schemas";
-import { isLocale, LOCALE_COOKIE, DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { paginationSchema, queryObject } from "@/lib/validation/params";
 import { translateProductToLocales } from "@/lib/ai/product-translator";
-
+import { SELLER_PRODUCT_COLS, upsertSellerProductTranslation } from "@/lib/seller/products";
+import { inventoryStatusFor, sellerProductSlug } from "@/lib/seller/product-schemas";
+import { sellerRequestLocale, sellerTranslationTargets } from "@/lib/seller/request-locale";
+import { sellerCommissionBps, sellerCurrency } from "@/lib/seller/config";
 import { logger } from "@/lib/logger";
+
 export const dynamic = "force-dynamic";
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
-
-const SELLER_PRODUCT_COLS = `
-  id, title, slug, price_cents, compare_at_price_cents, currency, category,
-  status, inventory_status, image_url, source_type, supplier_product_id,
-  metadata, created_at, updated_at
-`;
+const ListQuery = paginationSchema(20, 100).extend({
+  status: z.enum(["active", "draft", "out_of_stock", "archived", "disabled"]).optional(),
+});
 
 export async function GET(req: Request) {
+  const sellerId = await getSellerSessionId();
+  if (!sellerId) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+
+  const parsed = ListQuery.safeParse(queryObject(new URL(req.url), ["limit", "offset", "status"]));
+  if (!parsed.success) return NextResponse.json({ success: false, error: "validation_error" }, { status: 400 });
+  const { limit, offset, status } = parsed.data;
+
   try {
-    const sellerId = await getSellerSessionId();
-    if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    const url = new URL(req.url);
-    const rawLimit = Number(url.searchParams.get("limit") || 20);
-    const rawOffset = Number(url.searchParams.get("offset") || 0);
-    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 100) : 20;
-    const offset = Number.isFinite(rawOffset) ? Math.max(Math.trunc(rawOffset), 0) : 0;
-
     const { rows } = await dbQuery(
       `SELECT ${SELLER_PRODUCT_COLS}
-       FROM marketplace_products
-       WHERE seller_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [sellerId, limit, offset],
+         FROM marketplace_products
+        WHERE seller_id = $1
+          AND CASE
+                WHEN $4::text IS NULL THEN status <> 'archived'
+                WHEN $4::text = 'out_of_stock' THEN status <> 'archived' AND (status = 'out_of_stock' OR inventory_status = 'out_of_stock')
+                ELSE status = $4::text
+              END
+        ORDER BY updated_at DESC, id
+        LIMIT $2 OFFSET $3`,
+      [sellerId, limit + 1, offset, status ?? null],
     );
-
-    return NextResponse.json({ success: true, products: rows, limit, offset, hasMore: rows.length === limit });
-  } catch (error: any) {
-    logger.error({ err: error }, "[Seller Products API] GET Error:");
-    return NextResponse.json({ success: false, error: "Eroare la preluarea produselor." }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      products: rows.slice(0, limit),
+      limit,
+      offset,
+      hasMore: rows.length > limit,
+      commissionBps: sellerCommissionBps(),
+      currency: sellerCurrency(),
+    });
+  } catch (error) {
+    logger.error({ err: error }, "[Seller Products API] GET Error");
+    return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
   }
 }
 
+async function insertVariants(productId: string, currency: string, basePriceCents: number, variants: NonNullable<z.infer<typeof SellerProductCreateSchema>["variants"]>) {
+  // Un singur INSERT multi-VALUES, atomic: ori intră toate variantele, ori niciuna.
+  const values: string[] = [];
+  const params: unknown[] = [productId, currency];
+  for (const v of variants) {
+    params.push(v.sku ?? null, v.title ?? null, JSON.stringify(v.attributes ?? {}), v.price_cents ?? basePriceCents, v.inventory_quantity ?? null);
+    const base = params.length - 5;
+    values.push(`($1, $${base + 1}, $${base + 2}, $${base + 3}::jsonb, $2, $${base + 4}, $${base + 5}, 'active', '{}'::jsonb)`);
+  }
+  await dbQuery(
+    `INSERT INTO marketplace_product_variants (
+       product_id, sku, title, attributes, currency, price_cents, inventory_quantity, status, metadata
+     ) VALUES ${values.join(", ")}`,
+    params,
+  );
+}
+
 export async function POST(req: Request) {
+  const sellerId = await getSellerSessionId();
+  if (!sellerId) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+
+  const rl = await rateLimit("sellerProducts", sellerId);
+  if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
+
+  const parsed = parseBody(SellerProductCreateSchema, await req.json().catch(() => null));
+  if (!parsed.ok) return NextResponse.json({ success: false, error: "validation_error" }, { status: 400 });
+  const d = parsed.data;
+
+  if (d.compare_at_price && d.compare_at_price < d.price) {
+    return NextResponse.json({ success: false, error: "compare_below_price" }, { status: 422 });
+  }
+  if (d.shipping_days_min !== undefined && d.shipping_days_max !== undefined && d.shipping_days_max < d.shipping_days_min) {
+    return NextResponse.json({ success: false, error: "invalid_shipping_days" }, { status: 400 });
+  }
+
   try {
-    const sellerId = await getSellerSessionId();
-    if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    const rl = await rateLimit("sellerProducts", sellerId);
-    if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
-
-    const raw = await req.json().catch(() => null);
-    const parsed = parseBody(SellerProductCreateSchema, raw);
-    if (!parsed.ok) {
-      return NextResponse.json({ success: false, error: parsed.error, code: parsed.code }, { status: 400 });
-    }
-    const d = parsed.data;
-
-    if (d.compare_at_price && d.compare_at_price < d.price) {
-      return NextResponse.json({ success: false, error: "Prețul comparativ trebuie să fie mai mare decât prețul curent." }, { status: 400 });
-    }
-    if (
-      d.shipping_days_min !== undefined &&
-      d.shipping_days_max !== undefined &&
-      d.shipping_days_max < d.shipping_days_min
-    ) {
-      return NextResponse.json({ success: false, error: "Interval livrare invalid." }, { status: 400 });
-    }
-
     const priceCents = Math.round(d.price * 100);
-    const compareCents = d.compare_at_price ? Math.round(d.compare_at_price * 100) : null;
-    const supplierCostCents = d.supplier_cost ? Math.round(d.supplier_cost * 100) : null;
-    const shippingCostCents = d.shipping_cost !== undefined ? Math.round(d.shipping_cost * 100) : null;
-    const firstImage = d.image_urls?.[0] || null;
-    const slug = `${slugify(d.title)}-${Date.now().toString(36)}`;
-    const inventoryStatus = d.stock > 0 ? "in_stock" : "out_of_stock";
-
-    const meta: Record<string, unknown> = {
-      seller_id: sellerId,
-      available_stock: d.stock,
-    };
+    const slug = sellerProductSlug(d.title);
+    const meta: Record<string, unknown> = { seller_id: sellerId, available_stock: d.stock };
     if (d.sku) meta.sku = d.sku;
     if (d.barcode) meta.barcode = d.barcode;
     if (d.image_urls?.length) meta.image_urls = d.image_urls;
-    if (d.video_url) meta.video_url = d.video_url;
-    meta.is_swypik_listed = d.is_swypik_listed ?? true;
-    if (d.swypik_price) meta.swypik_price = d.swypik_price;
     if (d.shipping_days_min !== undefined) meta.shipping_days_min = d.shipping_days_min;
     if (d.shipping_days_max !== undefined) meta.shipping_days_max = d.shipping_days_max;
     if (d.courier) meta.courier = d.courier;
 
     const { rows } = await dbQuery(
       `INSERT INTO marketplace_products (
-        source_type, seller_id, title, slug, description, brand,
-        price_cents, compare_at_price_cents, supplier_cost_cents, shipping_cost_cents,
-        category, taxonomy_node_slug, currency, status, inventory_status,
-        image_url, metadata
-      ) VALUES (
-        'seller', $1, $2, $3, $4, $5,
-        $6, $7, $8, $9,
-        $10, $11, $12, 'active', $13,
-        $14, $15::jsonb
-      )
-      RETURNING ${SELLER_PRODUCT_COLS}`,
+         source_type, seller_id, title, slug, description, brand,
+         price_cents, compare_at_price_cents, supplier_cost_cents, shipping_cost_cents,
+         category, taxonomy_node_slug, currency, status, inventory_status, image_url, metadata
+       ) VALUES ('seller', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active', $13, $14, $15::jsonb)
+       RETURNING ${SELLER_PRODUCT_COLS}`,
       [
         sellerId,
         d.title,
@@ -127,119 +125,48 @@ export async function POST(req: Request) {
         d.description ?? null,
         d.brand ?? null,
         priceCents,
-        compareCents,
-        supplierCostCents,
-        shippingCostCents,
+        d.compare_at_price ? Math.round(d.compare_at_price * 100) : null,
+        d.supplier_cost ? Math.round(d.supplier_cost * 100) : null,
+        d.shipping_cost !== undefined ? Math.round(d.shipping_cost * 100) : null,
         d.category ?? "General",
         d.taxonomy_node_slug ?? null,
         d.currency,
-        inventoryStatus,
-        firstImage,
+        inventoryStatusFor(d.stock),
+        d.image_urls?.[0] ?? null,
         JSON.stringify(meta),
       ],
     );
+    const product = rows[0];
+    const productId: string | undefined = product?.id;
+    if (!productId) return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
 
-    const productId: string | undefined = rows[0]?.id;
-
-    if (productId && d.video_url) {
-      try {
-        const { rows: sRows } = await dbQuery<{ user_id: string | null }>(
-          "SELECT user_id FROM sellers WHERE id = $1",
-          [sellerId]
-        );
-        const sellerUserId = sRows[0]?.user_id;
-        if (sellerUserId) {
-          const { rows: vRows } = await dbQuery<{ id: string }>(
-            `INSERT INTO videos (
-               creator_id, playback_url, thumbnail_url, title, description,
-               status, visibility, effective_label
-             ) VALUES ($1, $2, $3, $4, $5, 'ready', 'public', 'safe')
-             RETURNING id`,
-            [sellerUserId, d.video_url, firstImage, d.title, d.description ?? null]
-          );
-          const videoId = vRows[0]?.id;
-          if (videoId) {
-            await dbQuery(
-              `INSERT INTO video_product_links (
-                 video_id, product_id, placement, sort_order, metadata
-               ) VALUES ($1, $2, 'card', 0, '{}'::jsonb)`,
-              [videoId, productId]
-            );
-            await dbQuery(
-              `INSERT INTO creator_product_links (
-                 creator_id, product_id, status
-               ) VALUES ($1, $2, 'active')`,
-              [sellerUserId, productId]
-            );
-          }
-        }
-      } catch (videoErr) {
-        logger.error({ err: videoErr }, "[Seller Products] Error linking video to product:");
-      }
+    if (d.variants?.length) {
+      await insertVariants(productId, d.currency, priceCents, d.variants).catch((err) =>
+        logger.warn({ err, productId }, "[seller/products] variant insert failed"),
+      );
     }
 
-    if (productId && d.variants?.length) {
-      // Un singur INSERT multi-VALUES, atomic: ori intră toate variantele, ori
-      // niciuna — fără produse cu variante parțiale la o eroare la mijloc
-      // (audit 2026-08-24; înainte: INSERT per variantă cu .catch înghițit).
-      const values: string[] = [];
-      const params: unknown[] = [productId, d.currency];
-      for (const v of d.variants) {
-        params.push(
-          v.sku ?? null,
-          v.title ?? null,
-          JSON.stringify(v.attributes ?? {}),
-          v.price_cents ?? priceCents,
-          v.inventory_quantity ?? null,
-        );
-        const base = params.length - 5;
-        values.push(`($1, $${base + 1}, $${base + 2}, $${base + 3}::jsonb, $2, $${base + 4}, $${base + 5}, 'active', '{}'::jsonb)`);
-      }
-      await dbQuery(
-        `INSERT INTO marketplace_product_variants (
-           product_id, sku, title, attributes, currency, price_cents, inventory_quantity, status, metadata
-         ) VALUES ${values.join(", ")}`,
-        params,
-      ).catch((e) => logger.warn({ err: e?.message }, "[seller/products] variant insert failed"));
+    autoEmbedProduct(productId, product.title, d.description ?? null);
+    labelProduct({ id: productId, title: product.title, description: d.description ?? null, category: product.category ?? null }).catch(() => {});
+
+    const locale = await sellerRequestLocale();
+    await upsertSellerProductTranslation({ productId, locale, title: d.title, description: d.description ?? null, slug }).catch((err) =>
+      logger.warn({ err, productId }, "[seller/products] translation insert failed"),
+    );
+    translateProductToLocales({
+      productId,
+      sourceLocale: locale,
+      title: d.title,
+      description: d.description ?? null,
+      targetLocales: sellerTranslationTargets(locale),
+    }).catch((err) => logger.warn({ err, productId }, "[seller/products] translate fanout failed"));
+
+    return NextResponse.json({ success: true, product });
+  } catch (error) {
+    if ((error as { code?: string })?.code === "23514") {
+      return NextResponse.json({ success: false, error: "price_below_cost" }, { status: 422 });
     }
-
-    if (productId) {
-      autoEmbedProduct(productId, rows[0].title, d.description ?? null);
-      labelProduct({
-        id: productId,
-        title: rows[0].title,
-        description: d.description ?? null,
-        category: rows[0].category ?? null,
-      }).catch(() => {});
-
-      // Persist a translation row for the locale the seller used (source='seller').
-      const cookieStore = await cookies();
-      const cookieLocale = cookieStore.get(LOCALE_COOKIE)?.value;
-      const sellerLocale: Locale = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
-      await dbQuery(
-        `INSERT INTO product_translations (product_id, locale, title, description, slug, source)
-         VALUES ($1, $2, $3, $4, $5, 'seller')
-         ON CONFLICT (product_id, locale) DO UPDATE
-           SET title = EXCLUDED.title,
-               description = EXCLUDED.description,
-               slug = EXCLUDED.slug,
-               source = 'seller'`,
-        [productId, sellerLocale, d.title, d.description ?? null, slug],
-      ).catch((e) => logger.warn({ err: e?.message }, "[seller/products] translation insert failed"));
-
-      // Fire-and-forget: translate to the other RO/EN target so storefront has both.
-      const targetLocales: Locale[] = sellerLocale === "ro" ? ["en"] : ["ro"];
-      translateProductToLocales({
-        productId,
-        sourceLocale: sellerLocale,
-        title: d.title,
-        description: d.description ?? null,
-        targetLocales,
-      }).catch((e) => logger.warn({ err: e?.message }, "[seller/products] translate fanout failed"));
-    }
-    return NextResponse.json({ success: true, product: rows[0] });
-  } catch (error: any) {
-    logger.error({ err: error }, "[Seller Products API] POST Error:");
-    return NextResponse.json({ success: false, error: "Eroare la adaugarea produsului." }, { status: 500 });
+    logger.error({ err: error }, "[Seller Products API] POST Error");
+    return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
   }
 }

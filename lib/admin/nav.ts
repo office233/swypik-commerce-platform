@@ -116,6 +116,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { id: "news", href: "/admin/news", icon: Newspaper, permission: "content" },
       { id: "missions", href: "/admin/missions", icon: Trophy, permission: "content" },
       { id: "creatorPayouts", href: "/admin/creator-payouts", icon: Banknote, permission: "finance" },
+      { id: "sellerPayouts", href: "/admin/seller-payouts", icon: Banknote, permission: "finance" },
     ],
   },
   {

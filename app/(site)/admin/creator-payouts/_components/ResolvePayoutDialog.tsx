@@ -14,11 +14,12 @@ type Props = {
   error: string | null;
   onCancel: () => void;
   onConfirm: (note: string) => void;
+  ns?: string;
 };
 
 /** Confirmare „Marchează plătit” / „Respinge”, cu notă opțională. */
-export function ResolvePayoutDialog({ target, connectAvailable, busy, error, onCancel, onConfirm }: Props) {
-  const t = useTranslations("adminCreatorPayouts");
+export function ResolvePayoutDialog({ target, connectAvailable, busy, error, onCancel, onConfirm, ns = "adminCreatorPayouts" }: Props) {
+  const t = useTranslations(ns);
   const f = useFormatters();
   const [note, setNote] = useState("");
 

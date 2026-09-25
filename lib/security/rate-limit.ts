@@ -173,6 +173,8 @@ export const RATE_LIMITS = {
   sellerOrders: { limit: 30, window: 60 } as RateLimitConfig,         // seller orders mutate (tracking, refund, etc.)
   sellerReturns: { limit: 10, window: 60 } as RateLimitConfig,        // accept/reject return
   sellerProducts: { limit: 20, window: 60 } as RateLimitConfig,       // seller create products
+  sellerProductEdit: { limit: 60, window: 60 } as RateLimitConfig,    // seller edit/archive products (stock, price, variants)
+  sellerPayout: { limit: 3, window: 600 } as RateLimitConfig,         // seller payout request
   postsCreate: { limit: 5, window: 60 } as RateLimitConfig,           // Arena post create
   unsubscribe: { limit: 10, window: 60 } as RateLimitConfig,          // RFC 8058 one-click + landing
   liveStreams: { limit: 5, window: 60 } as RateLimitConfig,           // create stream

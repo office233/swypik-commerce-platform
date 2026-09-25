@@ -22,19 +22,11 @@ import { isLocale, LOCALE_COOKIE, DEFAULT_LOCALE, type Locale } from "@/lib/i18n
 import { labelProduct } from "@/lib/moderation/labelProduct";
 import { autoEmbedProduct } from "@/lib/ai/auto-embed";
 import { logger } from "@/lib/logger";
+import { slugify } from "@/lib/merchants/slug";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function slugify(input: string): string {
-    return input
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 80);
-}
 
 const LISTING_COLS = `
   id, slug, title, description, price_cents, currency, listing_type,

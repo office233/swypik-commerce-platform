@@ -16,9 +16,16 @@ import { PAYOUT_STATUSES, errorKey, type CreatorPayoutRow, type PayoutAction } f
 const FILTERS = [...PAYOUT_STATUSES, "all"] as const;
 type Filter = (typeof FILTERS)[number];
 
-/** Admin — coada cererilor de retragere ale creatorilor. */
-export function CreatorPayoutsAdmin() {
-  const t = useTranslations("adminCreatorPayouts");
+type AdminProps = {
+  /** API-ul cozii (creator implicit; sellerii: /api/admin/seller-payouts). */
+  endpoint?: string;
+  /** Namespace i18n cu aceleași chei ca adminCreatorPayouts. */
+  ns?: string;
+};
+
+/** Admin — coada cererilor de retragere (creatori sau selleri, aceeași formă de rând). */
+export function CreatorPayoutsAdmin({ endpoint = "/api/admin/creator-payouts", ns = "adminCreatorPayouts" }: AdminProps = {}) {
+  const t = useTranslations(ns);
   const { toast } = useToast();
   const [filter, setFilter] = useState<Filter>("pending");
   const [rows, setRows] = useState<CreatorPayoutRow[] | null>(null);
@@ -34,7 +41,7 @@ export function CreatorPayoutsAdmin() {
       setError(null);
       try {
         const qs = filter === "all" ? "" : `?status=${filter}`;
-        const res = await fetch(`/api/admin/creator-payouts${qs}`, { cache: "no-store" });
+        const res = await fetch(`${endpoint}${qs}`, { cache: "no-store" });
         const data = (await res.json().catch(() => ({}))) as {
           payouts?: CreatorPayoutRow[];
           connectAvailable?: boolean;
@@ -47,7 +54,7 @@ export function CreatorPayoutsAdmin() {
         setError(t(errorKey(e instanceof Error ? e.message : null)));
       }
     },
-    [filter, t],
+    [filter, t, endpoint],
   );
 
   useEffect(() => {
@@ -59,7 +66,7 @@ export function CreatorPayoutsAdmin() {
     setBusy(true);
     setActionError(null);
     try {
-      const res = await fetch("/api/admin/creator-payouts", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: target.payout.id, action: target.action, note: note || null }),
@@ -118,6 +125,7 @@ export function CreatorPayoutsAdmin() {
             {rows.map((p) => (
               <li key={p.id}>
                 <PayoutCard
+                  ns={ns}
                   payout={p}
                   connectAvailable={connectAvailable}
                   onAction={(action) => {
@@ -132,6 +140,7 @@ export function CreatorPayoutsAdmin() {
       </div>
 
       <ResolvePayoutDialog
+        ns={ns}
         target={target}
         connectAvailable={connectAvailable}
         busy={busy}

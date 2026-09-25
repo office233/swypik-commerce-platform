@@ -11,11 +11,13 @@ type Props = {
   payout: CreatorPayoutRow;
   connectAvailable: boolean;
   onAction: (action: PayoutAction) => void;
+  /** Namespace i18n (creator implicit; sellerii folosesc adminSellerPayouts). */
+  ns?: string;
 };
 
 /** Card pentru o cerere de retragere a unui creator. */
-export function PayoutCard({ payout: p, connectAvailable, onAction }: Props) {
-  const t = useTranslations("adminCreatorPayouts");
+export function PayoutCard({ payout: p, connectAvailable, onAction, ns = "adminCreatorPayouts" }: Props) {
+  const t = useTranslations(ns);
   const f = useFormatters();
   const status = (PAYOUT_STATUSES as readonly string[]).includes(p.status) ? p.status : "unknown";
   const viaStripe = connectAvailable && p.connect_ready === true;

@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
-import { requireAuth } from "@/lib/auth/getAuthUser";
+import { requireAdmin } from "@/lib/admin/guard";
 import { parseBody } from "@/lib/validation/schemas";
 import { resolveCreatorPayout, stripeConnectAvailable } from "@/lib/creator/payouts";
 import { logAdminAction } from "@/lib/security/admin-audit";
@@ -24,7 +24,7 @@ const PostSchema = z
   .strict();
 
 export async function GET(req: Request) {
-  const auth = await requireAuth(req, ["admin"]);
+  const auth = await requireAdmin(req, "finance");
   if (auth instanceof NextResponse) return auth;
   const status = new URL(req.url).searchParams.get("status");
   if (status && !STATUSES.has(status)) return NextResponse.json({ error: "invalid_status" }, { status: 400 });
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireAuth(req, ["admin"]);
+  const auth = await requireAdmin(req, "finance");
   if (auth instanceof NextResponse) return auth;
   const parsed = parseBody(PostSchema, await req.json().catch(() => null));
   if (!parsed.ok) return NextResponse.json({ error: "invalid_body", code: parsed.code }, { status: 400 });
@@ -59,6 +59,7 @@ export async function POST(req: Request) {
       targetType: "payout_request",
       targetId: parsed.data.id,
       details: { via: res.via, note: parsed.data.note ?? null },
+      actor: auth,
       req,
     });
     return NextResponse.json(res);

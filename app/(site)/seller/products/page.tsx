@@ -1,143 +1,18 @@
-"use client";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { SellerProducts } from "@/components/seller/products/SellerProducts";
+import { Skeleton } from "@/components/ui/Skeleton";
 
-import { useState, useEffect } from "react";
-import AddProductWizard from "./AddProductWizard";
-import ViralCatalogModal from "./ViralCatalogModal";
-import { useTranslations } from "next-intl";
-import { Tag, Sparkles, Plus } from "lucide-react";
-import { logger } from "@/lib/logger";
-import { isEnabledClient } from "@/lib/feature-flags-client";
+export const dynamic = "force-dynamic";
 
-export default function SellerProductsPage() {
-  const t = useTranslations("sellerProducts");
-  const [isAdding, setIsAdding] = useState(false);
-  const [isViralModalOpen, setIsViralModalOpen] = useState(false);
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  async function loadProducts() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/seller/products");
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.success) {
-        setProducts(data.products);
-      } else {
-        logger.error({ status: res.status, error: data?.error }, "Failed to load seller products");
-      }
-    } catch (err) {
-      logger.error({ err }, "Failed to load seller products");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const STATUS_LABELS: Record<string, string> = {
-    active: t("statusActive"),
-    draft: t("statusDraft"),
-    out_of_stock: t("statusOutOfStock"),
-    archived: t("statusArchived"),
-    disabled: t("statusDisabled"),
-  };
-  const statusLabel = (status: string) => STATUS_LABELS[status] || status;
-
+/** Catalogul seller-ului: adăugare + editare (preț, stoc, imagini, categorie, variante), arhivare. */
+export default async function SellerProductsPage() {
+  const sellerId = await getSellerSessionId();
+  if (!sellerId) redirect("/seller/login?next=/seller/products");
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-[#0D0D0D]">{t("title")}</h1>
-          <p className="text-sm text-[#6E6E80] mt-1">{t("subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isEnabledClient("viralCatalog") && (
-            <button
-              type="button"
-              onClick={() => setIsViralModalOpen(true)}
-              className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:from-violet-700 hover:to-indigo-700 shadow-sm transition active:scale-95"
-            >
-              <Sparkles size={16} /> {t("viralProductsCta")}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setIsAdding(true)}
-            aria-label={t("addAria")}
-            className="inline-flex items-center justify-center gap-1 bg-[#0D0D0D] text-white px-5 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:bg-[#0D0D0D]/80 transition active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            <Plus size={16} /> {t("addProductCta")}
-          </button>
-        </div>
-      </div>
-
-      <ViralCatalogModal
-        isOpen={isViralModalOpen}
-        onClose={() => setIsViralModalOpen(false)}
-        onProductImported={() => loadProducts()}
-      />
-
-      <div className="bg-white rounded-2xl border border-[#E5E5E5] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5]">
-              <tr>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thProduct")}</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thCategory")}</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thStatus")}</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thStock")}</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">{t("thPrice")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E5E5]">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-[#6E6E80]">{t("loading")}</td>
-                </tr>
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <p className="mb-3 flex justify-center"><Tag size={32} /></p>
-                    <p className="font-bold text-[#0D0D0D]">{t("emptyTitle")}</p>
-                    <p className="text-sm text-[#6E6E80] mt-1">{t("emptySubtitle")}</p>
-                  </td>
-                </tr>
-              ) : (
-                products.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#F7F7F8] transition">
-                    <td className="px-6 py-4 font-bold text-[#0D0D0D]">
-                      <div className="flex items-center gap-3">
-                        {p.image_url && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.image_url} alt="" width={40} height={40} className="w-10 h-10 rounded-lg object-cover border border-[#E5E5E5] shrink-0" />
-                        )}
-                        <span className="line-clamp-2 break-words">{p.title}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-[#6E6E80]">{p.category || t("categoryGeneric")}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-block px-2.5 py-1 bg-neutral-100 text-neutral-900 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                        {statusLabel(p.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-[#0D0D0D]">{p.metadata?.available_stock ?? 0}</td>
-                    <td className="px-6 py-4 text-right font-black text-[#0D0D0D]">{Number(p.price_cents / 100).toFixed(2)} {p.currency || "lei"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {isAdding && (
-        <AddProductWizard
-          onClose={() => setIsAdding(false)}
-          onSaved={() => { setIsAdding(false); loadProducts(); }}
-        />
-      )}
-    </div>
+    <Suspense fallback={<Skeleton className="h-64 w-full rounded-card" />}>
+      <SellerProducts />
+    </Suspense>
   );
 }

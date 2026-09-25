@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { rateLimit } from "@/lib/security/rate-limit";
-import { sendCustomerShippingAlert } from "@/lib/email/service";
+import { recordSellerShipment } from "@/lib/seller/shipping";
 import { logger } from "@/lib/logger";
 import { SellerGenerateAwbSchema, parseBody } from "@/lib/validation/schemas";
 import { carrierName, carrierTrackingUrl, type CarrierCode } from "@/lib/fulfillment/carriers";
 
 export const dynamic = "force-dynamic";
+
+// Neplătite sau închise: nu se pot expedia (vezi lib/seller/fulfilment.ts).
+const SHIP_BLOCKED_STATUSES = new Set(["pending", "authorized", "cancelled", "refunded", "failed", "return_requested"]);
 
 type AwbDetails = {
   awb_number?: string;
@@ -264,7 +267,7 @@ export async function POST(
     }
 
     const currentStatus = checkOrder.rows[0].status;
-    if (["cancelled", "refunded", "failed"].includes(currentStatus)) {
+    if (SHIP_BLOCKED_STATUSES.has(currentStatus)) {
       return NextResponse.json(
         { success: false, error: "invalid_status" },
         { status: 409 }
@@ -280,76 +283,6 @@ export async function POST(
     }
     const { trackingNumber, carrierName: resolvedCarrierName, trackingUrl } = resolved;
 
-    // 1. Update items belonging to this seller
-    await dbQuery(
-      `UPDATE commerce_order_items
-       SET source_status = 'fulfilled',
-           metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
-             'tracking_number', $3::text,
-             'tracking_url', $4::text,
-             'carrier', $5::text,
-             'fulfilled_at', NOW()::text
-           )
-       WHERE order_id = $1 AND metadata->>'seller_id' = $2`,
-      [orderId, sellerId, trackingNumber, trackingUrl, resolvedCarrierName]
-    );
-
-    // 2. Insert/update supplier order
-    const supplierOrderId = `${orderId}:${sellerId}`;
-    const supplierOrderRes = await dbQuery(
-      `INSERT INTO supplier_orders (
-         commerce_order_id, supplier, supplier_order_id, status, metadata, submitted_at
-       ) VALUES ($1, 'seller', $2, 'shipped', $3::jsonb, now())
-       ON CONFLICT (supplier, supplier_order_id) WHERE supplier_order_id IS NOT NULL
-       DO UPDATE SET
-         status = 'shipped',
-         metadata = supplier_orders.metadata || EXCLUDED.metadata,
-         submitted_at = COALESCE(supplier_orders.submitted_at, EXCLUDED.submitted_at),
-         updated_at = now()
-       RETURNING id`,
-      [
-        orderId,
-        supplierOrderId,
-        JSON.stringify({
-          seller_id: sellerId,
-          tracking_number: trackingNumber,
-          tracking_url: trackingUrl,
-          carrier: resolvedCarrierName,
-        }),
-      ]
-    );
-    const supplierOrderDbId = supplierOrderRes.rows[0]?.id || null;
-
-    // 3. Record fulfillment shipment
-    await dbQuery(
-      `INSERT INTO fulfillment_shipments (
-         commerce_order_id, supplier_order_id, tracking_number, tracking_url, status, shipped_at, metadata
-       )
-       SELECT $1, $2, $3, $4, 'in_transit', now(), $5::jsonb
-       WHERE NOT EXISTS (
-         SELECT 1 FROM fulfillment_shipments
-         WHERE commerce_order_id = $1 AND tracking_number = $3
-       )`,
-      [
-        orderId,
-        supplierOrderDbId,
-        trackingNumber,
-        trackingUrl,
-        JSON.stringify({ source: "seller", seller_id: sellerId, carrier: resolvedCarrierName }),
-      ]
-    );
-
-    // 4. Check remaining items across all sellers
-    const statusRes = await dbQuery(
-      `SELECT
-         COUNT(*) FILTER (WHERE source_status NOT IN ('fulfilled', 'cancelled')) AS remaining_items,
-         COUNT(*) AS total_items
-       FROM commerce_order_items
-       WHERE order_id = $1`,
-      [orderId]
-    );
-    const remainingItems = Number(statusRes.rows[0]?.remaining_items || 0);
-
     const awbDetailsObj = {
       awb_number: trackingNumber,
       carrier: resolvedCarrierName,
@@ -360,53 +293,23 @@ export async function POST(
       locker_name: locker_name || null,
       generated_at: new Date().toISOString(),
     };
-
-    const orderMetadataPatch: Record<string, unknown> = {
-      fulfillment_status: remainingItems === 0 ? "shipped" : "partially_shipped",
-      latest_tracking_number: trackingNumber,
-      latest_tracking_url: trackingUrl,
+    const orderMetaExtra: Record<string, unknown> = {
       tracking_number: trackingNumber,
       tracking_url: trackingUrl,
-      tracking_carrier: resolvedCarrierName,
       shipping_method: resolvedCarrierName,
       awb_details: awbDetailsObj,
     };
+    if (locker_name) orderMetaExtra.easybox_locker = locker_name;
 
-    if (locker_name) {
-      orderMetadataPatch.easybox_locker = locker_name;
-    }
-
-    const trackingEntry = {
-      seller_id: sellerId,
+    await recordSellerShipment({
+      orderId,
+      sellerId,
+      trackingNumber,
+      trackingUrl,
       carrier: resolvedCarrierName,
-      tracking_number: trackingNumber,
-      tracking_url: trackingUrl,
-      added_at: new Date().toISOString(),
-    };
-
-    await dbQuery(
-      `UPDATE commerce_orders
-       SET metadata = jsonb_set(
-             COALESCE(metadata, '{}'::jsonb) || $2::jsonb,
-             '{tracking_numbers}',
-             COALESCE(metadata->'tracking_numbers', '[]'::jsonb) || jsonb_build_array($3::jsonb),
-             true
-           ),
-           status = CASE WHEN $4::int = 0 THEN 'fulfilled' ELSE status END,
-           fulfilled_at = CASE WHEN $4::int = 0 THEN COALESCE(fulfilled_at, now()) ELSE fulfilled_at END
-       WHERE id = $1`,
-      [orderId, JSON.stringify(orderMetadataPatch), JSON.stringify(trackingEntry), remainingItems]
-    );
-
-    // 5. Send tracking alert email to buyer if available
-    try {
-      const customerEmail = checkOrder.rows[0].metadata?.customer_email;
-      if (customerEmail) {
-        await sendCustomerShippingAlert(customerEmail, trackingNumber);
-      }
-    } catch (emailErr) {
-      logger.error({ err: emailErr }, "[Seller AWB API] Nu s-a putut trimite emailul de tracking:");
-    }
+      customerEmail: checkOrder.rows[0].metadata?.customer_email ?? null,
+      orderMetaExtra,
+    });
 
     return NextResponse.json({
       success: true,

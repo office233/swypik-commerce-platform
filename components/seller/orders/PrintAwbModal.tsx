@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { SellerOrder } from "./types";
+import type { SellerOrderRow as SellerOrder } from "./types";
 import { X, Printer, Loader2 } from "lucide-react";
 
 type Props = {
