@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { embed, toPgVector, isEmbeddingConfigured } from "@/lib/ai/embeddings";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ type ProductRow = {
 const HEADERS = {
   "Cache-Control": "no-store",
 };
+
+/** Rezultat reușit (inclusiv „fără rezultate”) → cache la edge; eroarea rămâne no-store. */
+function cached(req: Request, body: unknown): NextResponse {
+  return applyCachePolicy(NextResponse.json(body), "products/similar", req);
+}
 
 const VECTOR_MIN_SIMILARITY = 0.35;
 const PRODUCT_VECTOR_MIN_SIMILARITY = 0.42;
@@ -169,24 +175,24 @@ export async function GET(req: Request) {
       const row = res.rows[0];
       if (!row || !row.embedding) {
         // niciun embedding pt produs (pgvector neactivat sau cron încă nu a procesat)
-        return NextResponse.json({ products: [], reason: "no-embedding" }, { headers: HEADERS });
+        return cached(req, { products: [], reason: "no-embedding" });
       }
       pgVec = row.embedding;
       sourceTaxonomySlug = row.taxonomy_node_slug;
     } else if (text) {
       const textProducts = await searchByText(text, limit);
       if (textProducts.length > 0) {
-        return NextResponse.json({ products: textProducts, mode: "text" }, { headers: HEADERS });
+        return cached(req, { products: textProducts, mode: "text" });
       }
       if (!isEmbeddingConfigured()) {
-        return NextResponse.json({ products: [], reason: "embeddings-off" }, { headers: HEADERS });
+        return cached(req, { products: [], reason: "embeddings-off" });
       }
       const vec = await embed(text);
       pgVec = toPgVector(vec);
     }
 
     if (!pgVec) {
-      return NextResponse.json({ products: [] }, { headers: HEADERS });
+      return cached(req, { products: [] });
     }
 
     const minSimilarity = productId ? PRODUCT_VECTOR_MIN_SIMILARITY : VECTOR_MIN_SIMILARITY;
@@ -229,10 +235,7 @@ export async function GET(req: Request) {
 
     const products = res.rows.map((row) => toProduct(row, "vector"));
 
-    return NextResponse.json(
-      { products, mode: "vector", reason: products.length ? undefined : "low-similarity" },
-      { headers: HEADERS }
-    );
+    return cached(req, { products, mode: "vector", reason: products.length ? undefined : "low-similarity" });
   } catch (e: any) {
     // probabil pgvector neactivat sau coloana embedding lipsește
     return NextResponse.json(

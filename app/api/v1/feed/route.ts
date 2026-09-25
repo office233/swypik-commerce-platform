@@ -5,20 +5,12 @@ import { getOptionalSocialUserId } from "@/lib/social/session";
 import { dbQuery } from "@/lib/db";
 
 import { logger } from "@/lib/logger";
+import { applyCachePolicy, applyNoStore } from "@/lib/http/cache-policy";
 export const dynamic = "force-dynamic";
 
-/** Feed personalizat (viewer identificat prin cookie) — niciodată în cache partajat. */
-const PRIVATE_FEED_CACHE = {
-  "Cache-Control": "private, max-age=30",
-  Vary: "Cookie",
-} as const;
-
-/** Feed anonim, identic pentru toată lumea — poate sta la edge. */
-const SHARED_FEED_CACHE = {
-  "Cache-Control": "public, max-age=30, s-maxage=120, stale-while-revalidate=240",
-  "CDN-Cache-Control": "public, max-age=120",
-  Vary: "Cookie",
-} as const;
+// Cache: lib/http/cache-policy.ts ("v1/feed", audiență anonimă). Cu cookie de
+// identitate (sesiune, anon, feed_sid) răspunsul e personalizat (ordinea
+// clipurilor, `viewerVote`, seen-set) → `private, no-store`; fără → edge.
 
 function toInt(value: string | null, fallback: number, min: number, max: number) {
   const n = Number(value);
@@ -222,8 +214,8 @@ export async function GET(req: Request) {
         const videos: ExploreVideo[] = Array.isArray(payload?.videos) ? payload.videos : [];
         const items = videos.map((video, index) =>
           withVideoRefs(toExploreFeedItem(video, offset + index, seed), Boolean(video.viewer?.liked)));
-        return NextResponse.json(
-          {
+        return applyCachePolicy(
+          NextResponse.json({
             items,
             products: items.map((item) => item.product).filter(Boolean),
             paging: {
@@ -233,14 +225,9 @@ export async function GET(req: Request) {
               total: null,
             },
             source: "explore-feed",
-          },
-          {
-            // 2026-08-24 (audit perf): răspunsul e personalizat când cererea
-            // poartă cookie — ordinea clipurilor și `product.votes.viewerVote`
-            // sunt ale viewerului. `public` + `s-maxage` invită orice cache
-            // partajat (Cloudflare e în față) să-l servească altcuiva.
-            headers: cookie ? PRIVATE_FEED_CACHE : SHARED_FEED_CACHE,
-          }
+          }),
+          "v1/feed",
+          req,
         );
       }
     } catch (e) {
@@ -290,21 +277,19 @@ export async function GET(req: Request) {
 
     const nextOffset = offset + result.products.length;
 
-    return NextResponse.json(
-      {
-        items: visibleItems,
-        products: result.products,
-        paging: {
-          offset,
-          limit,
-          nextOffset: nextOffset < result.total ? nextOffset : null,
-          total: result.total,
-        },
-        source: "next-fallback",
+    // Lista e filtrată după `seen_video_ids` când există viewer ⇒ personalizată.
+    const res = NextResponse.json({
+      items: visibleItems,
+      products: result.products,
+      paging: {
+        offset,
+        limit,
+        nextOffset: nextOffset < result.total ? nextOffset : null,
+        total: result.total,
       },
-      // Lista e filtrată după `seen_video_ids` când există viewer ⇒ personalizată.
-      { headers: userId ? PRIVATE_FEED_CACHE : SHARED_FEED_CACHE }
-    );
+      source: "next-fallback",
+    });
+    return userId ? applyNoStore(res) : applyCachePolicy(res, "v1/feed", req);
   } catch (error) {
     logger.error({ err: error }, "[Social Feed Fallback]");
     return NextResponse.json({ items: [], products: [], error: "Feed unavailable" }, { status: 500 });

@@ -23,6 +23,7 @@ import {
     ACTION_KEY,
 } from "@/lib/verticals/catalog";
 import { logger } from "@/lib/logger";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -201,13 +202,11 @@ export async function GET(req: Request) {
             weight: weights[v.group] ?? 1,
         })).sort((a, b) => b.weight - a.weight);
 
-        return NextResponse.json({
-            success: true,
-            items,
-            rail,
-            page,
-            hasMore: items.length === limit,
-        });
+        return applyCachePolicy(
+            NextResponse.json({ success: true, items, rail, page, hasMore: items.length === limit }),
+            "feed/universal",
+            req,
+        );
     } catch (error: unknown) {
         logger.error({ err: error }, "[feed/universal] error");
         return NextResponse.json({ success: false, error: "Eroare la încărcarea feed-ului." }, { status: 500 });

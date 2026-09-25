@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { isExternalStaysConfigured } from "@/lib/stays/provider";
 import { getFlyDeals } from "@/lib/fly/deals-service";
 import { flyBookingGuard } from "@/lib/fly/gate";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +42,10 @@ export async function GET(req: Request) {
         departDate,
     }));
 
-    return NextResponse.json({ origin, packages, staysComingSoon: !isExternalStaysConfigured() });
+    return applyCachePolicy(
+        NextResponse.json({ origin, packages, staysComingSoon: !isExternalStaysConfigured() }),
+        "trips/packages",
+        req,
+    );
 }
 

@@ -8,6 +8,7 @@ import { isLiveMediaConfigured } from "@/lib/live/config";
 import { parseBody } from "@/lib/validation/schemas";
 import { paginationSchema, queryObject } from "@/lib/validation/params";
 import { z } from "zod";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ async function GET_impl(req: NextRequest) {
     [status, limit, offset],
   );
 
-  return NextResponse.json({ items: rows });
+  return applyCachePolicy(NextResponse.json({ items: rows }), "live/streams", req);
 }
 
 export const POST = withErrorHandling(POST_impl);

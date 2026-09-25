@@ -8,6 +8,7 @@ import { z } from "zod";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { geoSearch } from "@/lib/geo/nominatim";
 import { logger } from "@/lib/logger";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export async function GET(req: Request) {
   }
   try {
     const results = await geoSearch(parsed.data.q);
-    return NextResponse.json({ results });
+    return applyCachePolicy(NextResponse.json({ results }), "geo/search", req);
   } catch (e) {
     log.warn({ err: (e as Error).message }, "geo search failed");
     return NextResponse.json({ results: [] });

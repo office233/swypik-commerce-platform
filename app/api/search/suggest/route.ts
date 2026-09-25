@@ -7,6 +7,7 @@ import { moderateText } from "@/lib/moderation/moderateText";
 import { searchCreators, searchHashtags, searchProducts } from "@/lib/search/query";
 
 import { logger } from "@/lib/logger";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 export const dynamic = "force-dynamic";
 
 type Suggestion = { label: string; type: "categorie" | "produs" | "hashtag" | "user"; href?: string; count?: number };
@@ -36,11 +37,11 @@ export async function GET(req: Request) {
     const rawLimit = Number(url.searchParams.get("limit") || 8);
     const limit = Number.isInteger(rawLimit) ? Math.max(1, Math.min(rawLimit, 12)) : 8;
 
-    if (q.length < 2) return NextResponse.json({ ok: true, suggestions: [] });
+    if (q.length < 2) return applyCachePolicy(NextResponse.json({ ok: true, suggestions: [] }), "search/suggest", req);
 
     const cacheKey = `suggest_${q}_${limit}`;
     const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < CACHE_TTL) return NextResponse.json(cached.data);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) return applyCachePolicy(NextResponse.json(cached.data), "search/suggest", req);
 
     const suggestions: Suggestion[] = [];
     const seenLabels = new Set<string>();
@@ -97,7 +98,7 @@ export async function GET(req: Request) {
     const responseData = { ok: true, q, suggestions: suggestions.slice(0, limit) };
     if (cache.size >= CACHE_MAX_ENTRIES) cache.delete(cache.keys().next().value as string);
     cache.set(cacheKey, { data: responseData, ts: Date.now() });
-    return NextResponse.json(responseData, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
+    return applyCachePolicy(NextResponse.json(responseData), "search/suggest", req);
   } catch (error: any) {
     logger.error({ err: error }, "[Search Suggest]");
     return NextResponse.json({ ok: false, error: "A apărut o eroare la căutare.", suggestions: [] }, { status: 500 });

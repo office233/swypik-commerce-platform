@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { logger } from "@/lib/logger";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ type GameRow = {
  * (is_active = true) instead of a hardcoded list, so a broken/deactivated
  * seed like game_sudoku never shows up.
  */
-export async function GET() {
+export async function GET(req: Request) {
   if (!isEnabled("gaming")) return frozenResponse("gaming");
 
   try {
@@ -29,7 +30,7 @@ export async function GET() {
         WHERE is_active = true AND source_type = 'self_hosted'
         ORDER BY created_at ASC`,
     );
-    return NextResponse.json({ ok: true, games: rows });
+    return applyCachePolicy(NextResponse.json({ ok: true, games: rows }), "gaming/games", req);
   } catch (err) {
     logger.error({ err }, "[gaming.games] failed");
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });

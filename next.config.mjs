@@ -114,6 +114,10 @@ const nextConfig = {
   ...(useSharedCache ? { cacheHandler: CACHE_HANDLER_PATH, cacheMaxMemorySize: 0 } : {}),
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
+  // Compresia (brotli/gzip) o face Cloudflare la edge — replicile nu mai ard CPU
+  // pe gzip pentru fiecare răspuns (Tunnel → origin e HTTP intern). NEXT_COMPRESS=1
+  // o repornește pentru un deploy fără Cloudflare în față. (w6-performance)
+  compress: process.env.NEXT_COMPRESS === "1",
   eslint: {
     ignoreDuringBuilds: false,
   },
@@ -219,21 +223,10 @@ const nextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
         ],
       },
-      {
-        // Homepage + product pages: cache at edge 2 min
-        source: '/',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=30, s-maxage=120, stale-while-revalidate=300' },
-          { key: 'CDN-Cache-Control', value: 'public, max-age=120' },
-        ],
-      },
-      {
-        source: '/product/:id*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' },
-          { key: 'CDN-Cache-Control', value: 'public, max-age=300' },
-        ],
-      },
+      // (w6-performance) Scoase regulile `public, s-maxage` pentru `/` și
+      // `/product/:id*`: pagina de produs e `force-dynamic` și citește sesiunea,
+      // deci NU are voie în cache partajat; `/` e ISR și primește deja de la Next
+      // `s-maxage` = `revalidate`. Politica de edge: docs/infra/edge-cache.md.
     ];
   },
 };

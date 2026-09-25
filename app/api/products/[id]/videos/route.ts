@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
 import { logger } from "@/lib/logger";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 /**
  * GET /api/products/[id]/videos
  * Public endpoint — returns videos that reference a given product.
  * product_refs schema: [{"source":"...","product_id":"<uuid>"}] OR legacy ["<uuid>"].
  */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: productId } = await params;
@@ -37,10 +38,11 @@ export async function GET(
          AND v.visibility = 'public'
          AND v.effective_label = 'safe'
          AND COALESCE(v.is_hidden, false) = false
-         AND EXISTS (
-           SELECT 1 FROM jsonb_array_elements(COALESCE(v.product_refs, '[]'::jsonb)) e
-           WHERE (e ? 'product_id' AND e->>'product_id' = $1)
-              OR (jsonb_typeof(e) = 'string' AND e #>> '{}' = $1)
+         -- Containment (@>) folosește indexul GIN existent pe product_refs
+         -- (jsonb_path_ops); EXISTS(jsonb_array_elements …) scana toate clipurile.
+         AND (
+           v.product_refs @> jsonb_build_array(jsonb_build_object('product_id', $1::text))
+           OR v.product_refs @> jsonb_build_array($1::text)
          )
        ORDER BY v.view_count DESC NULLS LAST, v.published_at DESC NULLS LAST
        LIMIT 12`,
@@ -61,7 +63,7 @@ export async function GET(
       creatorId: r.creator_id,
     }));
 
-    return NextResponse.json({ videos });
+    return applyCachePolicy(NextResponse.json({ videos }), "products/[id]/videos", req);
   } catch (err: any) {
     logger.error({ err: err.message }, "[products/videos] query error:");
     return NextResponse.json({ videos: [] });

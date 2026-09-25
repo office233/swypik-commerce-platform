@@ -9,12 +9,11 @@ import { dbQuery } from "@/lib/db";
 import type { CaptionSegment } from "@/lib/ai/transcribe";
 import { segmentsToVtt } from "@/lib/video/captions";
 import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
+import { applyCachePolicy } from "@/lib/http/cache-policy";
 
 export const dynamic = "force-dynamic";
 
 type CapRow = { lang: string; text: string; segments: CaptionSegment[] | null; is_auto: boolean };
-
-const CACHE = "public, s-maxage=3600, stale-while-revalidate=86400";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,9 +36,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!row) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   if (url.searchParams.get("format") === "vtt") {
-    return new NextResponse(segmentsToVtt(row.segments ?? []), {
-      headers: { "Content-Type": "text/vtt; charset=utf-8", "Cache-Control": CACHE },
-    });
+    return applyCachePolicy(
+      new NextResponse(segmentsToVtt(row.segments ?? []), {
+        headers: { "Content-Type": "text/vtt; charset=utf-8" },
+      }),
+      "videos/[id]/captions",
+      req,
+    );
   }
-  return NextResponse.json(row, { headers: { "Cache-Control": CACHE } });
+  return applyCachePolicy(NextResponse.json(row), "videos/[id]/captions", req);
 }
