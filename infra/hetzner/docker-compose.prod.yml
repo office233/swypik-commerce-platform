@@ -140,8 +140,8 @@ services:
       # Server-only runtime secrets pass through as-is from .env.production —
       # no defaults here, missing values fail loudly in the code that reads
       # them (lib/messenger/livekit.ts,
-      # lib/audio/jamendo.ts, lib/news/ai-journalist.ts): LIVEKIT_API_KEY,
-      # LIVEKIT_API_SECRET, LIVEKIT_URL, GEMINI_API_KEY,
+      # lib/audio/jamendo.ts, lib/ai/azure): LIVEKIT_API_KEY,
+      # LIVEKIT_API_SECRET, LIVEKIT_URL, AZURE_OPENAI_* / AZURE_CONTENT_SAFETY_*,
       # JAMENDO_CLIENT_ID.
       - .env.production
     depends_on:

@@ -7,8 +7,7 @@
  */
 
 import { dbQuery } from "@/lib/db";
-import { embed, toPgVector, EmbeddingError } from "@/lib/ai/embeddings";
-import { getCopilotGhuTokens } from "@/lib/ai/github-models-tokens";
+import { embed, toPgVector, EmbeddingError, isEmbeddingConfigured } from "@/lib/ai/embeddings";
 import { logger } from "@/lib/logger";
 
 type Kind = "product" | "video";
@@ -20,7 +19,7 @@ function table(k: Kind): string {
 async function doEmbed(kind: Kind, id: string, text: string): Promise<void> {
   const clean = String(text || "").trim();
   if (!clean) return;
-  if (getCopilotGhuTokens().length === 0) return;
+  if (!isEmbeddingConfigured()) return;
   try {
     const vec = await embed(clean);
     await dbQuery(

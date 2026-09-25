@@ -83,15 +83,17 @@ beforeEach(() => {
   db.sources = [];
   generate.mockReset();
   generate.mockImplementation(async (t: { url: string }) => article(`story-${t.url.slice(-1)}`));
-  process.env.GEMINI_API_KEY = "k";
-  process.env.NEWS_GEMINI_MODEL = "model-from-env";
+  process.env.AZURE_OPENAI_ENDPOINT = "https://res.openai.azure.com";
+  process.env.AZURE_OPENAI_API_KEY = "k";
+  process.env.NEWS_AI_DEPLOYMENT = "model-from-env";
   delete process.env.NEWS_PUBLISH_MODE;
   vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(url.includes("atom") ? ATOM : RSS, { status: 200 })));
 });
 afterEach(() => {
   vi.unstubAllGlobals();
-  delete process.env.GEMINI_API_KEY;
-  delete process.env.NEWS_GEMINI_MODEL;
+  delete process.env.AZURE_OPENAI_ENDPOINT;
+  delete process.env.AZURE_OPENAI_API_KEY;
+  delete process.env.NEWS_AI_DEPLOYMENT;
 });
 
 describe("news ingest dedupe", () => {
@@ -102,7 +104,7 @@ describe("news ingest dedupe", () => {
     expect(db.sources.map((s) => s[2]).sort()).toEqual(["https://atom.example/comet", "https://bbc.example/a", "https://bbc.example/b"]);
     expect(db.sources.every((s) => typeof s[1] === "string")).toBe(true); // source_id written
     const a = db.articles.get("story-a");
-    expect(a).toMatchObject({ status: "published", model: "model-from-env", cover: "https://img.example/a.jpg" });
+    expect(a).toMatchObject({ status: "published", model: "azure:model-from-env", cover: "https://img.example/a.jpg" });
   });
 
   it("a second run over the same feeds generates nothing (duplicates)", async () => {

@@ -11,6 +11,7 @@
  */
 import { dbQuery } from "@/lib/db";
 import { moderate } from "@/lib/ai/moderate";
+import { hasOpenImageCase } from "@/lib/moderation/cases";
 import { classifyText } from "@/lib/moderation/classifier";
 import { labelVideo } from "@/lib/moderation/labelVideo";
 import { recordStrike } from "@/lib/moderation/strikes";
@@ -53,11 +54,14 @@ export async function moderateOnPublish(input: ModerationInput): Promise<Moderat
     return "pending_review";
   }
 
+  // Azure Content Safety; indisponibil (429 F0 / timeout) → reasons=["moderation_unavailable"] → review.
   const ai = await moderate(text);
   if (ai.flagged) {
     await openCase(input.videoId, ai.reasons, "ai_auto", text);
     return "pending_review";
   }
+  // Thumbnail/coperta semnalate de workerul video sau de ruta cover → rămân în review.
+  if (await hasOpenImageCase(input.videoId)) return "pending_review";
   return moderationMode() === "manual" ? "pending_review" : "approved";
 }
 

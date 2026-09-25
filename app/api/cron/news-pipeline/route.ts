@@ -41,7 +41,7 @@ function authorizeCronRequest(request: NextRequest): boolean {
  *   - an authenticated ADMIN request (see lib/security/admin-auth.ts) for
  *     manual/on-demand triggers from the admin panel.
  * Every call — even ones from a legitimate cron/admin caller — is rate
- * limited, since each run can invoke the Gemini API up to NEWS_MAX_ARTICLES_PER_RUN
+ * limited, since each run can invoke Azure OpenAI up to NEWS_MAX_ARTICLES_PER_RUN
  * times (unbounded cost otherwise).
  */
 async function handle(req: NextRequest) {
@@ -76,7 +76,7 @@ async function handle(req: NextRequest) {
 
     if (res.reason === "ai_not_configured") {
       // Vizibil în logurile cron-worker (FAIL status=503) până se setează cheia + modelul.
-      logger.error("[news-pipeline] GEMINI_API_KEY / NEWS_GEMINI_MODEL missing — nothing ingested");
+      logger.error("[news-pipeline] Azure OpenAI (AZURE_OPENAI_* / NEWS_AI_DEPLOYMENT) missing — nothing ingested");
       return NextResponse.json({ ok: false, error: "news_ai_not_configured", triggeredBy }, { status: 503 });
     }
     if (res.ingested === 0 && res.errors > 0) {

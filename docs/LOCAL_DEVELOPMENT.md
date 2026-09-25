@@ -186,9 +186,9 @@ Direct `process.env` references under `app/`, `lib/`, and `next.config.mjs`:
 | `ADMIN_SESSION_TTL_HOURS` | Admin session lifetime in hours (default 12) |
 | `ADMIN_DEBUG_SECRET` | Production debug route guard |
 | `IMPORT_SECRET` | Import API guard |
-| `OPENROUTER_API_KEY` | AI provider key |
-| `OPENROUTER_MODEL` | AI model override |
-| `OPENAI_API_KEY` | AI provider fallback key |
+| `AZURE_OPENAI_ENDPOINT` / `AZURE_OPENAI_API_KEY` | Azure AI Foundry (singurul furnizor AI) |
+| `AZURE_OPENAI_CHAT_DEPLOYMENT` / `AZURE_OPENAI_WHISPER_DEPLOYMENT` | deployment-uri chat + Whisper |
+| `AZURE_CONTENT_SAFETY_ENDPOINT` / `AZURE_CONTENT_SAFETY_KEY` | moderare text + imagine |
 | `SHOPIFY_STORE` | Shopify store host |
 | `SHOPIFY_CLIENT_ID` | Shopify OAuth/client ID |
 | `SHOPIFY_CLIENT_SECRET` | Shopify OAuth secret |

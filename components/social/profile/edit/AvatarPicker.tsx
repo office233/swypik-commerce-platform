@@ -10,7 +10,8 @@ import { useToast } from "@/components/ui/Toast";
 const ACCEPT = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 5 * 1024 * 1024;
 const KNOWN = new Set([
-  "avatar_type", "avatar_too_large", "avatar_empty", "avatar_invalid_image", "rate_limited", "avatar_upload_failed",
+  "avatar_type", "avatar_too_large", "avatar_empty", "avatar_invalid_image", "avatar_rejected", "rate_limited",
+  "avatar_upload_failed",
 ]);
 
 /** Avatar + încărcare (POST /api/users/me/avatar: serverul redimensionează la 512px WebP). */

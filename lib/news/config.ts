@@ -1,29 +1,31 @@
 /**
  * Swypik News runtime configuration — everything tunable comes from env.
  *
- *   GEMINI_API_KEY          required for the AI summaries
- *   NEWS_GEMINI_MODEL       required model id (falls back to GEMINI_MODEL); no
- *                           hardcoded default: an unset model = pipeline off
+ *   AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_API_KEY   required (lib/ai/azure)
+ *   NEWS_AI_DEPLOYMENT      Azure chat deployment for the journalist; falls back to
+ *                           AZURE_OPENAI_CHAT_DEPLOYMENT — no hardcoded default: an
+ *                           unset deployment = pipeline off
  *   NEWS_PUBLISH_MODE       "auto" (default) publishes validated summaries;
  *                           "review" stores them as drafts for /admin/news
  *   NEWS_MAX_ARTICLES_PER_RUN / _PER_DAY, NEWS_MAX_SOURCES_PER_RUN,
- *   NEWS_ITEMS_PER_FEED, NEWS_FETCH_TIMEOUT_MS, NEWS_GEMINI_TIMEOUT_MS,
+ *   NEWS_ITEMS_PER_FEED, NEWS_FETCH_TIMEOUT_MS, NEWS_AI_TIMEOUT_MS,
  *   NEWS_MAX_ATTEMPTS_PER_ITEM, NEWS_BOT_USER_AGENT
  */
 import { APP_URL } from "@/lib/app-url";
+import { chatDeployment, getAzureOpenAIConfig } from "@/lib/ai/azure/config";
 
 function positiveInt(name: string, fallback: number): number {
   const n = Number(process.env[name]);
   return Number.isFinite(n) && n > 0 ? Math.trunc(n) : fallback;
 }
 
-export type NewsAiConfig = { apiKey: string; model: string };
+export type NewsAiConfig = { deployment: string };
 
-/** Null when the AI journalist can't run (missing key or model). */
+/** Null when the AI journalist can't run (Azure OpenAI or deployment missing). */
 export function getNewsAiConfig(): NewsAiConfig | null {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  const model = (process.env.NEWS_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
-  return apiKey && model ? { apiKey, model } : null;
+  if (!getAzureOpenAIConfig()) return null;
+  const deployment = (process.env.NEWS_AI_DEPLOYMENT || chatDeployment() || "").trim();
+  return deployment ? { deployment } : null;
 }
 
 export type NewsPublishMode = "auto" | "review";
@@ -34,13 +36,14 @@ export function getNewsPublishMode(): NewsPublishMode {
 
 export function getNewsLimits() {
   return {
-    // 8 × NEWS_GEMINI_TIMEOUT_MS (20s) + feeds stays under the cron-worker 300s curl timeout.
+    // 8 × NEWS_AI_TIMEOUT_MS (20s, total per article incl. retries) + feeds stays
+    // under the cron-worker 300s curl timeout.
     maxArticlesPerRun: positiveInt("NEWS_MAX_ARTICLES_PER_RUN", 8),
     maxArticlesPerDay: positiveInt("NEWS_MAX_ARTICLES_PER_DAY", 60),
     maxSourcesPerRun: positiveInt("NEWS_MAX_SOURCES_PER_RUN", 8),
     itemsPerFeed: positiveInt("NEWS_ITEMS_PER_FEED", 3),
     fetchTimeoutMs: positiveInt("NEWS_FETCH_TIMEOUT_MS", 5_000),
-    geminiTimeoutMs: positiveInt("NEWS_GEMINI_TIMEOUT_MS", 20_000),
+    aiTimeoutMs: positiveInt("NEWS_AI_TIMEOUT_MS", 20_000),
     maxAttemptsPerItem: positiveInt("NEWS_MAX_ATTEMPTS_PER_ITEM", 3),
   };
 }

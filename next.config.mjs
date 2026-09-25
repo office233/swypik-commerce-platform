@@ -25,7 +25,7 @@ try {
 // Explicit allowlist — do NOT widen back to `https:` (open connect-src let any
 // page/script exfiltrate to arbitrary hosts). New modules (Movies, Music, News,
 // Gaming, Messenger) call third-party APIs (Audius,
-// Jamendo, Radio-Browser, CheapShark, OpenTDB, Gemini) ONLY from
+// Jamendo, Radio-Browser, CheapShark, OpenTDB, Azure AI) ONLY from
 // server code (lib/**), never from the browser — see app/api/* proxies — so
 // none of those hosts need to be here.
 const CONNECT_SRC = `'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC}${LIVEKIT_CONNECT_SRC ? ` ${LIVEKIT_CONNECT_SRC}` : ""}`;

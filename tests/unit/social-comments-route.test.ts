@@ -33,7 +33,9 @@ vi.mock("@/lib/security/rate-limit", () => ({
   rateLimit: async () => ({ success: true, remaining: 1 }),
   getClientIP: () => "1.1.1.1",
 }));
-vi.mock("@/lib/moderation/moderateText", () => ({ moderateText: () => s.moderation }));
+vi.mock("@/lib/moderation/ai-text", () => ({
+  moderateUserText: async () => ({ degraded: false, ai: false, reasons: [], ...s.moderation }),
+}));
 vi.mock("@/lib/moderation/strikes", () => ({ recordStrike: vi.fn() }));
 vi.mock("@/lib/social/comments/mutations", async (orig) => ({
   ...(await orig<typeof import("@/lib/social/comments/mutations")>()),
@@ -96,6 +98,19 @@ describe("POST", () => {
     const res = await post({ text: "ceva" });
     expect(res.status).toBe(422);
     expect((await res.json()).error).toBe("comment_rejected");
+  });
+
+  it("a comment hidden by the AI (or held because it was unavailable) opens a moderation case, no ranking event", async () => {
+    const { dbQuery } = await import("@/lib/db");
+    vi.mocked(dbQuery).mockClear();
+    s.moderation = { action: "hide", reasons: ["moderation_unavailable"], label: "safe", ai: true, degraded: true } as typeof s.moderation;
+    const res = await post({ text: "ceva" });
+    expect(res.status).toBe(201);
+    expect(await res.json()).toMatchObject({ moderation_status: "hidden" });
+    const caseCall = vi.mocked(dbQuery).mock.calls.find(([sql]) => String(sql).includes("moderation_cases"));
+    expect(String(caseCall?.[0])).toContain("target_comment_id");
+    expect(caseCall?.[1]).toEqual(expect.arrayContaining(["c1", "low"]));
+    expect(s.feedEvents).toBe(0);
   });
 
   it("an account comment returns the real count, records a ranking event and notifies", async () => {

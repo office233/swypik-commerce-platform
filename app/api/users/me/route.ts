@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { moderateText } from "@/lib/moderation/moderateText";
+import { moderateUserText } from "@/lib/moderation/ai-text";
 import { recordStrike } from "@/lib/moderation/strikes";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery, withTransaction } from "@/lib/db";
@@ -94,7 +94,7 @@ async function handlePatch(request: Request) {
 
   if (body.display_name !== undefined) {
     const v = body.display_name;
-    const mDn = moderateText(v, "display_name");
+    const mDn = await moderateUserText(v, "display_name");
     if (mDn.action !== "allow") {
       void recordStrike({
         userId: session.userId,
@@ -112,7 +112,7 @@ async function handlePatch(request: Request) {
   if (body.bio !== undefined) {
     const v = body.bio ?? "";
     if (v.length > 0) {
-      const m = moderateText(v, "bio");
+      const m = await moderateUserText(v, "bio");
       if (m.action !== "allow") {
         void recordStrike({
           userId: session.userId,

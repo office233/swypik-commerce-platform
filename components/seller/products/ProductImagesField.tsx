@@ -27,11 +27,12 @@ export function ProductImagesField({ images, max, onChange }: Props) {
       fd.append("filename", f.name);
       try {
         const res = await fetch("/api/seller/products/upload-image", { method: "POST", body: fd });
-        const data = (await res.json().catch(() => ({}))) as { success?: boolean; url?: string };
-        if (!res.ok || !data.success || !data.url) throw new Error("upload");
+        const data = (await res.json().catch(() => ({}))) as { success?: boolean; url?: string; code?: string };
+        if (!res.ok || !data.success || !data.url) throw new Error(data.code === "image_rejected" ? "rejected" : "upload");
         added.push(data.url);
-      } catch {
-        setError(t("uploadError", { name: f.name }));
+      } catch (err) {
+        const rejected = err instanceof Error && err.message === "rejected";
+        setError(t(rejected ? "imageRejected" : "uploadError", { name: f.name }));
       } finally {
         setUploading((n) => n - 1);
       }
