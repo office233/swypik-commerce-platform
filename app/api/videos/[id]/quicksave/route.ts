@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { isVideoInteractable } from "@/lib/video/interactable";
 
 import { logger } from "@/lib/logger";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 export const dynamic = "force-dynamic";
 
 /**
@@ -32,6 +33,7 @@ export async function POST(
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
     const { id: videoId } = await params;
+    if (!isUuidParam(videoId)) return invalidIdResponse();
 
     const rl = await rateLimit("videoQuicksave", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });

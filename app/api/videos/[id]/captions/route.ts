@@ -5,6 +5,7 @@ import { transcribe, type CaptionSegment } from "@/lib/ai/transcribe";
 import { translateSegments, segmentsToText, type TargetLang } from "@/lib/ai/translate";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -15,6 +16,7 @@ type CapRow = { lang: string; text: string; segments: CaptionSegment[] | null; i
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuidParam(id)) return invalidIdResponse();
   const url = new URL(req.url);
   const lang = (url.searchParams.get("lang") || "").toLowerCase();
   if (!lang) return NextResponse.json({ error: "lang required" }, { status: 400 });
@@ -28,6 +30,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuidParam(id)) return invalidIdResponse();
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

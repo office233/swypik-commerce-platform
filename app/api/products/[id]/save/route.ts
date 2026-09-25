@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ async function GET_impl(
 ) {
   const user = await getAuthUser();
   const { id } = await params;
+  if (!isUuidParam(id)) return invalidIdResponse();
   if (!user.userId) return NextResponse.json({ saved: false });
 
   const { rows } = await dbQuery<{ id: string }>(
@@ -30,6 +32,7 @@ async function POST_impl(
   const rl = await rateLimit("productSave", user.userId);
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const { id } = await params;
+  if (!isUuidParam(id)) return invalidIdResponse();
 
   const { rows } = await dbQuery<{ id: string }>(
     `INSERT INTO saved_products (user_id, product_id)
@@ -51,6 +54,7 @@ async function DELETE_impl(
   const rl = await rateLimit("productSave", user.userId);
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const { id } = await params;
+  if (!isUuidParam(id)) return invalidIdResponse();
 
   await dbQuery(
     `DELETE FROM saved_products WHERE user_id = $1 AND product_id = $2`,

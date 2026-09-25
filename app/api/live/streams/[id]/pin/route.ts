@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { withErrorHandling } from "@/lib/api-handler";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function POST_impl(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuidParam(id)) return invalidIdResponse();
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const rl = await rateLimit("liveStreamEdit", session.userId);
@@ -21,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   const body = await req.json().catch(() => ({}));
   const item_id = Number(body.item_id);
-  if (!item_id) return NextResponse.json({ error: "item_id_required" }, { status: 400 });
+  if (!Number.isSafeInteger(item_id) || item_id <= 0) return NextResponse.json({ error: "item_id_required" }, { status: 400 });
   const client = await getDb().connect();
   try {
     await client.query("BEGIN");
@@ -36,3 +39,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   return NextResponse.json({ ok: true });
 }
+
+export const POST = withErrorHandling(POST_impl);

@@ -4,6 +4,7 @@ import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { ProductReviewPatchSchema, parseBody } from "@/lib/validation/schemas";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,8 @@ export async function PATCH(
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id } = await params;
+
+    if (!isUuidParam(id)) return invalidIdResponse();
     const rawBody = await req.json().catch(() => null);
     const parsedBody = parseBody(ProductReviewPatchSchema, rawBody);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
@@ -81,6 +84,8 @@ export async function DELETE(
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id } = await params;
+
+    if (!isUuidParam(id)) return invalidIdResponse();
 
     const { rows } = await dbQuery<{ user_id: string }>(
       `SELECT user_id FROM product_reviews WHERE id = $1 LIMIT 1`,

@@ -15,6 +15,7 @@ import {
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { ABUSE_LIMITS } from "@/lib/security/abuse-limits";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 import { UUID_RE } from "@/lib/validation/uuid";
 
 import { logger } from "@/lib/logger";
@@ -147,8 +148,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const userId = await getOptionalSocialUserId();
     const { id: commentId } = await params;
+    if (!isUuidParam(commentId)) return invalidIdResponse();
+    const userId = await getOptionalSocialUserId();
 
     const [likeRes, commentRes] = await Promise.all([
       userId

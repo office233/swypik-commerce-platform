@@ -6,12 +6,14 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { VideoFeedbackSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: videoId } = await params;
+    if (!isUuidParam(videoId)) return invalidIdResponse();
     const rawBody = await request.json().catch(() => null);
     const parsedBody = parseBody(VideoFeedbackSchema, rawBody);
     if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });

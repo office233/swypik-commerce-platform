@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
+import { isBigintIdParam } from "@/lib/validation/params";
 import { Music2, Play, ArrowLeft } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
@@ -37,7 +38,7 @@ function formatDuration(s: number) {
 export default async function AudioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const t = await getTranslations("audioPage");
-  if (!/^\d+$/.test(id)) notFound();
+  if (!isBigintIdParam(id)) notFound();
 
   const trackRes = await dbQuery<AudioTrackRow>(
     `SELECT id::text, title, artist, duration_s, image_url, audio_url, plays_count, genre, attribution_url

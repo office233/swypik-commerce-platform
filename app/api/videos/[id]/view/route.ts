@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 export const dynamic = "force-dynamic";
 
 /**
@@ -18,6 +19,7 @@ export async function POST(
 ) {
   try {
     const { id: videoId } = await params;
+    if (!isUuidParam(videoId)) return invalidIdResponse();
 
     if (!videoId) {
       return NextResponse.json({ error: "Missing video ID" }, { status: 400 });

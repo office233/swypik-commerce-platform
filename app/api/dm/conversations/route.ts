@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const url = new URL(request.url);
-    const limit = Number(url.searchParams.get("limit") || 30);
+    const limit = Number(url.searchParams.get("limit")) || 30;
     const cursor = url.searchParams.get("cursor");
 
     const conversations = await listConversations(userId, { limit, cursor });

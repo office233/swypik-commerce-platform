@@ -31,7 +31,7 @@ export async function GET(
     }
     const { id: conversationId } = await params;
     const url = new URL(request.url);
-    const limit = Number(url.searchParams.get("limit") || 30);
+    const limit = Number(url.searchParams.get("limit")) || 30;
     const before = url.searchParams.get("before");
 
     const messages = await listMessages(conversationId, userId, {

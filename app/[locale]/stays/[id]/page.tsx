@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
+import { isUuidParam } from "@/lib/validation/params";
 import StayDetailClient from "./StayDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ type Row = {
 
 export default async function StayDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+    if (!isUuidParam(id)) notFound();
 
     const { rows } = await dbQuery<Row>(
         `SELECT id::text, title, description, image_url, price_cents, location_city,

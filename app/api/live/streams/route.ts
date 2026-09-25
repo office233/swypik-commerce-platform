@@ -5,8 +5,16 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { paginationSchema, queryObject } from "@/lib/validation/params";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+/** Statusuri publice listabile (whitelist; `failed` rămâne intern). */
+const LIVE_LIST_STATUSES = ["live", "scheduled", "ended"] as const;
+const LiveListQuerySchema = paginationSchema(20, 50).extend({
+  status: z.enum(LIVE_LIST_STATUSES).default("live"),
+});
 
 function buildUrls(streamKey: string) {
   const isProd = process.env.NODE_ENV === "production";
@@ -58,9 +66,11 @@ async function POST_impl(req: NextRequest) {
 
 async function GET_impl(req: NextRequest) {
   const url = new URL(req.url);
-  const status = url.searchParams.get("status") || "live";
-  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 20), 1), 50);
-  const offset = Math.max(Number(url.searchParams.get("offset") || 0), 0);
+  const parsed = LiveListQuerySchema.safeParse(queryObject(url, ["status", "limit", "offset"]));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid_query", issues: parsed.error.issues }, { status: 400 });
+  }
+  const { status, limit, offset } = parsed.data;
 
   const { rows } = await dbQuery(
     `SELECT ls.id, ls.creator_id, ls.title, ls.description, ls.status, ls.viewer_count,
