@@ -80,7 +80,7 @@ export async function listArticles(opts: {
   let offsetSql = "";
   if (offset > 0) {
     params.push(offset);
-    offsetSql = ` OFFSET ${params.length}`;
+    offsetSql = ` OFFSET $${params.length}`;
   }
 
   const { rows } = await dbQuery<NewsArticleListItem>(
@@ -90,7 +90,7 @@ export async function listArticles(opts: {
        ${PRIMARY_SOURCE_JOIN}
       WHERE ${where}
       ORDER BY a.published_at DESC, a.id DESC
-      LIMIT ${limitIdx}${offsetSql}`,
+      LIMIT $${limitIdx}${offsetSql}`,
     params,
   );
   return rows;
