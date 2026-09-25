@@ -95,7 +95,8 @@ describe("BottomNav routing", () => {
     }
   });
 
-  it("feed-ul (home, explore, reels) e imersiv; paginile de comerț nu", () => {
+  it("feed-ul (home, explore) e imersiv; paginile de comerț și crearea nu", () => {
+    expect(isImmersiveRoute("/reels/record")).toBe(false);
     expect(isImmersiveRoute("/")).toBe(true);
     expect(isImmersiveRoute("/explore")).toBe(true);
     expect(isImmersiveRoute("/shop")).toBe(false);

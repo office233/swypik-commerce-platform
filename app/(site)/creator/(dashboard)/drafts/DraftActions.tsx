@@ -27,17 +27,13 @@ export default function DraftActions(props: {
         await fetch(`/api/creator/videos/${videoId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scheduled_publish_at: null }),
+          body: JSON.stringify({ publish: "draft" }),
         });
       } else if (action === "publish-now") {
         await fetch(`/api/creator/videos/${videoId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            is_draft: false,
-            scheduled_publish_at: null,
-            visibility: "public",
-          }),
+          body: JSON.stringify({ publish: "public" }),
         });
       }
       router.refresh();

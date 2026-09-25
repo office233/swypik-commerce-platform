@@ -26,24 +26,24 @@ export async function publishProcessVideoJob(
         data: JSON.stringify(payload),
       });
       return { queued: true, backend: "upstash", messageId };
-    } catch (error: any) {
+    } catch (error) {
       logger.error({ err: error }, "[VideoUpload] Upstash Redis enqueue failed");
       return {
         queued: false,
         backend: "upstash",
-        error: error?.message || "Redis enqueue failed",
+        error: (error as Error)?.message || "Redis enqueue failed",
       };
     }
   } else if (redisUrl) {
     try {
       const messageId = await redisXadd(redisUrl, queueName, "data", JSON.stringify(payload));
       return { queued: true, backend: "native", messageId };
-    } catch (error: any) {
+    } catch (error) {
       logger.error({ err: error }, "[VideoUpload] Native Redis enqueue failed");
       return {
         queued: false,
         backend: "native",
-        error: error?.message || "Native Redis enqueue failed",
+        error: (error as Error)?.message || "Native Redis enqueue failed",
       };
     }
   }

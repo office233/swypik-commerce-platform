@@ -20,7 +20,7 @@ type CreatorVideo = {
 };
 
 /** Doar clipurile procesate pot fi înscrise din acest ecran. */
-const READY_STATUSES = new Set(["ready", "published"]);
+const READY_STATUSES = new Set(["ready"]);
 
 const KNOWN_ERRORS = new Set([
   "creator_required",

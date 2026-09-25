@@ -38,7 +38,7 @@ func TestInternalAPISecretBlocksDirectMutations(t *testing.T) {
 		},
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/videos/uploads/init", strings.NewReader(`{}`))
+	req := httptest.NewRequest(http.MethodPost, "/v1/videos/00000000-0000-0000-0000-000000000001/publish", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -58,7 +58,7 @@ func TestProductionMutationsFailClosedWithoutInternalSecret(t *testing.T) {
 		},
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/videos/uploads/init", strings.NewReader(`{}`))
+	req := httptest.NewRequest(http.MethodPost, "/v1/videos/00000000-0000-0000-0000-000000000001/publish", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -97,7 +97,7 @@ func TestInternalAPISecretAllowsProxyMutations(t *testing.T) {
 		},
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/videos/uploads/init", strings.NewReader(`{}`))
+	req := httptest.NewRequest(http.MethodPost, "/v1/videos/00000000-0000-0000-0000-000000000001/publish", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Swypik-Internal-Secret", "secret")
 	rec := httptest.NewRecorder()

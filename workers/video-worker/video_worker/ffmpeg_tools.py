@@ -1,22 +1,44 @@
 from __future__ import annotations
 
 import os
-import subprocess
 import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
 from .config import Variant
+from .errors import FFMPEG_FAILED_PREFIX, FfmpegMissingError, FfmpegTimeoutError
+from .ffmpeg_commands import (
+    GOP_SIZE,
+    HLS_SEGMENT_SECONDS,
+    OUTPUT_FPS,
+    PREVIEW_MAX_SHORT_SIDE,
+    audio_command,
+    bitrate_to_bandwidth,
+    preview_command,
+    thumbnail_command,
+    variant_command,
+)
+from .ffmpeg_commands import (
+    # alias: parametrul `thumbnail_time_ms` din transcode() ar umbri funcția
+    thumbnail_time_ms as thumbnail_time_ms_for,
+)
+from .models import Trim
+from .probe import ProbeResult, clip_window
+from .renditions import dims_for_short_side
 
-
-class FfmpegMissingError(RuntimeError):
-    pass
-
-
-class FfmpegTimeoutError(RuntimeError):
-    """ffmpeg a depășit bugetul de timp alocat și a fost omorât."""
-
+__all__ = [
+    "DEFAULT_FFMPEG_TIMEOUT_SECONDS",
+    "GOP_SIZE",
+    "HLS_SEGMENT_SECONDS",
+    "OUTPUT_FPS",
+    "FfmpegMissingError",
+    "FfmpegTimeoutError",
+    "FfmpegTranscoder",
+    "TranscodeResult",
+    "write_master_playlist",
+]
 
 #: Bugetul implicit (secunde) pentru o singură comandă ffmpeg. Suprascriere via
 #: FFMPEG_TIMEOUT_SECONDS. Fără el, un fișier sursă malformat blochează la
@@ -36,31 +58,16 @@ def _ffmpeg_timeout_seconds() -> int:
 
 
 CommandRunner = Callable[[list[str]], None]
-
-#: Durata țintă a unui segment HLS (secunde).
-HLS_SEGMENT_SECONDS = 6
-
-#: Cadre pe secundă impuse la ieșire. Fără o rată fixă nu putem calcula un GOP
-#: care să corespundă exact duratei de segment.
-OUTPUT_FPS = 24
-
-#: Distanța dintre keyframe-uri, în cadre. `-hls_time` e doar o *sugestie*:
-#: ffmpeg poate tăia un segment numai pe un keyframe. Cu GOP-ul implicit
-#: (250 de cadre ≈ 10.4s la 24fps) segmentele ieșeau de ~10.4s în loc de 6s,
-#: exact ce s-a observat în producție. Un GOP de 48 de cadre = 2s se împarte
-#: exact în 6s, deci segmentele ies fix la durata cerută.
-GOP_SIZE = OUTPUT_FPS * 2
+ProgressCallback = Callable[[str, int], None]
 
 
-def _codec_string(variant: Variant) -> str:
+def codec_string(variant: Variant, has_audio: bool = True) -> str:
     """Atributul CODECS pentru EXT-X-STREAM-INF (RFC 6381).
 
     Fără CODECS, playerul trebuie să descarce câte un segment din fiecare
-    variantă ca să afle ce conține — întârzie startul redării, iar unele
-    playere (Safari/AVPlayer) resping direct varianta.
-
-    `avc1.4d40XX`: 4d = profil Main, XX = nivelul × 10 în hexazecimal.
-    `mp4a.40.2`: AAC-LC.
+    variantă ca să afle ce conține; Safari/AVPlayer pot respinge varianta.
+    `avc1.4d40XX`: 4d = profil Main, XX = nivelul × 10 în hex. `mp4a.40.2`: AAC-LC,
+    declarat DOAR dacă sursa are audio (altfel playerul așteaptă o pistă inexistentă).
     """
     pixels = variant.width * variant.height
     if pixels <= 640 * 360:
@@ -69,7 +76,22 @@ def _codec_string(variant: Variant) -> str:
         level = "1f"  # 3.1
     else:
         level = "28"  # 4.0
-    return f"avc1.4d40{level},mp4a.40.2"
+    video = f"avc1.4d40{level}"
+    return f"{video},mp4a.40.2" if has_audio else video
+
+
+def write_master_playlist(path: Path, variants: list[Variant], has_audio: bool = True) -> None:
+    lines = ["#EXTM3U", "#EXT-X-VERSION:3"]
+    for variant in variants:
+        lines.extend(
+            [
+                f"#EXT-X-STREAM-INF:BANDWIDTH={bitrate_to_bandwidth(variant.bitrate)}"
+                f",RESOLUTION={variant.width}x{variant.height}"
+                f',CODECS="{codec_string(variant, has_audio)}"',
+                f"{variant.name}/index.m3u8",
+            ]
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 @dataclass(frozen=True)
@@ -78,38 +100,81 @@ class TranscodeResult:
     variant_playlists: dict[str, Path]
     thumbnail: Path
     preview: Path
+    audio: Path | None = None
 
 
 class FfmpegTranscoder:
-    def __init__(self, run_command: CommandRunner | None = None) -> None:
+    def __init__(self, run_command: CommandRunner | None = None, encoder: str = "libx264") -> None:
         self._run_command = run_command or self._default_runner
+        self.encoder = encoder
 
-    def transcode(self, source_path: Path, output_dir: Path, variants: list[Variant]) -> TranscodeResult:
+    def transcode(
+        self,
+        source_path: Path,
+        output_dir: Path,
+        variants: list[Variant],
+        *,
+        probe: ProbeResult,
+        trim: Trim | None = None,
+        thumbnail_time_ms: int | None = None,
+        progress: ProgressCallback | None = None,
+    ) -> TranscodeResult:
         self._ensure_ffmpeg()
         output_dir.mkdir(parents=True, exist_ok=True)
+        window = clip_window(probe, trim)
+        small_w, small_h = dims_for_short_side(
+            probe.width, probe.height, min(PREVIEW_MAX_SHORT_SIDE, min(probe.width, probe.height))
+        )
+
+        total_steps = len(variants) + 2 + (1 if probe.has_audio else 0)
+        done = 0
+
+        def step(command: list[str]) -> None:
+            nonlocal done
+            self._run_command(command)
+            done += 1
+            if progress is not None:
+                progress("transcoding", int(done * 100 / total_steps))
 
         playlists: dict[str, Path] = {}
         for variant in variants:
             variant_dir = output_dir / variant.name
             variant_dir.mkdir(parents=True, exist_ok=True)
             playlist = variant_dir / "index.m3u8"
-            self._run_command(self._variant_command(source_path, playlist, variant))
+            step(
+                variant_command(
+                    source_path, playlist, variant,
+                    encoder=self.encoder, has_audio=probe.has_audio, window=window,
+                )
+            )
             playlists[variant.name] = playlist
 
         master_playlist = output_dir / "master.m3u8"
-        self._write_master_playlist(master_playlist, variants)
+        write_master_playlist(master_playlist, variants, has_audio=probe.has_audio)
 
         preview = output_dir / "preview.mp4"
-        self._run_command(self._preview_command(source_path, preview))
+        step(
+            preview_command(
+                source_path, preview, width=small_w, height=small_h,
+                encoder=self.encoder, has_audio=probe.has_audio, window=window,
+            )
+        )
 
         thumbnail = output_dir / "thumbnail.jpg"
-        self._run_command(self._thumbnail_command(source_path, thumbnail))
+        at_ms = window.start_ms + thumbnail_time_ms_for(window.duration_ms, thumbnail_time_ms)
+        step(thumbnail_command(source_path, thumbnail, at_ms=at_ms, width=small_w, height=small_h))
+
+        audio: Path | None = None
+        if probe.has_audio:
+            audio = output_dir / "audio.m4a"
+            step(audio_command(source_path, audio, window=window))
 
         return TranscodeResult(
             master_playlist=master_playlist,
             variant_playlists=playlists,
             thumbnail=thumbnail,
             preview=preview,
+            audio=audio,
         )
 
     def _ensure_ffmpeg(self) -> None:
@@ -117,117 +182,6 @@ class FfmpegTranscoder:
             raise FfmpegMissingError(
                 "ffmpeg is not installed or is not on PATH; install ffmpeg to process videos"
             )
-
-    @staticmethod
-    def _variant_command(source_path: Path, playlist: Path, variant: Variant) -> list[str]:
-        segment_pattern = playlist.parent / "segment_%05d.ts"
-        return [
-            "ffmpeg",
-            "-y",
-            "-i",
-            str(source_path),
-            "-vf",
-            f"scale=w={variant.width}:h={variant.height}:force_original_aspect_ratio=decrease,"
-            f"pad={variant.width}:{variant.height}:(ow-iw)/2:(oh-ih)/2",
-            "-c:v",
-            "h264",
-            "-profile:v",
-            "main",
-            "-preset",
-            "veryfast",
-            # Rată de cadre fixă + GOP fix: obligatorii ca `-hls_time` să fie
-            # respectat și ca variantele să aibă keyframe-uri aliniate între
-            # ele (altfel comutarea de calitate produce un salt vizibil).
-            "-r",
-            str(OUTPUT_FPS),
-            "-g",
-            str(GOP_SIZE),
-            "-keyint_min",
-            str(GOP_SIZE),
-            # Fără asta, ffmpeg mai inserează keyframe-uri la schimbările de
-            # scenă, ceea ce desincronizează segmentele între variante.
-            "-sc_threshold",
-            "0",
-            "-b:v",
-            variant.bitrate,
-            "-maxrate",
-            variant.bitrate,
-            "-bufsize",
-            _double_bitrate(variant.bitrate),
-            "-c:a",
-            "aac",
-            "-ar",
-            "48000",
-            "-b:a",
-            "128k",
-            "-hls_time",
-            str(HLS_SEGMENT_SECONDS),
-            "-hls_playlist_type",
-            "vod",
-            "-hls_segment_filename",
-            str(segment_pattern),
-            str(playlist),
-        ]
-
-    @staticmethod
-    def _thumbnail_command(source_path: Path, thumbnail: Path) -> list[str]:
-        return [
-            "ffmpeg",
-            "-y",
-            "-ss",
-            "00:00:01",
-            "-i",
-            str(source_path),
-            "-frames:v",
-            "1",
-            "-q:v",
-            "2",
-            str(thumbnail),
-        ]
-
-    @staticmethod
-    def _preview_command(source_path: Path, preview: Path) -> list[str]:
-        return [
-            "ffmpeg",
-            "-y",
-            "-i",
-            str(source_path),
-            "-t",
-            "30",
-            "-vf",
-            "scale=w=720:h=1280:force_original_aspect_ratio=decrease,"
-            "pad=720:1280:(ow-iw)/2:(oh-ih)/2",
-            "-c:v",
-            "h264",
-            "-profile:v",
-            "main",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "24",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "128k",
-            "-movflags",
-            "+faststart",
-            str(preview),
-        ]
-
-    @staticmethod
-    def _write_master_playlist(path: Path, variants: list[Variant]) -> None:
-        lines = ["#EXTM3U", "#EXT-X-VERSION:3"]
-        for variant in variants:
-            bandwidth = _bitrate_to_bandwidth(variant.bitrate)
-            lines.extend(
-                [
-                    f"#EXT-X-STREAM-INF:BANDWIDTH={bandwidth}"
-                    f",RESOLUTION={variant.width}x{variant.height}"
-                    f',CODECS="{_codec_string(variant)}"',
-                    f"{variant.name}/index.m3u8",
-                ]
-            )
-        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     @staticmethod
     def _default_runner(command: list[str]) -> None:
@@ -246,23 +200,6 @@ class FfmpegTranscoder:
                 f"ffmpeg command timed out after {timeout_s}s: {' '.join(command[:3])}"
             ) from exc
         except subprocess.CalledProcessError as exc:
-            stderr = (exc.stderr or "").strip()
-            raise RuntimeError(f"ffmpeg command failed: {stderr or exc}") from exc
+            stderr = (exc.stderr or "").strip()[-2000:]
+            raise RuntimeError(f"{FFMPEG_FAILED_PREFIX}: {stderr or exc}") from exc
 
-
-def _bitrate_to_bandwidth(value: str) -> int:
-    stripped = value.strip().lower()
-    if stripped.endswith("k"):
-        return int(float(stripped[:-1]) * 1000)
-    if stripped.endswith("m"):
-        return int(float(stripped[:-1]) * 1000 * 1000)
-    return int(stripped)
-
-
-def _double_bitrate(value: str) -> str:
-    stripped = value.strip().lower()
-    if stripped.endswith("k"):
-        return f"{int(float(stripped[:-1]) * 2)}k"
-    if stripped.endswith("m"):
-        return f"{float(stripped[:-1]) * 2:g}m"
-    return str(int(stripped) * 2)

@@ -27,7 +27,12 @@ def main(argv: list[str] | None = None) -> int:
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(message)s")
     settings = Settings.from_env()
-    processor = VideoProcessor(settings, S3Storage(settings), FfmpegTranscoder(), PostgresRepository(settings))
+    processor = VideoProcessor(
+        settings,
+        S3Storage(settings),
+        FfmpegTranscoder(encoder=settings.video_encoder),
+        PostgresRepository(settings),
+    )
 
     if args.job_json:
         result = processor.process(VideoJob.from_payload(args.job_json))

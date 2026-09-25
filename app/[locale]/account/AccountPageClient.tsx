@@ -52,7 +52,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       const res = await fetch(`/api/creator/videos/${videoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility: next }),
+        body: JSON.stringify({ publish: next }),
       });
       if (res.ok) {
         setVideos((prev) => prev.map((v) => (v.id === videoId ? { ...v, visibility: next } : v)));

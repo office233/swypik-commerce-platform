@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from datetime import datetime, timezone
 from typing import Any
 
 from .config import Settings
@@ -88,11 +89,37 @@ class PostgresRepository:
             ("processing", job.video_id) if job.video_id else None,
         )
 
+    def update_progress(self, job: VideoJob, stage: str, pct: int) -> None:
+        """Etapa + procentul afișat în wizard. Best-effort (apelantul înghite erorile)."""
+        self._execute_job_only(
+            "UPDATE {jobs} SET stage=%s, progress=%s, updated_at=NOW() WHERE id=%s",
+            (stage, max(0, min(100, int(pct))), job.job_id),
+        )
+
+    def mark_retrying(self, job: VideoJob, attempt: int, code: str, message: str) -> None:
+        del attempt  # attempt_count e gestionat de try_claim
+        self._execute_job_only(
+            "UPDATE {jobs} SET stage='retrying', error_code=%s, error_message=%s, "
+            "updated_at=NOW() WHERE id=%s",
+            (code, message, job.job_id),
+        )
+
     def mark_ready(self, job: VideoJob, result: dict[str, Any]) -> None:
+        video_metadata = {
+            "preview_url": result.get("preview_url"),
+            "audio_url": result.get("audio_url"),
+            "has_audio": result.get("has_audio"),
+            "orientation": result.get("orientation"),
+            "renditions": result.get("renditions"),
+            "processed_at": datetime.now(timezone.utc).isoformat(),
+        }
         self._execute_job_and_asset(
             job,
             "succeeded",
-            "UPDATE {jobs} SET status = %s, completed_at = NOW(), error_message = NULL, result = %s WHERE id = %s",
+            (
+                "UPDATE {jobs} SET status = %s, stage = 'done', progress = 100, completed_at = NOW(), "
+                "error_message = NULL, error_code = NULL, result = %s, updated_at = NOW() WHERE id = %s"
+            ),
             (
                 "UPDATE {assets} SET status = %s, public_url = %s, metadata = metadata || %s::jsonb, "
                 "updated_at = NOW() WHERE id = %s"
@@ -100,26 +127,59 @@ class PostgresRepository:
             ("succeeded", _json(result), job.job_id),
             ("available", result.get("master_url"), _json(result), job.asset_id),
             (
-                "UPDATE videos SET status = %s, playback_url = %s, thumbnail_url = %s, updated_at = NOW() "
+                "UPDATE videos SET status = %s, playback_url = %s, "
+                # Coperta aleasă explicit de creator nu e suprascrisă de cadrul extras.
+                "thumbnail_url = CASE WHEN COALESCE(metadata->>'cover_source','') = 'custom' "
+                "THEN thumbnail_url ELSE %s END, "
+                "duration_ms = %s, width = %s, height = %s, "
+                "metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb, updated_at = NOW() "
                 "WHERE id = %s"
             ),
-            ("ready", result.get("master_url"), result.get("thumbnail_url"), job.video_id) if job.video_id else None,
+            (
+                "ready",
+                result.get("master_url"),
+                result.get("thumbnail_url"),
+                result.get("duration_ms"),
+                result.get("width"),
+                result.get("height"),
+                _json(video_metadata),
+                job.video_id,
+            )
+            if job.video_id
+            else None,
         )
 
-    def mark_failed(self, job: VideoJob, message: str) -> None:
+    def mark_failed(self, job: VideoJob, message: str, error_code: str = "internal_error") -> None:
+        error = {"error_message": message, "error_code": error_code}
         self._execute_job_and_asset(
             job,
             "failed",
-            "UPDATE {jobs} SET status = %s, completed_at = NOW(), error_message = %s WHERE id = %s",
-            "UPDATE {assets} SET status = %s, updated_at = NOW(), metadata = metadata || %s::jsonb WHERE id = %s",
-            ("failed", message, job.job_id),
-            ("failed", _json({"error_message": message}), job.asset_id),
             (
-                "UPDATE videos SET status = %s, visibility = 'private', is_hidden = TRUE, "
-                "metadata = metadata || %s::jsonb, updated_at = NOW() WHERE id = %s"
+                "UPDATE {jobs} SET status = %s, completed_at = NOW(), error_message = %s, "
+                "error_code = %s, updated_at = NOW() WHERE id = %s"
             ),
-            ("failed", _json({"error_message": message}), job.video_id) if job.video_id else None,
+            "UPDATE {assets} SET status = %s, updated_at = NOW(), metadata = metadata || %s::jsonb WHERE id = %s",
+            ("failed", message, error_code, job.job_id),
+            ("failed", _json(error), job.asset_id),
+            # visibility/is_hidden NU se mai ating: triggerul enforce_video_public_safety
+            # privatizează clipurile publice eșuate, iar creatorul trebuie să poată reîncerca.
+            (
+                "UPDATE videos SET status = %s, metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb, "
+                "updated_at = NOW() WHERE id = %s"
+            ),
+            ("failed", _json(error), job.video_id) if job.video_id else None,
         )
+
+    def _execute_job_only(self, sql: str, params: tuple[Any, ...]) -> None:
+        if not self.settings.database_url:
+            return
+        connection = self._connect()
+        try:
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(_format_table(sql, "jobs", self.settings.jobs_table), params)
+        finally:
+            self._release(connection)
 
     def _execute_job_and_asset(
         self,

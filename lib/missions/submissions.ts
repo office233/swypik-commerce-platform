@@ -21,7 +21,9 @@ export type LinkResult =
       code: "mission_not_open" | "video_not_eligible" | "video_in_other_mission" | "own_mission";
     };
 
-const INELIGIBLE_VIDEO_STATUSES = ["deleted", "failed", "rejected"];
+// videos.status (CHECK): uploading/processing/ready/failed/archived/deleted — nu există "published"
+// (publicat = visibility public). Respinsele la moderare au moderation_status = rejected.
+const INELIGIBLE_VIDEO_STATUSES = ["deleted", "failed", "archived"];
 
 export async function linkVideoToMission(args: {
   userId: string;
@@ -45,7 +47,8 @@ export async function linkVideoToMission(args: {
 
   const { rows: videos } = await dbQuery<{ id: string }>(
     `SELECT id FROM videos
-      WHERE id = $1 AND creator_id = $2 AND NOT (status = ANY($3::text[]))`,
+      WHERE id = $1 AND creator_id = $2 AND NOT (status = ANY($3::text[]))
+        AND moderation_status IS DISTINCT FROM 'rejected'`,
     [videoId, userId, INELIGIBLE_VIDEO_STATUSES],
   );
   if (!videos[0]) return { ok: false, code: "video_not_eligible" };

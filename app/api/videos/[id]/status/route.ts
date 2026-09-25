@@ -1,124 +1,85 @@
+/**
+ * GET /api/videos/[id]/status
+ *
+ * Public: doar clipurile vizibile (ready + public/unlisted + safe) și doar
+ * câmpurile de redare. Autorul/adminul vede și draft-urile, procesarea și eroarea.
+ * (Înainte expunea fără autentificare statusul și URL-urile oricărui draft.)
+ * Wizardul de upload folosește /api/creator/upload-session/[id] pentru progres.
+ */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { getCreatorUserId, getUserRole } from "@/lib/creator/session";
+import { isUuid } from "@/lib/video/upload-session";
 
-import { logger } from "@/lib/logger";
-function asObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
+export const dynamic = "force-dynamic";
 
-function firstString(row: Record<string, unknown>, ...keys: string[]): string | null {
-  for (const key of keys) {
-    const value = row[key];
-    if (typeof value === "string" && value.length > 0) return value;
-  }
-  return null;
-}
+type Row = {
+  id: string;
+  creator_id: string;
+  status: string;
+  visibility: string;
+  is_hidden: boolean;
+  effective_label: string;
+  moderation_status: string;
+  playback_url: string | null;
+  thumbnail_url: string | null;
+  duration_ms: number | null;
+  width: number | null;
+  height: number | null;
+  job_status: string | null;
+  job_stage: string | null;
+  job_progress: number | null;
+  job_error_code: string | null;
+};
 
-function firstNumber(row: Record<string, unknown>, ...keys: string[]): number | null {
-  for (const key of keys) {
-    const value = row[key];
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) return Number(value);
-  }
-  return null;
-}
+const NO_STORE = { "Cache-Control": "no-store" };
 
-async function firstRow(sql: string, params: unknown[]): Promise<Record<string, unknown>> {
-  try {
-    const { rows } = await dbQuery(sql, params);
-    return asObject(rows[0]);
-  } catch (error) {
-    logger.warn({ err: error }, "[Video Status] Optional status lookup failed");
-    return {};
-  }
-}
-
-type RouteContext = { params: Promise<{ id: string }> };
-
-export async function GET(_req: Request, context: RouteContext) {
+export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
+  if (!isUuid(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400, headers: NO_STORE });
 
-  if (!id) {
-    return NextResponse.json({ error: "Video id is required" }, { status: 400 });
-  }
-
-  const video = await firstRow(`SELECT * FROM videos WHERE id::text = $1 LIMIT 1`, [id]);
-
-  const canonicalAsset = await firstRow(
-    `SELECT * FROM video_assets
-      WHERE video_id::text = $1 OR id::text = $1
-      ORDER BY created_at DESC NULLS LAST
+  const { rows } = await dbQuery<Row>(
+    `SELECT v.id, v.creator_id, v.status, v.visibility, v.is_hidden, v.effective_label, v.moderation_status,
+            v.playback_url, v.thumbnail_url, v.duration_ms, v.width, v.height,
+            j.status AS job_status, j.stage AS job_stage, j.progress AS job_progress, j.error_code AS job_error_code
+       FROM videos v
+       LEFT JOIN LATERAL (
+         SELECT status, stage, progress, error_code FROM video_processing_jobs
+          WHERE video_id = v.id ORDER BY created_at DESC LIMIT 1
+       ) j ON true
+      WHERE v.id = $1 AND v.status <> 'deleted'
       LIMIT 1`,
-    [id]
+    [id],
   );
-  const driftAsset = Object.keys(canonicalAsset).length ? {} : await firstRow(
-    `SELECT * FROM video_assets
-      WHERE id::text = $1 OR upload_session_id::text = $1
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 1`,
-    [id]
-  );
-  const asset = Object.keys(canonicalAsset).length ? canonicalAsset : driftAsset;
+  const v = rows[0];
+  if (!v) return NextResponse.json({ error: "not_found" }, { status: 404, headers: NO_STORE });
 
-  const assetId = firstString(asset, "id");
-  const videoId = firstString(video, "id") || firstString(asset, "video_id") || id;
+  const viewerId = await getCreatorUserId();
+  const isOwner = Boolean(viewerId && (viewerId === v.creator_id || (await getUserRole(viewerId)) === "admin"));
+  const isVisible =
+    v.status === "ready" && ["public", "unlisted"].includes(v.visibility) && !v.is_hidden && v.effective_label === "safe";
+  if (!isOwner && !isVisible) return NextResponse.json({ error: "not_found" }, { status: 404, headers: NO_STORE });
 
-  const canonicalSession = await firstRow(
-    `SELECT * FROM video_upload_sessions
-      WHERE id::text = $1 OR video_id::text = $1
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 1`,
-    [id]
+  const playback = {
+    videoId: v.id,
+    status: v.status,
+    playbackUrl: v.playback_url,
+    thumbnailUrl: v.thumbnail_url,
+    durationMs: v.duration_ms,
+    width: v.width,
+    height: v.height,
+  };
+  if (!isOwner) return NextResponse.json(playback, { headers: NO_STORE });
+  return NextResponse.json(
+    {
+      ...playback,
+      visibility: v.visibility,
+      moderationStatus: v.moderation_status,
+      jobStatus: v.job_status,
+      stage: v.job_stage,
+      progress: v.job_progress,
+      errorCode: v.job_error_code,
+    },
+    { headers: NO_STORE },
   );
-  const driftSession = Object.keys(canonicalSession).length ? {} : await firstRow(
-    `SELECT * FROM video_upload_sessions
-      WHERE id::text = $1
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 1`,
-    [id]
-  );
-  const uploadSession = Object.keys(canonicalSession).length ? canonicalSession : driftSession;
-
-  const canonicalJob = await firstRow(
-    `SELECT * FROM video_processing_jobs
-      WHERE video_id::text = $1 OR ($2::text <> '' AND asset_id::text = $2)
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 1`,
-    [videoId, assetId || ""]
-  );
-  const driftJob = Object.keys(canonicalJob).length ? {} : await firstRow(
-    `SELECT * FROM video_processing_jobs
-      WHERE id::text = $1 OR ($2::text <> '' AND video_asset_id::text = $2)
-      ORDER BY started_at DESC NULLS LAST
-      LIMIT 1`,
-    [id, assetId || ""]
-  );
-  const job = Object.keys(canonicalJob).length ? canonicalJob : driftJob;
-
-  if (!Object.keys(video).length && !Object.keys(asset).length && !Object.keys(uploadSession).length) {
-    return NextResponse.json({ error: "Not found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
-  }
-
-  return NextResponse.json({
-    id,
-    videoId: firstString(video, "id") || firstString(asset, "video_id") || firstString(job, "video_id"),
-    assetId,
-    uploadId: firstString(uploadSession, "id") || firstString(asset, "upload_session_id"),
-    status:
-      firstString(video, "status") ||
-      firstString(asset, "status") ||
-      firstString(uploadSession, "status") ||
-      firstString(job, "status") ||
-      "unknown",
-    jobStatus: firstString(job, "status"),
-    error: firstString(job, "error_message", "error") || firstString(asset, "error_message"),
-    playbackUrl: firstString(video, "playback_url", "media_url") || firstString(asset, "public_url"),
-    thumbnailUrl: firstString(video, "thumbnail_url"),
-    durationMs: firstNumber(video, "duration_ms") ?? firstNumber(asset, "duration_ms", "duration_seconds"),
-    width: firstNumber(video, "width") ?? firstNumber(asset, "width"),
-    height: firstNumber(video, "height") ?? firstNumber(asset, "height"),
-    // 2026-08-10 (audit P0): cheile interne S3 (raw_key/hls_master_key/etc.)
-    // NU se mai expun public — endpoint fara autentificare; clientul are
-    // nevoie doar de playbackUrl/thumbnailUrl.
-  }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -14,7 +14,7 @@ import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { encryptErpKey, hashErpKey } from "@/lib/seller/erp-credentials";
 import { verifyInternal, forbidden } from "../../_lib/auth";
-import { notifyFollowersNewPost } from "@/lib/notifications/dispatch";
+import { notifyFollowersOnce } from "@/lib/video/publish-notify";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -101,17 +101,14 @@ export async function POST(req: Request) {
             );
             updated = rowCount ?? 0;
         } else if (type === "video") {
-            // Aprobare: clipul devine vizibil in feed. Respingere: ramane
-            // ascuns si primeste motivul in metadata (creatorul il vede in dashboard).
-            // BUG FIX 2026-08-04: feed-ul filtreaza pe visibility='public' —
-            // aprobarea trebuie sa si PUBLICE clipul (visibility + is_draft +
-            // published_at), altfel nu aparea niciodata in feed.
+            // Moderarea decide DOAR vizibilitatea în feed (trigger-ul din
+            // migrarea 20260926_0012 derivă effective_label din moderation_status).
+            // `visibility` rămâne intenția creatorului: aprobarea NU mai publică
+            // draft-uri sau clipuri programate, respingerea le ascunde fără să
+            // le piardă setările. Motivul ajunge în metadata (dashboard creator).
             const { rowCount } = await dbQuery(
                 `UPDATE videos
                         SET moderation_status = $2,
-                            visibility = CASE WHEN $2 = 'approved' THEN 'public' ELSE visibility END,
-                            is_draft = CASE WHEN $2 = 'approved' THEN false ELSE is_draft END,
-                            published_at = CASE WHEN $2 = 'approved' THEN COALESCE(published_at, NOW()) ELSE published_at END,
                             metadata = COALESCE(metadata, '{}'::jsonb)
                                        || jsonb_build_object('moderation_reason', $3::text),
                             updated_at = NOW()
@@ -121,18 +118,9 @@ export async function POST(req: Request) {
             updated = rowCount ?? 0;
 
             if (updated > 0 && approve) {
-                const { rows: vRows } = await dbQuery<{ creator_id: string; title: string | null }>(
-                    `SELECT creator_id, title FROM videos WHERE id = $1`,
-                    [id]
+                await notifyFollowersOnce(id).catch((e) =>
+                    logger.warn({ err: e, videoId: id }, "new_post fan-out failed")
                 );
-                const v = vRows[0];
-                if (v?.creator_id) {
-                    notifyFollowersNewPost(v.creator_id, id, {
-                        title: v.title ? `Clip nou: ${v.title}` : undefined,
-                    }).catch((e) =>
-                        logger.warn({ err: e, videoId: id }, "new_post fan-out failed")
-                    );
-                }
             }
         }
 

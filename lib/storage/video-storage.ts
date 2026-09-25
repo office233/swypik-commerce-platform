@@ -27,7 +27,7 @@ export const VIDEO_PATHS = {
 let _client: S3Client | null = null;
 let _presignClient: S3Client | null = null;
 
-function getS3Client(): S3Client {
+export function getS3Client(): S3Client {
   if (_client) return _client;
 
   const endpoint = firstEnv("S3_ENDPOINT", "S3_ENDPOINT_URL", "R2_ENDPOINT", "R2_ENDPOINT_URL");
@@ -56,7 +56,7 @@ function getS3Client(): S3Client {
  * semnăm direct pe endpointul public (S3_UPLOAD_PUBLIC_ENDPOINT,
  * ex. https://cdn.swypik.com → tunel spre MinIO). Fallback: clientul intern.
  */
-function getPresignClient(): S3Client {
+export function getPresignClient(): S3Client {
   const publicEndpoint = firstEnv("S3_UPLOAD_PUBLIC_ENDPOINT");
   if (!publicEndpoint) return getS3Client();
   if (_presignClient) return _presignClient;

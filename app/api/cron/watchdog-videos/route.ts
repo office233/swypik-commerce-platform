@@ -6,6 +6,7 @@ import { publishProcessVideoJob } from "@/lib/video/redis-queue";
 import type { ProcessVideoJobPayload } from "@/lib/video/upload-session";
 import { timingSafeEqual } from "crypto";
 import { notifyUser } from "@/lib/notifications/dispatch";
+import { expireAbandonedUploads } from "@/lib/video/upload/expire";
 
 export const dynamic = "force-dynamic";
 
@@ -124,8 +125,14 @@ async function runWatchdog() {
       WHERE v.status = 'uploading'
         AND v.created_at < NOW() - INTERVAL '6 hours'
         AND NOT EXISTS (SELECT 1 FROM video_processing_jobs j WHERE j.video_id = v.id)
+        AND NOT EXISTS (
+          SELECT 1 FROM video_upload_sessions s
+           WHERE s.video_id = v.id AND s.status IN ('created','uploading') AND s.expires_at > NOW()
+        )
       RETURNING v.id`
   );
+  // Uploadurile multipart reluabile expirate: abort în bucket + draft 'failed'.
+  const expiredUploads = await expireAbandonedUploads();
 
   return {
     resetRunning: resetRunning.rowCount ?? resetRunning.rows.length,
@@ -135,6 +142,7 @@ async function runWatchdog() {
     reenqueueFailed,
     videosMarkedFailed: recovered.rowCount ?? recovered.rows.length,
     abandonedUploadsFailed: abandoned.rowCount ?? abandoned.rows.length,
+    expiredUploads,
     creatorsNotified: await notifyCreatorsOnStatusChange(),
     ts: new Date().toISOString(),
   };

@@ -94,7 +94,9 @@ export function isBottomNavHidden(pathname: string): boolean {
 }
 
 /** Rute afișate pe fundal întunecat: chrome-ul global (BottomNav) trece pe dark. */
-export const IMMERSIVE_ROUTES: readonly string[] = ["/", "/explore", "/reels", "/video", "/v", "/live"];
+// /reels/record (Creează) nu e aici: camera își pune singură fundalul imersiv,
+// pașii editare/detalii sunt light-first (și BottomNav e ascuns acolo oricum).
+export const IMMERSIVE_ROUTES: readonly string[] = ["/", "/explore", "/video", "/v", "/live"];
 
 export function isImmersiveRoute(pathname: string): boolean {
   return IMMERSIVE_ROUTES.some((route) => matchesRoute(pathname, route));

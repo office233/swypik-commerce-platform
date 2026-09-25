@@ -10,6 +10,22 @@ class InvalidJobPayload(ValueError):
 
 
 @dataclass(frozen=True)
+class Trim:
+    """Fereastra de tăiere cerută de creator (ms, relativ la sursă)."""
+
+    start_ms: int | None = None
+    end_ms: int | None = None
+
+
+@dataclass(frozen=True)
+class DurationLimits:
+    """Limite per job; None → valorile implicite din Settings."""
+
+    min_duration_ms: int | None = None
+    max_duration_ms: int | None = None
+
+
+@dataclass(frozen=True)
 class VideoJob:
     job_id: str
     asset_id: str
@@ -25,6 +41,9 @@ class VideoJob:
     hls_master_key: str | None = None
     source_url: str | None = None
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    limits: DurationLimits | None = None
+    trim: Trim | None = None
+    thumbnail_time_ms: int | None = None
 
     @classmethod
     def from_payload(cls, payload: bytes | str | Mapping[str, Any]) -> "VideoJob":
@@ -43,6 +62,9 @@ class VideoJob:
         hls_master_key = _first(data, "hls_master_key", "hlsMasterKey", "master_key", "masterKey")
         source_url = _first(data, "source_url", "sourceUrl", "external_url", "externalUrl")
         metadata = _metadata(_first(data, "metadata", "meta"))
+        limits = _limits(_first(data, "limits"))
+        trim = _trim(_first(data, "trim"))
+        thumbnail_time_ms = _non_negative_int(_first(data, "thumbnail_time_ms", "thumbnailTimeMs"))
 
         # When pulling from an external URL the `source_key` is just a synthetic
         # target path inside R2 (e.g. videos/raw/<videoId>.mp4) and is allowed
@@ -77,6 +99,9 @@ class VideoJob:
             hls_master_key=str(hls_master_key) if hls_master_key else None,
             source_url=str(source_url) if source_url else None,
             metadata=metadata,
+            limits=limits,
+            trim=trim,
+            thumbnail_time_ms=thumbnail_time_ms,
         )
 
 
@@ -100,6 +125,50 @@ def _first(data: Mapping[str, Any], *keys: str) -> Any:
         if value not in (None, ""):
             return value
     return None
+
+
+def _non_negative_int(value: Any) -> int | None:
+    """Parsare defensivă: numere/stringuri numerice ≥ 0 → int, orice altceva → None."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number != number or number in (float("inf"), float("-inf")) or number < 0:
+        return None
+    return int(number)
+
+
+def _object(value: Any) -> Mapping[str, Any] | None:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return None
+    return value if isinstance(value, Mapping) else None
+
+
+def _limits(value: Any) -> DurationLimits | None:
+    data = _object(value)
+    if data is None:
+        return None
+    min_ms = _non_negative_int(_first(data, "min_duration_ms", "minDurationMs"))
+    max_ms = _non_negative_int(_first(data, "max_duration_ms", "maxDurationMs"))
+    if min_ms is None and max_ms is None:
+        return None
+    return DurationLimits(min_duration_ms=min_ms, max_duration_ms=max_ms or None)
+
+
+def _trim(value: Any) -> Trim | None:
+    data = _object(value)
+    if data is None:
+        return None
+    start_ms = _non_negative_int(_first(data, "start_ms", "startMs"))
+    end_ms = _non_negative_int(_first(data, "end_ms", "endMs"))
+    if not start_ms and end_ms is None:
+        return None
+    return Trim(start_ms=start_ms or None, end_ms=end_ms)
 
 
 def _metadata(value: Any) -> Mapping[str, Any]:

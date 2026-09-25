@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from video_worker.models import InvalidJobPayload, VideoJob
+from video_worker.models import DurationLimits, InvalidJobPayload, Trim, VideoJob
 
 
 def test_video_job_parses_redis_json_payload():
@@ -73,3 +73,58 @@ def test_video_job_rejects_missing_required_fields():
         VideoJob.from_payload({"job_id": "job_123", "source_key": "raw.mp4"})
 
     assert "asset_id" in str(exc.value)
+
+
+def test_video_job_parses_limits_trim_and_thumbnail_time():
+    job = VideoJob.from_payload(
+        {
+            "job_id": "j",
+            "asset_id": "a",
+            "source_key": "videos/raw/v.mp4",
+            "source_url": "",
+            "limits": {"min_duration_ms": 1000, "max_duration_ms": 60000},
+            "trim": {"start_ms": 1500, "end_ms": 9000},
+            "thumbnail_time_ms": 2500,
+        }
+    )
+
+    assert job.source_url is None
+    assert job.limits == DurationLimits(min_duration_ms=1000, max_duration_ms=60000)
+    assert job.trim == Trim(start_ms=1500, end_ms=9000)
+    assert job.thumbnail_time_ms == 2500
+
+
+def test_video_job_optional_fields_are_parsed_defensively():
+    job = VideoJob.from_payload(
+        {
+            "job_id": "j",
+            "asset_id": "a",
+            "source_key": "k.mp4",
+            "limits": {"min_duration_ms": "abc", "max_duration_ms": True},
+            "trim": {"start_ms": None, "end_ms": "-5"},
+            "thumbnail_time_ms": "soon",
+        }
+    )
+
+    assert job.limits is None
+    assert job.trim is None
+    assert job.thumbnail_time_ms is None
+
+
+def test_video_job_trim_with_only_end_and_numeric_strings():
+    job = VideoJob.from_payload(
+        json.dumps(
+            {
+                "job_id": "j",
+                "asset_id": "a",
+                "source_key": "k.mp4",
+                "trim": {"start_ms": 0, "end_ms": "12000.7"},
+                "limits": {"max_duration_ms": 30000},
+                "thumbnail_time_ms": 0,
+            }
+        )
+    )
+
+    assert job.trim == Trim(start_ms=None, end_ms=12000)
+    assert job.limits == DurationLimits(min_duration_ms=None, max_duration_ms=30000)
+    assert job.thumbnail_time_ms == 0

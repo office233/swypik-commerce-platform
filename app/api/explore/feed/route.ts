@@ -419,6 +419,7 @@ type ExploreFeedRow = {
   creator_verified: boolean | null;
   creator_avatar: string | null;
   source_key: string | null;
+  preview_url: string | null;
   asset_status: string | null;
   mp_id: string | null;
   mp_name: string | null;
@@ -729,6 +730,7 @@ export async function GET(request: NextRequest) {
         u.avatar_url   AS creator_avatar,
         va.object_key  AS source_key,
         va.status      AS asset_status,
+        v.metadata->>'preview_url' AS preview_url,
         mp.id          AS mp_id,
         mp.title       AS mp_name,
         mp.price_cents AS mp_price_cents,
@@ -904,7 +906,12 @@ export async function GET(request: NextRequest) {
         const playbackUrl = row.playback_url || null;
         const preferredUrl = playbackUrl || sourceUrl;
         const url = toMediaProxyUrl(preferredUrl);
-        const fallbackUrl = sourceUrl && playbackUrl && sourceUrl !== playbackUrl ? toMediaProxyUrl(sourceUrl) : null;
+        // MP4 de rezervă = preview.mp4 transcodat de worker (H.264, faststart,
+        // durata completă). Sursa brută (.mov/HEVC) rămâne doar pentru clipurile
+        // vechi fără preview — Chrome nu o poate reda de obicei.
+        const previewUrl = row.preview_url || null;
+        const fallbackSource = previewUrl || (sourceUrl && playbackUrl && sourceUrl !== playbackUrl ? sourceUrl : null);
+        const fallbackUrl = fallbackSource ? toMediaProxyUrl(fallbackSource) : null;
 
         const isHls = typeof url === 'string' && /\.m3u8(\?|$)/i.test(url);
         const rawThumbnail = row.thumbnail_url

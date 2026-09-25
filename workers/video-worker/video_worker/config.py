@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import socket
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
 
@@ -16,10 +16,20 @@ class Variant:
     bitrate: str
 
 
-DEFAULT_VARIANTS = (
-    Variant(name="360p", width=640, height=360, bitrate="800k"),
-    Variant(name="720p", width=1280, height=720, bitrate="2500k"),
-)
+@dataclass(frozen=True)
+class LadderRung:
+    """O treaptă din scara de calitate: latura SCURTĂ țintă + bitrate."""
+
+    short: int
+    bitrate: str
+
+
+DEFAULT_LADDER = "360:800k,540:1400k,720:2800k,1080:5000k"
+SUPPORTED_ENCODERS = ("libx264", "h264_nvenc")
+
+
+def default_ladder() -> list[LadderRung]:
+    return parse_ladder(DEFAULT_LADDER)
 
 
 @dataclass(frozen=True)
@@ -33,9 +43,9 @@ class Settings:
     public_base_url: str | None
     jobs_table: str
     assets_table: str
-    variants: list[Variant]
     poll_timeout_seconds: int
     work_dir: Path
+    ladder: list[LadderRung] = field(default_factory=default_ladder)
     aws_access_key_id: str | None = None
     aws_secret_access_key: str | None = None
     queue_backend: str = "stream"
@@ -45,6 +55,11 @@ class Settings:
     failed_stream: str | None = None
     stale_pending_ms: int = 10 * 60 * 1000
     ack_failed_jobs: bool = True
+    video_encoder: str = "libx264"
+    min_duration_ms: int = 1000
+    max_duration_ms: int = 180_000
+    max_attempts: int = 3
+    retry_backoff_seconds: float = 5.0
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -67,7 +82,7 @@ class Settings:
             public_base_url=public_base_url,
             jobs_table=values.get("VIDEO_JOBS_TABLE", "video_processing_jobs"),
             assets_table=values.get("VIDEO_ASSETS_TABLE", "video_assets"),
-            variants=parse_variants(values.get("VIDEO_VARIANTS")),
+            ladder=parse_ladder(values.get("VIDEO_LADDER")),
             poll_timeout_seconds=int(values.get("VIDEO_POLL_TIMEOUT_SECONDS", "5")),
             work_dir=Path(values.get("VIDEO_WORK_DIR", tempfile.gettempdir())) / "Swypik-video-worker",
             aws_access_key_id=_optional(values, "AWS_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID", "S3_ACCESS_KEY", "R2_ACCESS_KEY_ID"),
@@ -75,30 +90,46 @@ class Settings:
             failed_stream=_optional(values, "VIDEO_FAILED_STREAM"),
             stale_pending_ms=int(values.get("VIDEO_STALE_PENDING_MS", "600000")),
             ack_failed_jobs=_bool(values.get("VIDEO_ACK_FAILED_JOBS", "true")),
+            video_encoder=parse_encoder(values.get("VIDEO_ENCODER")),
+            min_duration_ms=int(values.get("VIDEO_MIN_DURATION_MS") or 1000),
+            max_duration_ms=int(values.get("VIDEO_MAX_DURATION_MS") or 180_000),
+            max_attempts=max(1, int(values.get("VIDEO_MAX_ATTEMPTS") or 3)),
+            retry_backoff_seconds=max(0.0, float(values.get("VIDEO_RETRY_BACKOFF_SECONDS") or 5)),
         )
 
 
-def parse_variants(value: str | None) -> list[Variant]:
-    if not value:
-        return list(DEFAULT_VARIANTS)
+def parse_ladder(value: str | None) -> list[LadderRung]:
+    """`VIDEO_LADDER="360:800k,720:2800k"` → trepte sortate crescător după latura scurtă."""
+    if not value or not value.strip():
+        value = DEFAULT_LADDER
 
-    variants: list[Variant] = []
+    rungs: list[LadderRung] = []
     for raw_part in value.split(","):
         part = raw_part.strip()
         if not part:
             continue
         try:
-            name, dimensions, bitrate = part.split(":", 2)
-            width, height = dimensions.lower().split("x", 1)
-            variants.append(Variant(name=name, width=int(width), height=int(height), bitrate=bitrate))
+            short_raw, bitrate = part.split(":", 1)
+            short = int(short_raw)
         except ValueError as exc:
-            raise ValueError(
-                "VIDEO_VARIANTS entries must look like '360p:640x360:800k'"
-            ) from exc
+            raise ValueError("VIDEO_LADDER entries must look like '720:2800k'") from exc
+        bitrate = bitrate.strip()
+        if short < 2 or not bitrate:
+            raise ValueError(f"Invalid VIDEO_LADDER entry: {part!r}")
+        rungs.append(LadderRung(short=short - short % 2, bitrate=bitrate))
 
-    if not variants:
-        raise ValueError("VIDEO_VARIANTS must define at least one variant")
-    return variants
+    if not rungs:
+        raise ValueError("VIDEO_LADDER must define at least one rung")
+    return sorted(rungs, key=lambda rung: rung.short)
+
+
+def parse_encoder(value: str | None) -> str:
+    encoder = (value or "libx264").strip().lower()
+    if encoder not in SUPPORTED_ENCODERS:
+        raise ValueError(
+            f"Unsupported VIDEO_ENCODER {value!r}; expected one of {', '.join(SUPPORTED_ENCODERS)}"
+        )
+    return encoder
 
 
 def _optional(values: Mapping[str, str], *keys: str) -> str | None:

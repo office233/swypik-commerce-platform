@@ -57,6 +57,8 @@ class S3Storage:
             )
             uploaded_keys.append(key)
 
+        has_audio_track = (directory / "audio.m4a").is_file()
+        audio_key = f"{prefix}/audio.m4a" if has_audio_track else None
         return {
             "bucket": bucket,
             "prefix": prefix,
@@ -66,6 +68,9 @@ class S3Storage:
             "master_url": self.object_url(f"{prefix}/master.m3u8", bucket=bucket),
             "thumbnail_url": self.object_url(f"{prefix}/thumbnail.jpg", bucket=bucket),
             "preview_url": self.object_url(f"{prefix}/preview.mp4", bucket=bucket),
+            # Pistă audio pentru speech-to-text; lipsește la clipurile fără sunet.
+            "audio_key": audio_key,
+            "audio_url": self.object_url(audio_key, bucket=bucket) if audio_key else None,
             "uploaded_keys": uploaded_keys,
         }
 
@@ -78,11 +83,20 @@ class S3Storage:
         return f"s3://{bucket}/{key.lstrip('/')}"
 
 
+_CONTENT_TYPES = {
+    ".m3u8": "application/vnd.apple.mpegurl",
+    ".ts": "video/mp2t",
+    ".m4a": "audio/mp4",
+    ".mp4": "video/mp4",
+    ".jpg": "image/jpeg",
+}
+
+
 def _content_type(path: Path) -> str:
-    if path.suffix == ".m3u8":
-        return "application/vnd.apple.mpegurl"
-    if path.suffix == ".ts":
-        return "video/mp2t"
+    # Explicit: `mimetypes` depinde de registry/OS (pe Windows .m4a → audio/x-m4a).
+    known = _CONTENT_TYPES.get(path.suffix.lower())
+    if known:
+        return known
     guessed, _ = mimetypes.guess_type(path.name)
     return guessed or "application/octet-stream"
 

@@ -1,4 +1,6 @@
-from video_worker.config import Settings, Variant
+import pytest
+
+from video_worker.config import LadderRung, Settings, parse_ladder
 
 
 def test_settings_loads_local_safe_defaults(monkeypatch):
@@ -11,26 +13,31 @@ def test_settings_loads_local_safe_defaults(monkeypatch):
     assert settings.database_url is None
     assert settings.queue_name == "video:jobs"
     assert settings.s3_endpoint_url is None
-    assert settings.variants == [
-        Variant(name="360p", width=640, height=360, bitrate="800k"),
-        Variant(name="720p", width=1280, height=720, bitrate="2500k"),
+    assert settings.ladder == [
+        LadderRung(360, "800k"),
+        LadderRung(540, "1400k"),
+        LadderRung(720, "2800k"),
+        LadderRung(1080, "5000k"),
     ]
+    assert settings.video_encoder == "libx264"
+    assert settings.min_duration_ms == 1000
+    assert settings.max_duration_ms == 180000
+    assert settings.max_attempts == 3
+    assert settings.retry_backoff_seconds == 5
 
 
-def test_settings_parses_variants_and_table_names():
+def test_settings_parses_ladder_and_table_names():
     settings = Settings.from_env(
         {
-            "VIDEO_VARIANTS": "240p:426x240:450k,1080p:1920x1080:5000k",
+            "VIDEO_LADDER": "1080:5000k, 241:450k",
             "VIDEO_JOBS_TABLE": "jobs_table",
             "VIDEO_ASSETS_TABLE": "assets_table",
             "S3_PUBLIC_BASE_URL": "https://cdn.example.test/media/",
         }
     )
 
-    assert settings.variants == [
-        Variant(name="240p", width=426, height=240, bitrate="450k"),
-        Variant(name="1080p", width=1920, height=1080, bitrate="5000k"),
-    ]
+    # sortat crescator, latura scurta rotunjita in jos la par
+    assert settings.ladder == [LadderRung(240, "450k"), LadderRung(1080, "5000k")]
     assert settings.jobs_table == "jobs_table"
     assert settings.assets_table == "assets_table"
     assert settings.public_base_url == "https://cdn.example.test/media"
@@ -71,3 +78,32 @@ def test_settings_accepts_production_s3_aliases():
     assert settings.public_base_url == "https://media.swypik.com"
     assert settings.aws_access_key_id == "access"
     assert settings.aws_secret_access_key == "secret"
+
+
+def test_settings_parses_encoder_limits_and_retries():
+    settings = Settings.from_env(
+        {
+            "VIDEO_ENCODER": "h264_nvenc",
+            "VIDEO_MIN_DURATION_MS": "2000",
+            "VIDEO_MAX_DURATION_MS": "60000",
+            "VIDEO_MAX_ATTEMPTS": "5",
+            "VIDEO_RETRY_BACKOFF_SECONDS": "0.5",
+        }
+    )
+
+    assert settings.video_encoder == "h264_nvenc"
+    assert settings.min_duration_ms == 2000
+    assert settings.max_duration_ms == 60000
+    assert settings.max_attempts == 5
+    assert settings.retry_backoff_seconds == 0.5
+
+
+def test_settings_rejects_unknown_encoder():
+    with pytest.raises(ValueError, match="VIDEO_ENCODER"):
+        Settings.from_env({"VIDEO_ENCODER": "hevc_qsv"})
+
+
+@pytest.mark.parametrize("value", ["abc", "360", "x:800k", "0:800k"])
+def test_parse_ladder_rejects_malformed_entries(value):
+    with pytest.raises(ValueError):
+        parse_ladder(value)
