@@ -6,13 +6,18 @@ import { VIDEO_AUTHOR_ROLES } from "@/lib/video/auth";
 /**
  * Poarta paginilor de creare (/upload, /reels/record): login cu întoarcere pe
  * aceeași pagină, cu prefixul de limbă păstrat (/auth/login e o rută fără
- * limbă, deci `next` primește calea localizată: /en/upload), apoi rolul de
- * autor video. Nu promovează niciodată rolul pe un GET.
+ * limbă, deci `next` primește calea localizată: /en/upload?draft=…), apoi rolul
+ * de autor video. Nu promovează niciodată rolul pe un GET.
  */
-export async function guardCreatePage(locale: string, returnTo: string): Promise<void> {
+export async function guardCreatePage(
+  locale: string,
+  pathname: string,
+  query: Record<string, string | undefined> = {},
+): Promise<void> {
   const auth = await getAuthUser();
   if (auth.role === "guest" || !auth.userId) {
-    const next = getPathname({ href: returnTo, locale });
+    const clean = Object.fromEntries(Object.entries(query).filter((e): e is [string, string] => typeof e[1] === "string"));
+    const next = getPathname({ href: { pathname, query: clean }, locale });
     nextRedirect(`/auth/login?next=${encodeURIComponent(next)}`);
   }
   if (!VIDEO_AUTHOR_ROLES.has(auth.role)) {

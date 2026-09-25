@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ draft?: string; mission?: string }>;
+  searchParams: Promise<{ draft?: string; mission?: string; audio?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -20,9 +20,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** Crearea unui clip: alege din galerie / filmează → editare → detalii → publicare. */
 export default async function UploadPage({ params, searchParams }: Props) {
   const { locale } = await params;
-  const { draft, mission } = await searchParams;
-  await guardCreatePage(locale, "/upload");
+  const { draft, mission, audio } = await searchParams;
+  await guardCreatePage(locale, "/upload", { draft, mission, audio });
   const draftVideoId = draft && isUuid(draft) ? draft : undefined;
   const missionSlug = mission && /^[a-z0-9-]{1,160}$/i.test(mission) ? mission : undefined;
-  return <CreateFlow initialSource="pick" draftVideoId={draftVideoId} missionSlug={missionSlug} />;
+  // „Folosește sunetul” din Music: /upload?audio=<audio_track_id>
+  const audioTrackId = audio && /^\d{1,12}$/.test(audio) ? Number(audio) : undefined;
+  return (
+    <CreateFlow initialSource="pick" draftVideoId={draftVideoId} missionSlug={missionSlug} audioTrackId={audioTrackId} />
+  );
 }

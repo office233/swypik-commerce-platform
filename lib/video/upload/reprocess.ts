@@ -26,7 +26,11 @@ type SourceRow = {
   last_error_code: string | null;
 };
 
-export async function reprocessVideo(videoId: string): Promise<{ jobId: string }> {
+/**
+ * `reencode: true` (admin) — re-transcodează și un clip deja „ready” din sursa
+ * păstrată în bucket (ex. clipurile vechi 16:9 cu benzi negre → randări 9:16).
+ */
+export async function reprocessVideo(videoId: string, opts: { reencode?: boolean } = {}): Promise<{ jobId: string }> {
   const { rows } = await dbQuery<SourceRow>(
     `SELECT vus.id AS session_id, vus.user_id, vus.bucket, vus.object_key, vus.content_type, vus.byte_size,
             vus.trim_start_ms, vus.trim_end_ms, va.id AS asset_id, v.status, v.product_refs, v.metadata,
@@ -42,8 +46,8 @@ export async function reprocessVideo(videoId: string): Promise<{ jobId: string }
   );
   const src = rows[0];
   if (!src) throw new UploadInputError("no uploaded source", "not_found", 404);
-  if (src.status !== "failed") throw new UploadInputError("video is not failed", "not_failed", 409);
-  if (NOT_RETRYABLE.has(src.last_error_code ?? "")) {
+  if (!opts.reencode && src.status !== "failed") throw new UploadInputError("video is not failed", "not_failed", 409);
+  if (!opts.reencode && NOT_RETRYABLE.has(src.last_error_code ?? "")) {
     throw new UploadInputError("source cannot be processed", src.last_error_code ?? "invalid_source", 422);
   }
   if (!(await headObject(src.object_key))) throw new UploadInputError("source missing", "source_missing", 410);

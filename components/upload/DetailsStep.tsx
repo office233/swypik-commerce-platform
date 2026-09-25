@@ -31,6 +31,7 @@ export function DetailsStep(props: {
   durationSec: number | null;
   processingReady: boolean;
   canPublish: boolean;
+  canSaveDraft: boolean;
   submitting: PublishIntent | null;
   onSubmit: (intent: PublishIntent, scheduledAt?: string) => void;
   status: ReactNode;
@@ -149,7 +150,7 @@ export function DetailsStep(props: {
       </Card>
 
       <StickyActions>
-        <Button variant="secondary" size="lg" loading={props.submitting === "draft"} disabled={!props.videoId || !!props.submitting} onClick={() => props.onSubmit("draft")}>
+        <Button variant="secondary" size="lg" loading={props.submitting === "draft"} disabled={!props.canSaveDraft || !!props.submitting} onClick={() => props.onSubmit("draft")}>
           {t("saveDraft")}
         </Button>
         <IconButton variant="secondary" size="lg" label={t("schedule")} disabled={!props.canPublish || !!props.submitting} onClick={() => setScheduleOpen(true)}>

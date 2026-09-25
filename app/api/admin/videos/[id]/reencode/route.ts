@@ -9,6 +9,7 @@ import {
 
 import { logger } from "@/lib/logger";
 import { logAdminAction } from "@/lib/security/admin-audit";
+import { reprocessVideo } from "@/lib/video/upload/reprocess";
 export const dynamic = "force-dynamic";
 
 /**
@@ -56,6 +57,26 @@ export async function POST(
       return NextResponse.json({ error: "video_not_found" }, { status: 404 });
     }
 
+    // 1) Sursa urcată de creator e în bucket → re-transcodare directă (fără URL extern).
+    const hasBody = Boolean(body?.sourceUrl || body?.source_url);
+    if (!hasBody) {
+      try {
+        const bucket = await reprocessVideo(videoId, { reencode: true });
+        await logAdminAction({
+          action: "video.reencode",
+          targetType: "video",
+          targetId: videoId,
+          details: { jobId: bucket.jobId, source: "bucket" },
+          req,
+        });
+        return NextResponse.json({ jobId: bucket.jobId, videoId, source: "bucket", queued: true }, { status: 202 });
+      } catch (err) {
+        const code = (err as { code?: string })?.code;
+        if (code !== "not_found" && code !== "source_missing") throw err;
+      }
+    }
+
+    // 2) Clipuri importate: sursa externă (metadata.source_url / playback_url mp4).
     const sourceUrl: string | null =
       (typeof body?.sourceUrl === "string" && body.sourceUrl) ||
       (typeof body?.source_url === "string" && body.source_url) ||

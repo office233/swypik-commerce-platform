@@ -33,7 +33,12 @@ const STEP_NUMBER: Record<Step, number> = { pick: 1, camera: 1, edit: 2, details
  * detalii → publică. Uploadul pornește imediat după alegere și rulează în
  * fundal cât creatorul editează; procesarea pornește după confirmarea tăierii.
  */
-export default function CreateFlow(props: { initialSource: "pick" | "camera"; draftVideoId?: string; missionSlug?: string }) {
+export default function CreateFlow(props: {
+  initialSource: "pick" | "camera";
+  draftVideoId?: string;
+  missionSlug?: string;
+  audioTrackId?: number;
+}) {
   const t = useTranslations("videoUpload");
   const router = useRouter();
   const { toast } = useToast();
@@ -51,7 +56,10 @@ export default function CreateFlow(props: { initialSource: "pick" | "camera"; dr
   const [discardOpen, setDiscardOpen] = useState(false);
   const coverSent = useRef<Blob | null>(null);
   const videoId = upload.session?.videoId ?? props.draftVideoId ?? null;
-  const form = useDetailsForm(videoId, props.missionSlug ? { missionSlug: props.missionSlug } : undefined);
+  const form = useDetailsForm(videoId, {
+    ...(props.missionSlug ? { missionSlug: props.missionSlug } : {}),
+    ...(props.audioTrackId ? { audioTrackId: props.audioTrackId } : {}),
+  });
 
   useEffect(() => () => void (previewUrl && URL.revokeObjectURL(previewUrl)), [previewUrl]);
 
@@ -168,7 +176,11 @@ export default function CreateFlow(props: { initialSource: "pick" | "camera"; dr
     />
   );
   const failedUpload = upload.state.kind === "failed" && upload.state.stage === "upload";
-  const canPublish = Boolean(videoId) && !failedUpload && upload.state.kind !== "cancelled" && upload.state.kind !== "idle";
+  // Publicarea cere fișierul complet urcat (procesarea poate fi încă în curs);
+  // draftul se poate salva doar când nu mai urcăm (navigarea ar opri uploadul).
+  const kind = upload.state.kind;
+  const canPublish = Boolean(videoId) && (kind === "completing" || kind === "processing" || kind === "ready");
+  const canSaveDraft = Boolean(videoId) && !upload.busy && kind !== "cancelled" && !failedUpload;
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -232,6 +244,7 @@ export default function CreateFlow(props: { initialSource: "pick" | "camera"; dr
           durationSec={probe ? Math.round(((trim?.endMs ?? probe.durationMs) - (trim?.startMs ?? 0)) / 1000) : null}
           processingReady={upload.state.kind === "ready"}
           canPublish={canPublish}
+          canSaveDraft={canSaveDraft}
           submitting={submitting}
           onSubmit={(intent, at) => void submit(intent, at)}
           status={status}

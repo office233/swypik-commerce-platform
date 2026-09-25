@@ -92,6 +92,16 @@ describe("reprocessVideo (retry after a failed processing)", () => {
     expect(queue.publishProcessVideoJob).toHaveBeenCalledTimes(1);
   });
 
+  it("admin re-encode re-transcodes a ready clip from the bucket source (16:9 → 9:16 renditions)", async () => {
+    respond = (sql) => {
+      if (sql.includes("FROM videos v")) return { rows: [{ ...src, status: "ready", last_error_code: null }] };
+      if (sql.includes("INSERT INTO video_processing_jobs")) return { rows: [{ id: "j" }] };
+      return { rows: [] };
+    };
+    await expect(reprocessVideo(VID)).rejects.toMatchObject({ code: "not_failed" });
+    await expect(reprocessVideo(VID, { reencode: true })).resolves.toHaveProperty("jobId");
+  });
+
   it("refuses permanent errors and missing sources", async () => {
     respond = () => ({ rows: [{ ...src, last_error_code: "duration_too_long" }] });
     await expect(reprocessVideo(VID)).rejects.toMatchObject({ code: "duration_too_long" });

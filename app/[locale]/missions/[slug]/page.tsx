@@ -155,7 +155,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/upload"
+              href={`/upload?mission=${encodeURIComponent(mission.slug)}`}
               className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#7C3AED] px-4 py-3 text-sm font-black text-white hover:bg-[#6D28D9] transition"
             >
               
