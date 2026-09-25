@@ -6,7 +6,8 @@ import { withErrorHandling } from "@/lib/api-handler";
  */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { buildCartCookie, getOrCreateCart, loadCartItems } from "@/lib/cart/session";
+import { buildCartCookie, getOrCreateCart } from "@/lib/cart/session";
+import { loadCart } from "@/lib/shop/cart";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
 
@@ -17,9 +18,7 @@ async function GET_impl() {
   if (!cart) {
     return NextResponse.json({ items: [], subtotalCents: 0, currency: DEFAULT_CURRENCY }, { headers: NO_STORE });
   }
-  const items = await loadCartItems(cart.cartId);
-  const subtotalCents = items.reduce((s, i) => s + i.priceCents * i.quantity, 0);
-  const res = NextResponse.json({ items, subtotalCents, currency: cart.currency }, { headers: NO_STORE });
+  const res = NextResponse.json(await loadCart(cart.cartId, cart.currency), { headers: NO_STORE });
   if (cart.anonToken && !cart.userId) {
     res.headers.append("Set-Cookie", buildCartCookie(cart.anonToken));
   }

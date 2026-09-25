@@ -34,9 +34,11 @@ async function POST_impl(
   const { id } = await params;
   if (!isUuidParam(id)) return invalidIdResponse();
 
+  // Doar produse existente și publice pot fi salvate.
   const { rows } = await dbQuery<{ id: string }>(
     `INSERT INTO saved_products (user_id, product_id)
-     VALUES ($1, $2)
+     SELECT $1, p.id FROM marketplace_products p
+      WHERE p.id = $2::uuid AND p.status = 'active' AND p.effective_label = 'safe'
      ON CONFLICT (user_id, product_id) DO NOTHING
      RETURNING id`,
     [user.userId, id],

@@ -57,6 +57,11 @@ export type ProductDetail = {
     storeRating: number;
     isEstimatedSocial: boolean;
     seller: { id: string; name: string } | null;
+    /** 'product' = se cumpără prin coș; 'listing' = anunț/verticală (CTA propriu). */
+    listingType: string;
+    currency: string;
+    /** Destinația CTA-ului pentru listări (doar căi interne, ex. /fly?dest=CDG). */
+    ctaUrl: string | null;
   };
   variants: Array<{
     id: string;
@@ -192,6 +197,8 @@ type DetailRow = {
   swypik_seller_id: string | null;
   swypik_seller_name: string | null;
   swypik_seller_status: string | null;
+  listing_type?: string | null;
+  currency?: string | null;
   ae_category_id: string | null;
   ae_category_name: string | null;
   ae_category_name_ro: string | null;
@@ -260,6 +267,11 @@ function buildImages(row: { image_url: string | null }, metadata: Meta) {
   }
 
   return result.slice(0, 8);
+}
+
+/** Doar căi interne: un URL extern din metadata nu devine link în pagină. */
+function internalCtaUrl(value: string | null | undefined): string | null {
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
 }
 
 export async function getProductDetail(
@@ -387,11 +399,12 @@ export async function getProductDetail(
              UNION ALL
              SELECT n.slug, n.parent_slug, c.depth + 1 FROM taxonomy_nodes n JOIN chain c ON n.slug = c.parent_slug
            )
-           SELECT c.slug, COALESCE(t.label, c.slug) AS label
+           SELECT c.slug, COALESCE(t.label, t_en.label, c.slug) AS label
            FROM chain c
-           LEFT JOIN taxonomy_translations t ON t.node_slug = c.slug AND t.locale = 'ro'
+           LEFT JOIN taxonomy_translations t ON t.node_slug = c.slug AND t.locale = $2
+           LEFT JOIN taxonomy_translations t_en ON t_en.node_slug = c.slug AND t_en.locale = 'en'
            ORDER BY c.depth DESC`,
-        [taxonomyNodeSlugEarly],
+        [taxonomyNodeSlugEarly, locale],
       ).catch(() => ({ rows: [] }))
       : Promise.resolve({ rows: [] }),
   ]);
@@ -546,6 +559,9 @@ export async function getProductDetail(
       storeName: firstString(store.name, row.store_name),
       storeRating,
       isEstimatedSocial: !hasRealOrders,
+      listingType: typeof row.listing_type === "string" && row.listing_type ? row.listing_type : "product",
+      currency: String(row.currency || "RON").trim().toUpperCase(),
+      ctaUrl: internalCtaUrl(firstString(metadata.cta_url)),
       seller:
         row.swypik_seller_id && row.swypik_seller_status === "active"
           ? { id: String(row.swypik_seller_id), name: String(row.swypik_seller_name || "Vânzător Swypik") }

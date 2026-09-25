@@ -138,10 +138,8 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
  * Send order confirmation email after successful payment
  */
 export async function sendOrderConfirmation(data: OrderEmailData): Promise<boolean> {
-  if (!isEnabled("emailMarketing")) {
-    log.info({ fn: "sendOrderConfirmation", to: maskEmail(data.customerEmail) }, "email skipped — marketing disabled");
-    return true;
-  }
+  // Tranzacțional: confirmarea comenzii NU depinde de FEATURE_EMAIL_MARKETING
+  // (flag-ul OFF făcea ca niciun client să nu primească confirmare — audit shop 2026-09-25).
   const trackingUrl = orderTrackingUrl(data);
   const itemsHtml = data.items.map(i =>
     `<tr>

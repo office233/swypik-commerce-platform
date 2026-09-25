@@ -1,6 +1,6 @@
 import { dbQuery } from "@/lib/db";
-import Link from "next/link";
-import PurchaseTracker from "@/components/PurchaseTracker";
+import { SuccessView, type SuccessOrder } from "@/components/shop/checkout/SuccessView";
+import { logger } from "@/lib/logger";
 import { getStripe } from "@/lib/stripe/checkout";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import crypto from "crypto";
@@ -51,6 +51,7 @@ export default async function CheckoutSuccess({
            ord.metadata->'shipping_address' AS shipping_address,
            ord.metadata->>'order_lookup_token' AS order_lookup_token,
            ord.status,
+           ord.currency,
            ord.created_at
          FROM commerce_orders ord
          JOIN checkout_sessions cs ON ord.id = cs.order_id
@@ -91,7 +92,7 @@ export default async function CheckoutSuccess({
       }
     } catch (error) {
       lookupError = true;
-      console.error("[CheckoutSuccess] Error fetching order:", error);
+      logger.error({ err: error }, "[CheckoutSuccess] Error fetching order");
     }
   } else if (paymentIntentId) {
     try {
@@ -106,6 +107,7 @@ export default async function CheckoutSuccess({
            ord.metadata->'shipping_address' AS shipping_address,
            ord.metadata->>'order_lookup_token' AS order_lookup_token,
            ord.status,
+           ord.currency,
            ord.created_at
          FROM commerce_orders ord
          WHERE ord.metadata->>'stripe_payment_intent' = $1
@@ -142,7 +144,7 @@ export default async function CheckoutSuccess({
       }
     } catch (error) {
       lookupError = true;
-      console.error("[CheckoutSuccess] Error fetching payment intent order:", error);
+      logger.error({ err: error }, "[CheckoutSuccess] Error fetching payment intent order");
     }
   }
 
@@ -215,134 +217,31 @@ export default async function CheckoutSuccess({
           : t("subPending")
         : t("subMissing");
 
-  const statusBadge = isPaid
-    ? { label: t("statusPaid"), classes: "bg-[#0D0D0D]/10 text-[#0D0D0D]" }
-    : isPending
-      ? { label: t("statusProcessing"), classes: "bg-yellow-100 text-yellow-800" }
-      : { label: t("statusVerifying"), classes: "bg-[#F3F4F6] text-[#4B5563]" };
+  const view: SuccessOrder | null = order
+    ? {
+        id: String(order.id),
+        createdAt: order.created_at ? new Date(order.created_at).toISOString() : null,
+        totalCents: order.total_ron != null ? Math.round(Number(order.total_ron) * 100) : null,
+        currency: String(order.currency || "RON").trim().toUpperCase(),
+        customerEmail: order.customer_email || null,
+      }
+    : null;
+  const viewItems = (Array.isArray(items) ? items : []).map((item: { title?: string; quantity?: number; price?: number | string; priceCents?: number }) => ({
+    title: String(item.title || ""),
+    quantity: Number(item.quantity) || 1,
+    priceCents: item.priceCents != null ? Number(item.priceCents) : Math.round(Number(item.price || 0) * 100),
+  }));
 
   return (
-    <div className="min-h-screen bg-white px-4 py-10">
-      {isPaid && pii_ok && order?.id ? <PurchaseTracker orderId={String(order.id)} /> : null}
-
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center">
-        <div className="w-full text-center">
-          <div
-            className={`mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full ${
-              isPaid ? "bg-[#0D0D0D]/10" : "bg-yellow-100"
-            }`}
-          >
-            {isPaid ? (
-              <svg className="h-10 w-10 text-[#0D0D0D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="h-10 w-10 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v5m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
-          </div>
-
-          <h1 className="text-3xl font-black text-[#0D0D0D]">{title}</h1>
-          <p className="mt-3 text-sm font-medium text-[#6E6E80]">{description}</p>
-
-          {(order || hasLookup) && pii_ok && (
-            <div className="mt-6 rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5 text-left">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#6E6E80]">
-                    {order ? `Comanda #${order.id.split("-")[0]}` : "Confirmare checkout"}
-                  </span>
-                  {order?.created_at && (
-                    <p className="mt-1 text-xs text-[#6E6E80]">
-                      {new Date(order.created_at).toLocaleDateString("ro-RO", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
-                  )}
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadge.classes}`}>{statusBadge.label}</span>
-              </div>
-
-              {order ? (
-                <>
-                  {items.length > 0 && (
-                    <div className="mb-6 space-y-3">
-                      {items.map((item: any, idx: number) => (
-                        <div key={idx} className="flex justify-between gap-4 text-sm">
-                          <span className="line-clamp-1 font-medium text-[#0D0D0D]">
-                            {item.quantity}x {item.title}
-                          </span>
-                          <span className="shrink-0 font-bold text-[#6E6E80]">
-                            {Number(item.price * item.quantity).toFixed(2)} lei
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="border-t border-[#E5E5E5] pt-4">
-                    <div className="flex items-center justify-between font-black">
-                      <span className="text-[#0D0D0D]">{isPaid ? t("totalPaid") : t("totalOrder")}</span>
-                      <span className="text-xl text-[#0D0D0D]">{Number(order.total_ron).toFixed(2)} lei</span>
-                    </div>
-                  </div>
-
-                  {(shipping || order.customer_email) && (
-                    <div className="mt-4 border-t border-[#E5E5E5] pt-4 text-sm">
-                      {shipping && (
-                        <>
-                          <p className="mb-1 text-xs font-bold uppercase text-[#6E6E80]">{t("livrareCatre")}</p>
-                          <p className="font-medium text-[#0D0D0D]">{shipping.name}</p>
-                          <p className="text-[#6E6E80]">
-                            {[shipping.line1, shipping.city].filter(Boolean).join(", ")}
-                          </p>
-                        </>
-                      )}
-                      {order.customer_email && <p className="mt-2 text-[#6E6E80]">Email: {order.customer_email}</p>}
-                    </div>
-                  )}
-
-                  {isPaid && <p className="mt-4 text-xs font-medium text-[#6E6E80]">{t("cosulLocalAFost")}</p>}
-                </>
-              ) : (
-                <div className="rounded-xl bg-white px-4 py-3 text-sm text-[#4B5563]">
-                  
-                  {t("nuAmPututAfisa")}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="mt-8 space-y-3">
-            {order && pii_ok && (
-              <Link
-                href={`/orders/${encodeURIComponent(sp.order_token || order.order_lookup_token || order.id)}`}
-                className="inline-block w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-transform active:scale-[0.98]"
-              >
-                
-                {t("urmaresteComanda")}
-              </Link>
-            )}
-            <Link
-              href="/account"
-              className="inline-block w-full rounded-xl border border-[#E5E5E5] bg-white py-4 text-center text-sm font-bold text-[#0D0D0D] transition-transform active:scale-[0.98]"
-            >
-              
-              {t("veziContulMeu")}
-            </Link>
-            <Link
-              href="/"
-              className="inline-block w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-transform active:scale-[0.98]"
-            >
-              
-              {t("inapoiLaMagazin")}
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+    <SuccessView
+      title={title}
+      description={description}
+      isPaid={isPaid}
+      isPending={isPending}
+      showDetails={pii_ok}
+      order={view}
+      items={viewItems}
+      shipping={shipping}
+    />
   );
 }

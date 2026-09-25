@@ -1,11 +1,13 @@
+import { Skeleton } from "@/components/ui/Skeleton";
+
 export default function CheckoutLoading() {
   return (
-    <main className="min-h-dvh bg-slate-50 px-4 py-8 text-slate-950">
+    <main className="min-h-dvh bg-canvas px-gutter py-6" aria-busy>
       <div className="mx-auto max-w-5xl space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-slate-200" />
-        <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-          <div className="h-72 animate-pulse rounded-lg bg-white shadow-sm" />
-          <div className="h-64 animate-pulse rounded-lg bg-white shadow-sm" />
+        <Skeleton className="h-8 w-48" />
+        <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+          <Skeleton className="h-72 rounded-card" />
+          <Skeleton className="h-64 rounded-card" />
         </div>
       </div>
     </main>

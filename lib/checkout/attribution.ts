@@ -45,6 +45,26 @@ export async function resolveCheckoutAttribution(
     };
   }
 
+  // Creatorii își etichetează produsele la upload prin `videos.product_refs`
+  // (nu prin video_product_links) — clipul din care a venit cumpărătorul
+  // trebuie să primească atribuirea și atunci.
+  if (inputVideoId) {
+    const refResult = await dbQuery<{ creator_id: string | null; video_id: string }>(
+      `SELECT v.creator_id::text AS creator_id, v.id::text AS video_id
+         FROM videos v
+        WHERE v.id::text = $2
+          AND EXISTS (
+            SELECT 1 FROM jsonb_array_elements(COALESCE(v.product_refs, '[]'::jsonb)) e
+             WHERE (jsonb_typeof(e) = 'object' AND e->>'product_id' = $1)
+                OR (jsonb_typeof(e) = 'string' AND e #>> '{}' = $1)
+          )
+        LIMIT 1`,
+      [productId, inputVideoId],
+    );
+    const ref = refResult.rows[0];
+    if (ref?.creator_id) return { creatorId: ref.creator_id, videoId: ref.video_id };
+  }
+
   const linkResult = await dbQuery<{
     creator_id: string;
     creator_product_link_id: string;

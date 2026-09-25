@@ -93,7 +93,7 @@ export default function OrderReturnButton({
 
   if (done) {
     return (
-      <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-300">
+      <div className="rounded-2xl border border-success/30 bg-success-soft p-4 text-sm text-success">
         
         {t("cerereaDeReturA")}
       </div>
@@ -104,7 +104,7 @@ export default function OrderReturnButton({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] py-3 text-sm font-semibold"
+        className="w-full rounded-xl border border-subtle bg-surface hover:bg-surface-2 py-3 text-sm font-semibold"
       >
         
         {t("solicitaRetur")}
@@ -113,14 +113,14 @@ export default function OrderReturnButton({
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+    <div className="rounded-2xl border border-subtle bg-surface p-4">
       <label className="text-sm font-semibold">Motivul returului</label>
       <textarea
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         rows={4}
         placeholder={t("descrieProblemaDefectMarime")}
-        className="mt-2 w-full rounded-lg bg-black/40 border border-white/15 p-3 text-sm"
+        className="mt-2 w-full rounded-lg bg-surface-2 border border-subtle p-3 text-sm"
       />
 
       <div className="mt-4">
@@ -129,11 +129,11 @@ export default function OrderReturnButton({
             
             {t("fotografiiOptionalMax")} {MAX_PHOTOS})
           </span>
-          <span className="text-xs text-white/40">{photos.length}/{MAX_PHOTOS}</span>
+          <span className="text-xs text-subtle">{photos.length}/{MAX_PHOTOS}</span>
         </div>
         <div className="mt-2 grid grid-cols-4 gap-2">
           {photos.map((p, i) => (
-            <div key={p.key} className="relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/40">
+            <div key={p.key} className="relative aspect-square overflow-hidden rounded-lg border border-subtle bg-surface-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.url} alt={`Evidență ${i + 1}`} className="h-full w-full object-cover" />
               <button
@@ -151,7 +151,7 @@ export default function OrderReturnButton({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-white/20 bg-white/[0.02] text-white/50 hover:bg-white/[0.06] disabled:opacity-50"
+              className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-strong bg-surface text-muted hover:bg-surface-2 disabled:opacity-50"
               aria-label={t("adaugaFotografie")}
             >
               <Camera size={20} />
@@ -166,14 +166,14 @@ export default function OrderReturnButton({
           onChange={(e) => handleFiles(e.target.files)}
           className="hidden"
         />
-        {uploading && <p className="mt-2 text-xs text-white/50">{t("seIncarca")}</p>}
+        {uploading && <p className="mt-2 text-xs text-muted">{t("seIncarca")}</p>}
       </div>
 
-      {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-xs text-danger">{error}</p>}
       <div className="mt-3 flex gap-2">
         <button
           onClick={() => setOpen(false)}
-          className="flex-1 rounded-lg border border-white/15 py-2 text-sm"
+          className="flex-1 rounded-lg border border-subtle py-2 text-sm"
         >
           
           {t("renunta")}
@@ -181,7 +181,7 @@ export default function OrderReturnButton({
         <button
           onClick={submit}
           disabled={submitting || uploading}
-          className="flex-1 rounded-lg bg-pink-500 text-white py-2 text-sm font-bold disabled:opacity-50"
+          className="flex-1 rounded-control bg-brand text-brand-fg min-h-[2.75rem] py-2 text-sm font-bold disabled:opacity-50"
         >
           {submitting ? "Se trimite..." : "Trimite cerere"}
         </button>
