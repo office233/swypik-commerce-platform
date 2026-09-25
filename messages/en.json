@@ -3790,7 +3790,10 @@
     "activeCall": {
       "expand": "Expand to full screen",
       "minimize": "Minimize to corner",
-      "end": "End call"
+      "end": "End call",
+      "connecting": "Connecting the call…",
+      "failed": "We couldn't start the call. Check your connection and camera and microphone permissions.",
+      "close": "Close"
     }
   },
   "news": {
@@ -6227,7 +6230,8 @@
       "video_not_eligible": "This clip can't be entered in the mission.",
       "video_in_other_mission": "This clip is already entered in another mission.",
       "own_mission": "You can't enter your own mission.",
-      "invalid_mission_id": "Invalid mission. Please choose again."
+      "invalid_mission_id": "Invalid mission. Please choose again.",
+      "cover_rejected": "This cover doesn't meet our community guidelines. Pick another frame."
     }
   },
   "adminNews": {
@@ -6736,7 +6740,8 @@
           "rate_limited": "Too many attempts. Please wait a moment.",
           "not_found": "Product not found.",
           "generic": "Something went wrong. Please try again."
-        }
+        },
+        "imageRejected": "{name}: this image doesn't meet our community guidelines."
       }
     },
     "erp": {
@@ -6890,8 +6895,7 @@
       "liveBadge": "LIVE",
       "viewers": "{count, plural, one {# viewer} other {# viewers}}",
       "close": "Close",
-      "products": "{count, plural, one {# product} other {# products}}",
-      "guestName": "Guest"
+      "products": "{count, plural, one {# product} other {# products}}"
     },
     "chat": {
       "label": "Live chat",
@@ -6979,7 +6983,8 @@
       "endStream": "End",
       "endError": "We couldn't end the stream.",
       "confirmEndTitle": "End the stream?",
-      "confirmEndDescription": "Viewers will be disconnected and the stream can't be restarted."
+      "confirmEndDescription": "Viewers will be disconnected and the stream can't be restarted.",
+      "cameraBlocked": "Allow camera and microphone access to go live."
     }
   },
   "social": {
@@ -7128,7 +7133,8 @@
         "links_save_failed": "Couldn't save your links.",
         "categories_save_failed": "Couldn't save your categories.",
         "profile_update_failed": "Couldn't save your profile.",
-        "validation_error": "Please check your details."
+        "validation_error": "Please check your details.",
+        "avatar_rejected": "This photo doesn't meet our community guidelines. Please choose another."
       }
     },
     "notifications": {

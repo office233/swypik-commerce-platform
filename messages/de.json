@@ -3790,7 +3790,10 @@
     "activeCall": {
       "expand": "Auf Vollbild vergrößern",
       "minimize": "In die Ecke minimieren",
-      "end": "Anruf beenden"
+      "end": "Anruf beenden",
+      "connecting": "Anruf wird verbunden…",
+      "failed": "Der Anruf konnte nicht gestartet werden. Prüfe deine Verbindung und die Kamera- und Mikrofonberechtigungen.",
+      "close": "Schließen"
     }
   },
   "news": {
@@ -6227,7 +6230,8 @@
       "video_not_eligible": "Dieser Clip kann nicht für die Mission eingereicht werden.",
       "video_in_other_mission": "Dieser Clip ist bereits für eine andere Mission eingereicht.",
       "own_mission": "Du kannst nicht an deiner eigenen Mission teilnehmen.",
-      "invalid_mission_id": "Ungültige Mission. Bitte erneut auswählen."
+      "invalid_mission_id": "Ungültige Mission. Bitte erneut auswählen.",
+      "cover_rejected": "Dieses Titelbild verstößt gegen die Community-Richtlinien. Wähle ein anderes Bild."
     }
   },
   "adminNews": {
@@ -6736,7 +6740,8 @@
           "rate_limited": "Zu viele Versuche. Bitte warte kurz.",
           "not_found": "Produkt nicht gefunden.",
           "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
-        }
+        },
+        "imageRejected": "{name}: Das Bild verstößt gegen die Community-Richtlinien."
       }
     },
     "erp": {
@@ -6890,8 +6895,7 @@
       "liveBadge": "LIVE",
       "viewers": "{count, plural, one {# Zuschauer} other {# Zuschauer}}",
       "close": "Schließen",
-      "products": "{count, plural, one {# Produkt} other {# Produkte}}",
-      "guestName": "Gast"
+      "products": "{count, plural, one {# Produkt} other {# Produkte}}"
     },
     "chat": {
       "label": "Live-Chat",
@@ -6979,7 +6983,8 @@
       "endStream": "Beenden",
       "endError": "Der Stream konnte nicht beendet werden.",
       "confirmEndTitle": "Stream beenden?",
-      "confirmEndDescription": "Die Zuschauer werden getrennt und der Stream kann nicht neu gestartet werden."
+      "confirmEndDescription": "Die Zuschauer werden getrennt und der Stream kann nicht neu gestartet werden.",
+      "cameraBlocked": "Erlaube den Zugriff auf Kamera und Mikrofon, um live zu gehen."
     }
   },
   "social": {
@@ -7128,7 +7133,8 @@
         "links_save_failed": "Die Links konnten nicht gespeichert werden.",
         "categories_save_failed": "Die Kategorien konnten nicht gespeichert werden.",
         "profile_update_failed": "Das Profil konnte nicht gespeichert werden.",
-        "validation_error": "Bitte überprüfe deine Angaben."
+        "validation_error": "Bitte überprüfe deine Angaben.",
+        "avatar_rejected": "Dieses Foto verstößt gegen die Community-Richtlinien. Bitte wähle ein anderes."
       }
     },
     "notifications": {

@@ -3790,7 +3790,10 @@
     "activeCall": {
       "expand": "Mărește pe tot ecranul",
       "minimize": "Minimizează în colț",
-      "end": "Închide apelul"
+      "end": "Închide apelul",
+      "connecting": "Se conectează apelul…",
+      "failed": "Nu am putut porni apelul. Verifică conexiunea și permisiunile pentru cameră și microfon.",
+      "close": "Închide"
     }
   },
   "news": {
@@ -6227,7 +6230,8 @@
       "video_not_eligible": "Acest clip nu poate fi înscris la misiune.",
       "video_in_other_mission": "Clipul e deja înscris la altă misiune.",
       "own_mission": "Nu te poți înscrie la propria misiune.",
-      "invalid_mission_id": "Misiune invalidă. Alege din nou."
+      "invalid_mission_id": "Misiune invalidă. Alege din nou.",
+      "cover_rejected": "Coperta nu respectă regulile comunității. Alege alt cadru."
     }
   },
   "adminNews": {
@@ -6736,7 +6740,8 @@
           "rate_limited": "Prea multe încercări. Așteaptă puțin.",
           "not_found": "Produsul nu a fost găsit.",
           "generic": "Ceva n-a mers. Încearcă din nou."
-        }
+        },
+        "imageRejected": "{name}: imaginea nu respectă regulile comunității."
       }
     },
     "erp": {
@@ -6890,8 +6895,7 @@
       "liveBadge": "LIVE",
       "viewers": "{count, plural, one {# spectator} few {# spectatori} other {# de spectatori}}",
       "close": "Închide",
-      "products": "{count, plural, one {# produs} few {# produse} other {# de produse}}",
-      "guestName": "Vizitator"
+      "products": "{count, plural, one {# produs} few {# produse} other {# de produse}}"
     },
     "chat": {
       "label": "Chat live",
@@ -6979,7 +6983,8 @@
       "endStream": "Încheie",
       "endError": "Nu am putut încheia streamul.",
       "confirmEndTitle": "Închei transmisiunea?",
-      "confirmEndDescription": "Spectatorii vor fi deconectați și streamul nu mai poate fi repornit."
+      "confirmEndDescription": "Spectatorii vor fi deconectați și streamul nu mai poate fi repornit.",
+      "cameraBlocked": "Permite accesul la cameră și microfon ca să intri live."
     }
   },
   "social": {
@@ -7128,7 +7133,8 @@
         "links_save_failed": "Linkurile nu au putut fi salvate.",
         "categories_save_failed": "Categoriile nu au putut fi salvate.",
         "profile_update_failed": "Profilul nu a putut fi salvat.",
-        "validation_error": "Verifică datele introduse."
+        "validation_error": "Verifică datele introduse.",
+        "avatar_rejected": "Fotografia nu respectă regulile comunității. Alege alta."
       }
     },
     "notifications": {

@@ -3790,7 +3790,10 @@
     "activeCall": {
       "expand": "Expandir para ecrã inteiro",
       "minimize": "Minimizar para o canto",
-      "end": "Terminar chamada"
+      "end": "Terminar chamada",
+      "connecting": "A ligar a chamada…",
+      "failed": "Não conseguimos iniciar a chamada. Verifica a ligação e as permissões da câmara e do microfone.",
+      "close": "Fechar"
     }
   },
   "news": {
@@ -6227,7 +6230,8 @@
       "video_not_eligible": "Este clipe não pode ser inscrito na missão.",
       "video_in_other_mission": "Este clipe já está inscrito noutra missão.",
       "own_mission": "Não podes participar na tua própria missão.",
-      "invalid_mission_id": "Missão inválida. Escolhe novamente."
+      "invalid_mission_id": "Missão inválida. Escolhe novamente.",
+      "cover_rejected": "Esta capa não cumpre as regras da comunidade. Escolhe outro fotograma."
     }
   },
   "adminNews": {
@@ -6736,7 +6740,8 @@
           "rate_limited": "Demasiadas tentativas. Aguarde um momento.",
           "not_found": "Produto não encontrado.",
           "generic": "Algo correu mal. Tente novamente."
-        }
+        },
+        "imageRejected": "{name}: a imagem não cumpre as regras da comunidade."
       }
     },
     "erp": {
@@ -6890,8 +6895,7 @@
       "liveBadge": "AO VIVO",
       "viewers": "{count, plural, one {# espectador} other {# espectadores}}",
       "close": "Fechar",
-      "products": "{count, plural, one {# produto} other {# produtos}}",
-      "guestName": "Visitante"
+      "products": "{count, plural, one {# produto} other {# produtos}}"
     },
     "chat": {
       "label": "Chat ao vivo",
@@ -6979,7 +6983,8 @@
       "endStream": "Terminar",
       "endError": "Não foi possível terminar a transmissão.",
       "confirmEndTitle": "Terminar a transmissão?",
-      "confirmEndDescription": "Os espectadores serão desligados e a transmissão não poderá ser reiniciada."
+      "confirmEndDescription": "Os espectadores serão desligados e a transmissão não poderá ser reiniciada.",
+      "cameraBlocked": "Permite o acesso à câmara e ao microfone para entrares em direto."
     }
   },
   "social": {
@@ -7128,7 +7133,8 @@
         "links_save_failed": "Não foi possível guardar os links.",
         "categories_save_failed": "Não foi possível guardar as categorias.",
         "profile_update_failed": "Não foi possível guardar o perfil.",
-        "validation_error": "Verifica os dados introduzidos."
+        "validation_error": "Verifica os dados introduzidos.",
+        "avatar_rejected": "Esta foto não cumpre as regras da comunidade. Escolhe outra."
       }
     },
     "notifications": {

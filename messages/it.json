@@ -3790,7 +3790,10 @@
     "activeCall": {
       "expand": "Espandi a schermo intero",
       "minimize": "Riduci nell’angolo",
-      "end": "Termina chiamata"
+      "end": "Termina chiamata",
+      "connecting": "Connessione della chiamata…",
+      "failed": "Impossibile avviare la chiamata. Controlla la connessione e i permessi di fotocamera e microfono.",
+      "close": "Chiudi"
     }
   },
   "news": {
@@ -6227,7 +6230,8 @@
       "video_not_eligible": "Questo clip non può essere iscritto alla missione.",
       "video_in_other_mission": "Questo clip è già iscritto a un'altra missione.",
       "own_mission": "Non puoi partecipare alla tua missione.",
-      "invalid_mission_id": "Missione non valida. Scegli di nuovo."
+      "invalid_mission_id": "Missione non valida. Scegli di nuovo.",
+      "cover_rejected": "Questa copertina non rispetta le regole della community. Scegli un altro fotogramma."
     }
   },
   "adminNews": {
@@ -6736,7 +6740,8 @@
           "rate_limited": "Troppi tentativi. Attendi un momento.",
           "not_found": "Prodotto non trovato.",
           "generic": "Qualcosa è andato storto. Riprova."
-        }
+        },
+        "imageRejected": "{name}: l'immagine non rispetta le regole della community."
       }
     },
     "erp": {
@@ -6890,8 +6895,7 @@
       "liveBadge": "LIVE",
       "viewers": "{count, plural, one {# spettatore} other {# spettatori}}",
       "close": "Chiudi",
-      "products": "{count, plural, one {# prodotto} other {# prodotti}}",
-      "guestName": "Ospite"
+      "products": "{count, plural, one {# prodotto} other {# prodotti}}"
     },
     "chat": {
       "label": "Chat dal vivo",
@@ -6979,7 +6983,8 @@
       "endStream": "Termina",
       "endError": "Impossibile terminare la diretta.",
       "confirmEndTitle": "Terminare la diretta?",
-      "confirmEndDescription": "Gli spettatori verranno disconnessi e la diretta non potrà essere riavviata."
+      "confirmEndDescription": "Gli spettatori verranno disconnessi e la diretta non potrà essere riavviata.",
+      "cameraBlocked": "Consenti l'accesso a fotocamera e microfono per andare in diretta."
     }
   },
   "social": {
@@ -7128,7 +7133,8 @@
         "links_save_failed": "Impossibile salvare i link.",
         "categories_save_failed": "Impossibile salvare le categorie.",
         "profile_update_failed": "Impossibile salvare il profilo.",
-        "validation_error": "Controlla i dati inseriti."
+        "validation_error": "Controlla i dati inseriti.",
+        "avatar_rejected": "Questa foto non rispetta le regole della community. Scegline un'altra."
       }
     },
     "notifications": {
