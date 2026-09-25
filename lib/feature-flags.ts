@@ -24,9 +24,9 @@ export const FEATURES = {
   // Catalog demo de produse "virale" pentru selleri — date de exemplu, nu un
   // feed real de furnizor. OFF până există unul.
   viralCatalog: flag('FEATURE_VIRAL_CATALOG', false),
-  // Squad Buy: grupurile se formează, dar NIMIC nu aplică prețul redus la
-  // checkout și nu se reține niciun ban — OFF până există integrarea cu plata.
-  squadBuy: flag('FEATURE_SQUAD_BUY', false),
+  // Swypik Cares (donații): OFF până există un partener ONG (Stripe Connect,
+  // fără custodie de fonduri). Codul rămâne; paginile dau 404, API-urile 410.
+  cares: flag('FEATURE_CARES', false),
   // Swypik Movies/Music/News/Gaming/Messenger — OFF by default, explicit
   // opt-in via env (FEATURE_X=1) once the module is verified ready for prod.
   movies: flag('FEATURE_MOVIES', false),

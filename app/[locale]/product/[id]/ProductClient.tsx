@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clapperboard, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Star, Truck, Users, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clapperboard, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Star, Truck, X } from "lucide-react";
 import { mergeIntoCart } from "@/types/cart";
 import type { Product } from "@/types/product";
 
@@ -12,11 +12,6 @@ import type { ProductDetail } from "@/lib/products/get-product-detail";
 import VideoSection from "./VideoSection";
 import { useTranslations, useLocale } from "next-intl";
 import { apiErrorMessage } from "@/lib/i18n/api-error";
-import { SquadBuyModal } from "@/components/squad/SquadBuyModal";
-import { isEnabledClient } from "@/lib/feature-flags-client";
-import { SQUAD_DISCOUNT_PCT, SQUAD_REQUIRED_MEMBERS, squadPriceCents } from "@/lib/squad/config";
-
-const SQUAD_ENABLED = isEnabledClient("squadBuy");
 import { playCashRegisterSound } from "@/lib/audio/sfx";
 
 /* Types */
@@ -62,7 +57,6 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   const [savePending, setSavePending] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
-  const [squadModalOpen, setSquadModalOpen] = useState(false);
 
   const toggleSave = async () => {
     if (savePending) return;
@@ -201,6 +195,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   const displayImages = variantImage ? [variantImage, ...images.filter((i: string) => i !== variantImage)] : images;
 
   const currentStock = selectedSizeData?.stock ?? product.availableStock ?? 0;
+  const hasRealRating = typeof product.rating === "number" && product.rating > 0 && Number(product.ratingCount) > 0;
 
   const handleAddToCart = async () => {
     // Build the cart item matching shared Product type
@@ -227,7 +222,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       discountPercent: discount,
       rating: product.rating || 0,
       orders: product.ordersCount || 0,
-      deliveryDays: product.shipDaysMin || 7,
+      deliveryDays: product.shipDaysMin || 0,
       gradient: "from-orange-500 to-pink-500",
       qualityScore: 8,
     };
@@ -354,29 +349,6 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           )}
         </div>
 
-        {/* Squad Buy Teaser Badge */}
-        {SQUAD_ENABLED && (
-        <div
-          onClick={() => setSquadModalOpen(true)}
-          className="cursor-pointer mb-3 rounded-2xl bg-gradient-to-r from-violet-600/10 via-pink-600/10 to-amber-500/10 border border-violet-500/30 p-3 flex items-center justify-between hover:border-violet-500/60 transition active:scale-[0.99]"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold text-xs shadow-md shrink-0">
-              👥
-            </div>
-            <div>
-              <p className="text-xs font-black text-[#0D0D0D] dark:text-white flex items-center gap-1.5">
-                {t("squadBuyTeaser", { members: SQUAD_REQUIRED_MEMBERS })} <span className="bg-gradient-to-r from-violet-600 to-pink-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{t("squadBuyDiscountBadge", { percent: SQUAD_DISCOUNT_PCT })}</span>
-              </p>
-              <p className="text-[11px] text-[#6E6E80] dark:text-[#A1A1AA]">
-                {t("squadBuyPriceHint", { price: (squadPriceCents(Math.round(currentPrice * 100)) / 100).toFixed(2) })}
-              </p>
-            </div>
-          </div>
-          <span className="text-xs font-black text-violet-600 dark:text-violet-400 shrink-0">{t("squadBuySeeMore")}</span>
-        </div>
-        )}
-
         {/* Title */}
         <h1 className="text-lg font-bold leading-snug text-[#0D0D0D] dark:text-white mb-3">
           {title}
@@ -400,13 +372,14 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
 
         {/* Rating & Orders */}
         <div className="flex flex-wrap gap-3 text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA] mb-5">
-          <span className="flex items-center gap-1">
-            <Star size={14} className="text-[#B45309]" fill="currentColor" />
-            {(product.rating ?? 0).toFixed(1)}
-            {product.ratingCount && product.ratingCount > 0
-              ? ` (${t("reviewsCount", { count: product.ratingCount })})`
-              : ""}
-          </span>
+          {/* Rating doar din recenzii reale (product_reviews) — nu din metadata seed. */}
+          {hasRealRating && (
+            <span className="flex items-center gap-1">
+              <Star size={14} className="text-[#B45309]" fill="currentColor" />
+              {Number(product.rating).toFixed(1)}
+              {` (${t("reviewsCount", { count: product.ratingCount })})`}
+            </span>
+          )}
           {/* Hide the "sold" chip instead of showing it with a blank count
               when ordersCount is 0/unknown (audit 2026-09-24). */}
           {product.ordersCount > 0 && (
@@ -642,17 +615,19 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         {activeTab === "reviews" && (
           <div className="animate-fadeIn space-y-4">
             <div className="rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23] border border-[#E5E5E5] dark:border-[#1F1F1F] p-6 text-center">
-              <div className="text-4xl font-black text-[#0D0D0D] dark:text-white mb-1">{(product.rating ?? 0).toFixed(1)}</div>
-              <div className="flex items-center justify-center gap-1 text-[#B45309] mb-2">
-                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={16} fill={i <= Math.round(product.rating || 0) ? 'currentColor' : 'none'} />)}
-              </div>
-              <p className="text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA]">
-                {product.ratingCount && product.ratingCount > 0
-                  ? t("recenziiVerificate", { count: product.ratingCount })
-                  : product.ordersCount && product.ordersCount > 0
-                    ? t("bazatPeComenzi", { count: product.ordersCount })
-                    : t("produsNouFaraRecenzii")}
-              </p>
+              {hasRealRating ? (
+                <>
+                  <div className="text-4xl font-black text-[#0D0D0D] dark:text-white mb-1">{Number(product.rating).toFixed(1)}</div>
+                  <div className="flex items-center justify-center gap-1 text-[#B45309] mb-2">
+                    {[1, 2, 3, 4, 5].map(i => <Star key={i} size={16} fill={i <= Math.round(Number(product.rating)) ? 'currentColor' : 'none'} />)}
+                  </div>
+                  <p className="text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA]">
+                    {t("recenziiVerificate", { count: product.ratingCount })}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA]">{t("produsNouFaraRecenzii")}</p>
+              )}
             </div>
           </div>
         )}
@@ -699,7 +674,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         </div>
       )}
 
-      {/* Fixed Bottom Bar — Cumpără singur (+ Squad Buy când e activ) */}
+      {/* Fixed Bottom Bar — Adaugă în coș */}
       <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 backdrop-blur-xl px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="mx-auto max-w-lg flex items-center gap-2">
           {/* NOTE (audit 2026-09-24, wave2-misc): this used to link to `/try-on/${product.id}`,
@@ -708,7 +683,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               VirtualTryOnModal in place); removed this dead link rather than shipping a
               second, broken one. Re-add here only once a real /try-on/[id] page exists. */}
 
-          {/* CTA 1: Adaugă în coș (sau "Singur" alături de Squad Buy, când e activ) */}
+          {/* CTA: Adaugă în coș */}
           <button
             type="button"
             onClick={handleAddToCart}
@@ -718,38 +693,12 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             <span>
               {addedToCart
                 ? t("adaugatInCos")
-                : SQUAD_ENABLED
-                  ? t("buyAloneWithPrice", { price: currentPrice })
-                  : t("addToCartWithPrice", { price: currentPrice })}
+                : t("addToCartWithPrice", { price: currentPrice })}
             </span>
           </button>
 
-          {SQUAD_ENABLED && (
-          <button
-            type="button"
-            onClick={() => setSquadModalOpen(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 py-3.5 px-3 text-xs sm:text-sm font-black text-white shadow-lg shadow-violet-600/30 transition active:scale-95"
-          >
-            <Users size={16} />
-            <span>{t("squadCtaLabel", { price: (squadPriceCents(Math.round(currentPrice * 100)) / 100).toFixed(0), percent: SQUAD_DISCOUNT_PCT })}</span>
-          </button>
-          )}
         </div>
       </div>
-
-      {/* Squad Buy Modal */}
-      {SQUAD_ENABLED && (
-      <SquadBuyModal
-        isOpen={squadModalOpen}
-        onClose={() => setSquadModalOpen(false)}
-        product={{
-          id: String(product.id),
-          title: String(title),
-          image: displayImages[0],
-          price: Number(currentPrice),
-        }}
-      />
-      )}
 
       {/* Toast */}
       {addedToCart && (

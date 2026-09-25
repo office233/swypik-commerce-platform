@@ -48,7 +48,7 @@ export function toggleAudioMute(): boolean {
 
 /**
  * Sunet de Casă de Marcat ("Ka-Ching")
- * Clink metalic + armonică strălucitoare la finalizarea comenzii sau formarea unui Squad
+ * Clink metalic + armonică strălucitoare la finalizarea comenzii
  */
 export function playCashRegisterSound(): void {
   if (isAudioMuted()) return;

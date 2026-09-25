@@ -12,7 +12,7 @@ describe("feature-flags-client", () => {
   const src = readFileSync(resolve(__dirname, "../../lib/feature-flags-client.ts"), "utf8");
   it("citește flag-urile doar prin accesări literale process.env.NEXT_PUBLIC_*", () => {
     expect(src).not.toMatch(/process\.env\[/);
-    for (const name of ["NEXT_PUBLIC_FEATURE_MOVIES", "NEXT_PUBLIC_FEATURE_MUSIC", "NEXT_PUBLIC_FEATURE_SQUAD_BUY"]) {
+    for (const name of ["NEXT_PUBLIC_FEATURE_MOVIES", "NEXT_PUBLIC_FEATURE_MUSIC", "NEXT_PUBLIC_FEATURE_CARES"]) {
       expect(src).toContain(`process.env.${name}`);
     }
   });

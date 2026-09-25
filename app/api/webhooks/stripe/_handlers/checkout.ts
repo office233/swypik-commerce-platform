@@ -3,7 +3,6 @@ import crypto from "crypto";
 import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery, withTransaction, type TxQuery } from "@/lib/db";
 import { routeOrder } from "@/lib/fulfillment/order-router";
-import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 import { logger } from "@/lib/logger";
 import { onOrderPaid } from "@/lib/referral/validation";
 import { maybeSendOrderConfirmation } from "./shared";
@@ -174,25 +173,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // Referral: validat la prima comandă plătită (atomic, best-effort).
   await onOrderPaid(orderId, String(session.payment_intent || `checkout_${session.id}`));
-
-  // FRONT 4 — webhooks către apps terțe instalate (fire-and-forget)
-  {
-    const sellerIds = [...new Set(
-      items
-        .map((i) => (i.metadata && typeof i.metadata.seller_id === "string" ? i.metadata.seller_id : null))
-        .filter((s): s is string => Boolean(s))
-    )];
-    for (const sid of sellerIds) {
-      void dispatchAppWebhook("order.created", sid, {
-        order_id: orderId,
-        currency: String(session.currency || "ron").toUpperCase(),
-        total_cents: totalCents,
-        items: items
-          .filter((i) => i.metadata?.seller_id === sid)
-          .map((i) => ({ name: i.name, quantity: i.quantity, amount_total_cents: i.amountTotalCents })),
-      });
-    }
-  }
 
   logger.info({ order_id: orderId, session_id: session.id, total_ron: totalRon, items_count: items.length }, "[Stripe Webhook] order saved");
 

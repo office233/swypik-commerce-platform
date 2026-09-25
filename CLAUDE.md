@@ -138,7 +138,7 @@ Toate gated prin `lib/feature-flags.ts` (server) + `feature-flags-client.ts` (cl
 | `FEATURE_EMAIL_MARKETING` | OFF | |
 | `FEATURE_SEO_PAGES` | OFF | |
 | `FEATURE_AI_CHAT_FULL` | OFF | Necesita `GITHUB_TOKEN` in `.env.production` |
-| `FEATURE_SQUAD_BUY` | OFF | Squad Buy — pana cand pretul de grup se aplica la checkout |
+| `FEATURE_CARES` | OFF | Swypik Cares (donatii, `/cares`, `/cauze`, `/api/donations|campaigns|causes`) — pana exista un partener ONG (+ `NEXT_PUBLIC_FEATURE_CARES`). Squad Buy si App Store/Developers au fost sterse 2026-09-26 (tabelele raman) |
 | `FEATURE_VIRAL_CATALOG` | OFF | Catalog demo de produse (date de exemplu) |
 | `FEATURE_MOVIES` | OFF | Swypik Movies (+ `NEXT_PUBLIC_FEATURE_MOVIES`); migrarea `20260921_0003_movies.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-movies-design.md` |
 | `FEATURE_MUSIC` | OFF | Swypik Music (+ `NEXT_PUBLIC_FEATURE_MUSIC`); migrarea `20260922_0001_music.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-music-design.md` |

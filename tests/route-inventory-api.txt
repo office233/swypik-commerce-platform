@@ -44,11 +44,6 @@
 /api/age-verification/status
 /api/ai/suggest-hashtags
 /api/apply-seller
-/api/apps
-/api/apps/[slug]
-/api/apps/installs
-/api/apps/oauth/authorize
-/api/apps/oauth/token
 /api/audio/tracks
 /api/auth
 /api/auth/me
@@ -117,12 +112,6 @@
 /api/cron/strikes-decay
 /api/cron/suspend-unverified
 /api/cron/watchdog-videos
-/api/developers/apps
-/api/developers/apps/[id]
-/api/developers/apps/[id]/deliveries
-/api/developers/apps/[id]/rotate-secret
-/api/developers/me
-/api/developers/register
 /api/dispatch/[jobId]/stream
 /api/dm/conversations
 /api/dm/conversations/[id]/messages

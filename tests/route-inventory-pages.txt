@@ -109,8 +109,6 @@
 /admin/strikes
 /admin/users
 /admin/videos
-/apps
-/apps/[slug]
 /auth
 /auth/forgot
 /auth/login
@@ -129,7 +127,6 @@
 /creator/(dashboard)/payouts
 /creator/(dashboard)/videos
 /creator/[id]
-/developers
 /onboarding
 /seller
 /seller/cazari

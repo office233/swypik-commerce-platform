@@ -33,8 +33,12 @@ export const CLIENT_FEATURES = {
     flag(process.env.NEXT_PUBLIC_FEATURE_TRY_ON, false),
   // Catalog demo „viral" pentru selleri — trebuie setat împreună cu FEATURE_VIRAL_CATALOG (server).
   viralCatalog: flag(process.env.NEXT_PUBLIC_FEATURE_VIRAL_CATALOG, false),
-  // Trebuie setat ÎMPREUNĂ cu FEATURE_SQUAD_BUY (server) — vezi lib/feature-flags.ts.
-  squadBuy: flag(process.env.NEXT_PUBLIC_FEATURE_SQUAD_BUY, false),
+  // Squad Buy a fost ȘTERS (2026-09-26). Rămâne constant false DOAR pentru că
+  // CategorySidebar/EcosystemBar (navigație, altă echipă) îl mai citesc; șterge
+  // cheia după ce acele linkuri dispar. Nu mai citește niciun env.
+  squadBuy: false,
+  // Swypik Cares (donații) — trebuie setat ÎMPREUNĂ cu FEATURE_CARES (server).
+  cares: flag(process.env.NEXT_PUBLIC_FEATURE_CARES, false),
   // OFF by default — explicit opt-in via NEXT_PUBLIC_FEATURE_X=1 at build time,
   // mirroring the server-side default in lib/feature-flags.ts.
   movies: flag(process.env.NEXT_PUBLIC_FEATURE_MOVIES, false),

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { isEnabled } from "@/lib/feature-flags";
 import { ReactNode } from "react";
 import SelenaAssistant from "./SelenaAssistant";
 import { LocalNodeIndicator } from "@/components/seller/LocalNodeIndicator";
@@ -16,7 +15,6 @@ import {
   Undo2,
   Settings,
   Megaphone,
-  Flame,
 } from "lucide-react";
 
 export default async function SellerLayout({ children }: { children: ReactNode }) {
@@ -31,7 +29,6 @@ export default async function SellerLayout({ children }: { children: ReactNode }
     { href: "/seller/orders", icon: "shoppingBag", label: t("navOrders") },
     { href: "/seller/clients", icon: "users", label: t("navClientsShort") },
     { href: "/seller/ads", icon: "megaphone", label: t("navAds") },
-    ...(isEnabled("squadBuy") ? [{ href: "/seller/squad", icon: "flame", label: t("navSquad") }] : []),
     { href: "/seller/payouts", icon: "coins", label: td("payouts") || "Balanță & Încasări" },
     { href: "/seller/returns", icon: "undo2", label: td("retururi") || "Retururi" },
     { href: "/seller/settings", icon: "settings", label: t("navSettings") },
@@ -74,11 +71,6 @@ export default async function SellerLayout({ children }: { children: ReactNode }
           <Link href="/seller/ads" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-sm font-semibold text-neutral-700 transition">
             <Megaphone size={17} className="text-violet-600" /> {t("navAds")}
           </Link>
-          {isEnabled("squadBuy") && (
-          <Link href="/seller/squad" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-sm font-semibold text-neutral-700 transition">
-            <Flame size={17} className="text-orange-500" /> {t("navSquad")}
-          </Link>
-          )}
           <Link href="/seller/payouts" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-sm font-semibold text-neutral-700 transition">
             <Coins size={17} /> {td("payouts") || "Balanță & Încasări"}
           </Link>
