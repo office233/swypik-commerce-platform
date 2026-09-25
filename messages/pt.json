@@ -590,18 +590,6 @@
     "codPostal": "Código postal *",
     "salveaza": "Guardar"
   },
-  "inbox": {
-    "notificari": "Notificações",
-    "seIncarca": "A carregar...",
-    "mesajeleVorFiDisponibile": "As mensagens estarão disponíveis em breve",
-    "functionalitateaEsteTemporarDezactivata": "A funcionalidade está temporariamente desativada.",
-    "nicioConversatieInca": "Sem conversas ainda",
-    "incepeOConversatieDe": "Inicia uma conversa a partir do perfil de alguém.",
-    "seIncarca2": "A carregar...",
-    "marcheazaToateCitite": "Marcar tudo como lido",
-    "nicioNotificareInca": "Sem notificações ainda",
-    "aiciVeiVedeaAprecieri": "Aqui verás gostos, comentários e novos seguidores."
-  },
   "collections": {
     "inapoiLaColectii": "Voltar às coleções",
     "editeaza": "Editar",
@@ -1775,10 +1763,6 @@
       "cancelled": "Cancelado"
     }
   },
-  "conversation": {
-    "back": "Voltar",
-    "title": "Conversa"
-  },
   "postVote": {
     "votes": "{count, plural, one {# voto} other {# votos}}",
     "yourVote": "seu voto",
@@ -1813,20 +1797,6 @@
   "likedVideos": {
     "title": "Vídeos curtidos",
     "empty": "Nenhum vídeo curtido ainda."
-  },
-  "liveViewer": {
-    "buy": "Comprar",
-    "seeProducts": "Ver produtos",
-    "productCount": "{count, plural, one {# produto} other {# produtos}}",
-    "chat": "Chat",
-    "user": "utilizador",
-    "messagePlaceholder": "Mensagem…",
-    "chatMessageAria": "Mensagem de chat",
-    "send": "Enviar",
-    "products": "Produtos",
-    "liveStream": "Transmissão em direto",
-    "creatorFallback": "Criador",
-    "metaTitleFallback": "Direto — Swypik"
   },
   "missionDetail": {},
   "postPage": {
@@ -3153,26 +3123,6 @@
     "withdrawBtn": "Levantar",
     "tipLabel": "gorjeta"
   },
-  "liveStudio": {
-    "createAria": "Criar novo stream",
-    "scheduleTitle": "Agendar stream",
-    "cancel": "Cancelar",
-    "create": "Criar",
-    "empty": "Ainda sem streams. Toca em “Novo stream”.",
-    "copyRtmpAria": "Copiar URL RTMP",
-    "copyKeyAria": "Copiar Stream Key",
-    "confirmEndStream": "Terminar a transmissão?",
-    "copied": "Copiado!",
-    "liveStudioTitle": "Live Studio",
-    "newStream": "Nova transmissão",
-    "titleLabel": "Título",
-    "descriptionLabel": "Descrição",
-    "rtmpUrlLabel": "URL RTMP (OBS → Settings → Stream → Custom):",
-    "streamKeyLabel": "Chave de transmissão:",
-    "viewPage": "Ver página",
-    "viewersCount": "{count} espectadores",
-    "endStream": "Terminar"
-  },
   "courierPwa": {
     "waitingOrders": "À espera de encomendas… O GPS é enviado a cada 10 s.",
     "newRide": "Nova viagem!",
@@ -3444,13 +3394,6 @@
     "watchOnSwypik": "Vê {title} na Swypik — social video commerce."
   },
   "missions": {},
-  "livePage": {
-    "title": "Ao vivo agora",
-    "empty": "Nenhuma transmissão ativa.",
-    "fallbackTitle": "Transmissão ao vivo",
-    "metaTitle": "Direto — descobre transmissões ao vivo | Swypik",
-    "metaDescription": "Assiste a criadores Swypik em direto e compra os produtos apresentados na transmissão."
-  },
   "commentsSheet": {
     "title": "Comentários",
     "total": "{count} no total",
@@ -3903,34 +3846,6 @@
     }
   },
   "messenger": {
-    "title": "Swypik Chat",
-    "subtitle": "Ligação direta via @username",
-    "addContact": {
-      "title": "Adicionar contacto Swypik",
-      "subtitle": "Sem números de telefone — ligação 100% por @username",
-      "close": "Fechar",
-      "searchPlaceholder": "Escreve um nome ou @username...",
-      "minChars": "Escreve pelo menos 2 caracteres.",
-      "searching": "A pesquisar...",
-      "noResults": "Nenhum utilizador encontrado",
-      "noResultsHint": "Verifica se escreveste o nome corretamente",
-      "unknownUser": "Utilizador",
-      "open": "Abrir",
-      "add": "Adicionar",
-      "searchFailed": "A pesquisa falhou. Tenta novamente.",
-      "openFailed": "Não foi possível abrir a conversa.",
-      "clear": "Limpar pesquisa"
-    },
-    "searchPlaceholder": "Pesquisar por nome ou @username...",
-    "loading": "A carregar...",
-    "noConversations": "Ainda não há conversas",
-    "unknownUser": "Utilizador",
-    "noMessagesYet": "Nova conversa",
-    "selectConversation": "Seleciona uma conversa para começar",
-    "backToList": "Voltar aos contactos",
-    "securityBanner": "Ligação direta via Swypik Handle • Sem número de telefone",
-    "sendFailed": "Não enviado",
-    "messagePlaceholder": "Escreve uma mensagem...",
     "calls": {
       "startVideo": "Videochamada",
       "startAudio": "Chamada de áudio",
@@ -6913,6 +6828,218 @@
         "syncFailed": "A sincronização falhou. Tente novamente.",
         "generic": "Algo correu mal. Tente novamente."
       }
+    }
+  },
+  "dm": {
+    "metaTitle": "Conversa — Swypik",
+    "notify": {
+      "title": "Nova mensagem de {name}",
+      "titleAnonymous": "Nova mensagem",
+      "photo": "📷 Foto"
+    },
+    "chat": {
+      "imageAlt": "Imagem enviada na conversa",
+      "failed": "Não enviada",
+      "retry": "Tentar novamente",
+      "sending": "A enviar",
+      "seen": "Vista",
+      "sent": "Enviada",
+      "today": "Hoje",
+      "yesterday": "Ontem",
+      "loadOlder": "Mensagens anteriores",
+      "emptyTitle": "Comece a conversa",
+      "emptyDescription": "Envie a primeira mensagem. Não é preciso número de telefone.",
+      "typing": "a escrever…",
+      "unknownUser": "Utilizador",
+      "videoCall": "Videochamada",
+      "audioCall": "Chamada de voz",
+      "more": "Mais opções",
+      "blockedError": "Não pode enviar mensagens nesta conversa.",
+      "attachmentsUnavailable": "O envio de imagens não está disponível de momento.",
+      "youBlocked": "Bloqueou este utilizador.",
+      "cannotReply": "Não pode responder nesta conversa.",
+      "manage": "Gerir"
+    },
+    "composer": {
+      "unsupportedImage": "Só pode enviar imagens JPG, PNG, WebP ou GIF.",
+      "imageTooLarge": "A imagem tem mais de {mb} MB.",
+      "previewAlt": "Pré-visualização da imagem anexada",
+      "removeImage": "Remover imagem",
+      "attachImage": "Anexar uma imagem",
+      "placeholder": "Escreva uma mensagem…",
+      "send": "Enviar"
+    },
+    "safety": {
+      "title": "Opções da conversa",
+      "viewProfile": "Ver perfil",
+      "block": "Bloquear",
+      "unblock": "Desbloquear",
+      "report": "Denunciar",
+      "blockTitle": "Bloquear este utilizador?",
+      "blockDescription": "Não poderá enviar-lhe mensagens e o utilizador também não. Pode desbloquear a qualquer momento.",
+      "reportTitle": "Denunciar utilizador",
+      "reportReasonLegend": "O que se passa?",
+      "sendReport": "Enviar denúncia",
+      "blockedToast": "Utilizador bloqueado",
+      "unblockedToast": "Utilizador desbloqueado",
+      "reportedToast": "Obrigado, a nossa equipa vai analisar a denúncia.",
+      "error": "Não foi possível. Tente novamente.",
+      "reasons": {
+        "spam": "Spam ou publicidade indesejada",
+        "harassment": "Assédio ou ameaças",
+        "hate": "Discurso de ódio",
+        "scam": "Burla ou fraude",
+        "sexual_content": "Conteúdo sexual",
+        "other": "Outra coisa"
+      }
+    },
+    "inbox": {
+      "metaTitle": "Caixa de entrada — Swypik",
+      "title": "Caixa de entrada",
+      "tabsLabel": "Secções da caixa de entrada",
+      "tabMessages": "Mensagens",
+      "tabNotifications": "Notificações",
+      "newMessage": "Nova mensagem",
+      "newConversation": "Nova conversa",
+      "photo": "📷 Foto",
+      "you": "Você: {text}",
+      "searchLabel": "Pesquisar conversas",
+      "searchPlaceholder": "Pesquise por nome ou @utilizador",
+      "noMatches": "Nenhuma conversa corresponde.",
+      "unknownUser": "Utilizador",
+      "unreadCount": "{count, plural, one {# mensagem por ler} other {# mensagens por ler}}",
+      "emptyTitle": "Ainda sem conversas",
+      "emptyDescription": "Escreva a alguém a partir do perfil, de um produto ou de uma encomenda.",
+      "disabledTitle": "As mensagens chegam em breve",
+      "disabledDescription": "Esta funcionalidade está temporariamente desativada.",
+      "notificationsEmptyTitle": "Ainda sem notificações",
+      "notificationsEmptyDescription": "Aqui verá gostos, comentários, seguidores e encomendas.",
+      "markAllRead": "Marcar tudo como lido"
+    },
+    "newMessage": {
+      "title": "Nova mensagem",
+      "searchLabel": "Procurar uma pessoa",
+      "searchPlaceholder": "Nome ou @utilizador",
+      "hint": "Escreva pelo menos {min} caracteres.",
+      "error": "A pesquisa falhou. Tente novamente.",
+      "noResults": "Nenhum utilizador encontrado.",
+      "unknownUser": "Utilizador"
+    },
+    "entry": {
+      "message": "Mensagem",
+      "messageSeller": "Escrever ao vendedor",
+      "contactSeller": "Contactar o vendedor",
+      "contactRestaurant": "Escrever ao restaurante",
+      "contactBuyer": "Escrever ao comprador"
+    }
+  },
+  "live": {
+    "notify": {
+      "title": "Começou um LIVE"
+    },
+    "badge": {
+      "live": "AO VIVO",
+      "creatorFallback": "Criador"
+    },
+    "viewer": {
+      "metaTitle": "{title} — Swypik Live",
+      "metaTitleFallback": "Live — Swypik",
+      "waitingForHost": "À espera da câmara do criador…",
+      "tapForSound": "Toque para ativar o som",
+      "creatorFallback": "Criador",
+      "liveBadge": "AO VIVO",
+      "viewers": "{count, plural, one {# espectador} other {# espectadores}}",
+      "close": "Fechar",
+      "products": "{count, plural, one {# produto} other {# produtos}}",
+      "guestName": "Visitante"
+    },
+    "chat": {
+      "label": "Chat ao vivo",
+      "placeholder": "Escreva no chat…",
+      "send": "Enviar",
+      "anonymous": "Utilizador",
+      "signInToChat": "Inicie sessão para conversar",
+      "slowDown": "Demasiadas mensagens. Aguarde alguns segundos.",
+      "sendFailed": "A mensagem não foi enviada."
+    },
+    "products": {
+      "title": "{count, plural, one {# produto neste live} other {# produtos neste live}}",
+      "buy": "Comprar",
+      "untitled": "Produto"
+    },
+    "state": {
+      "connecting": "A ligar…",
+      "unconfiguredTitle": "O live não está configurado",
+      "unconfiguredDescription": "As transmissões ao vivo ainda não estão ativas na Swypik. Volte em breve.",
+      "endedTitle": "Esta transmissão terminou",
+      "endedDescription": "Veja que criadores estão ao vivo agora.",
+      "errorTitle": "Não foi possível ligar",
+      "errorDescription": "Verifique a sua ligação e tente novamente.",
+      "scheduledTitle": "Começa em breve",
+      "scheduledDescription": "O criador ainda não começou. A página atualiza-se sozinha.",
+      "scheduledAt": "Agendado para {when}",
+      "retry": "Tentar novamente",
+      "browseLive": "Ver lives"
+    },
+    "index": {
+      "metaTitle": "Live — descubra transmissões ao vivo | Swypik",
+      "metaDescription": "Veja criadores Swypik ao vivo e compre os produtos apresentados.",
+      "title": "Live",
+      "liveNow": "Ao vivo agora",
+      "liveBadge": "AO VIVO",
+      "soonBadge": "Em breve",
+      "viewers": "{count, plural, one {# espectador} other {# espectadores}}",
+      "upcoming": "Agendados",
+      "emptyTitle": "Ninguém está ao vivo agora",
+      "emptyDescription": "Volte mais tarde ou siga os seus criadores favoritos para saber quando entram ao vivo.",
+      "goLive": "Entrar ao vivo",
+      "unconfiguredTitle": "O live ainda não está configurado",
+      "unconfiguredDescription": "As transmissões ao vivo estarão disponíveis em breve."
+    },
+    "studio": {
+      "listTitle": "Live",
+      "newStream": "Nova transmissão",
+      "create": "Criar e abrir o estúdio",
+      "createError": "Não foi possível criar a transmissão.",
+      "titleLabel": "Título",
+      "descriptionLabel": "Descrição",
+      "scheduleLabel": "Agendar (opcional)",
+      "scheduleHint": "Deixe vazio para entrar ao vivo agora.",
+      "emptyTitle": "Ainda sem transmissões",
+      "emptyDescription": "Crie uma transmissão e entre ao vivo diretamente no navegador do telemóvel.",
+      "unconfiguredTitle": "O live não está configurado",
+      "unconfiguredDescription": "As transmissões ao vivo ainda não estão ativas. Volte em breve.",
+      "peakViewers": "{count, plural, one {Máximo: # espectador} other {Máximo: # espectadores}}",
+      "status": {
+        "scheduled": "Agendado",
+        "live": "Ao vivo",
+        "ended": "Terminado",
+        "failed": "Falhou"
+      },
+      "readyHint": "A câmara e o microfone ligam quando entrar ao vivo. Os espectadores veem-no quando a transmissão for confirmada.",
+      "goLive": "Entrar ao vivo",
+      "back": "Voltar às transmissões",
+      "liveBadge": "AO VIVO",
+      "waitingConfirmation": "A confirmar…",
+      "startingCamera": "A ligar a câmara…",
+      "toggleMic": "Ligar/desligar microfone",
+      "toggleCamera": "Ligar/desligar câmara",
+      "tokenError": "Não foi possível iniciar a transmissão.",
+      "products": "{count, plural, one {# produto} other {# produtos}}",
+      "productsTitle": "Produtos neste live",
+      "addProductTitle": "Adicionar um produto",
+      "addProduct": "Adicionar produto",
+      "noProducts": "Ainda sem produtos. Adicione a partir da sua loja.",
+      "noShopProducts": "Não tem produtos ativos na loja.",
+      "loadingProducts": "A carregar produtos…",
+      "pin": "Fixar",
+      "pinned": "Fixado",
+      "productAdded": "Produto adicionado",
+      "productError": "Não foi possível atualizar os produtos.",
+      "endStream": "Terminar",
+      "endError": "Não foi possível terminar a transmissão.",
+      "confirmEndTitle": "Terminar a transmissão?",
+      "confirmEndDescription": "Os espectadores serão desligados e a transmissão não poderá ser reiniciada."
     }
   }
 }

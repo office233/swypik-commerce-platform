@@ -105,7 +105,7 @@ export const NAV_MODULES: readonly NavModule[] = [
   { id: "news", route: "/news", icon: Newspaper, group: "entertainment", labelKey: "news", flag: "news", ecosystem: true },
 
   // ── Comunitate ──
-  { id: "messages", route: "/messages", icon: MessageSquareText, group: "community", labelKey: "messages", flag: "messenger" },
+  { id: "messages", route: "/inbox", icon: MessageSquareText, group: "community", labelKey: "messages", flag: "messenger" },
   { id: "notifications", route: "/notifications", icon: Bell, group: "community", labelKey: "notifications" },
   { id: "missions", route: "/missions", icon: Target, group: "community", labelKey: "missions", flag: "missions", ecosystem: true },
 

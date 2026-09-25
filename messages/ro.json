@@ -725,18 +725,6 @@
     "codPostal": "Cod poștal *",
     "salveaza": "Salvează"
   },
-  "inbox": {
-    "notificari": "Notificări",
-    "seIncarca": "Se încarcă...",
-    "mesajeleVorFiDisponibile": "Mesajele vor fi disponibile curând",
-    "functionalitateaEsteTemporarDezactivata": "Funcționalitatea este temporar dezactivată.",
-    "nicioConversatieInca": "Nicio conversație încă",
-    "incepeOConversatieDe": "Începe o conversație de pe profilul cuiva.",
-    "seIncarca2": "Se încarcă...",
-    "marcheazaToateCitite": "Marchează toate citite",
-    "nicioNotificareInca": "Nicio notificare încă",
-    "aiciVeiVedeaAprecieri": "Aici vei vedea aprecieri, comentarii și follow-uri noi."
-  },
   "collections": {
     "inapoiLaColectii": "Înapoi la colecții",
     "editeaza": "Editează",
@@ -1775,10 +1763,6 @@
       "cancelled": "Anulat"
     }
   },
-  "conversation": {
-    "back": "Înapoi",
-    "title": "Conversație"
-  },
   "postVote": {
     "votes": "{count, plural, one {# vot} few {# voturi} other {# de voturi}}",
     "yourVote": "votul tău",
@@ -1813,20 +1797,6 @@
   "likedVideos": {
     "title": "Videoclipuri likeuite",
     "empty": "Niciun video likeuit încă."
-  },
-  "liveViewer": {
-    "buy": "Cumpără",
-    "seeProducts": "Vezi produse",
-    "productCount": "{count, plural, one {# produs} few {# produse} other {# de produse}}",
-    "chat": "Chat",
-    "user": "utilizator",
-    "messagePlaceholder": "Mesaj…",
-    "chatMessageAria": "Mesaj chat",
-    "send": "Trimite",
-    "products": "Produse",
-    "liveStream": "Transmisiune live",
-    "creatorFallback": "Creator",
-    "metaTitleFallback": "Live — Swypik"
   },
   "missionDetail": {},
   "postPage": {
@@ -3153,26 +3123,6 @@
     "withdrawBtn": "Retrage",
     "tipLabel": "bacșiș"
   },
-  "liveStudio": {
-    "createAria": "Creează stream nou",
-    "scheduleTitle": "Programează stream",
-    "cancel": "Renunță",
-    "create": "Creează",
-    "empty": "Niciun stream încă. Apasă „Stream nou”.",
-    "copyRtmpAria": "Copiază URL RTMP",
-    "copyKeyAria": "Copiază Stream Key",
-    "confirmEndStream": "Termini stream-ul?",
-    "copied": "Copiat!",
-    "liveStudioTitle": "Live Studio",
-    "newStream": "Stream nou",
-    "titleLabel": "Titlu",
-    "descriptionLabel": "Descriere",
-    "rtmpUrlLabel": "RTMP URL (OBS → Settings → Stream → Custom):",
-    "streamKeyLabel": "Stream Key:",
-    "viewPage": "Vezi pagina",
-    "viewersCount": "{count} vizionatori",
-    "endStream": "Termină"
-  },
   "courierPwa": {
     "waitingOrders": "Aștept comenzi… GPS-ul se trimite la 10s.",
     "newRide": "Cursă nouă!",
@@ -3444,13 +3394,6 @@
     "watchOnSwypik": "Vizionează {title} pe Swypik — social video commerce."
   },
   "missions": {},
-  "livePage": {
-    "title": "Live acum",
-    "empty": "Niciun stream activ.",
-    "fallbackTitle": "Live stream",
-    "metaTitle": "Live — descoperă transmisiuni în direct | Swypik",
-    "metaDescription": "Urmărește creatori Swypik în direct și cumpără produsele prezentate live."
-  },
   "commentsSheet": {
     "title": "Comentarii",
     "total": "{count} total",
@@ -3903,34 +3846,6 @@
     }
   },
   "messenger": {
-    "title": "Swypik Chat",
-    "subtitle": "Conectare directă prin @username",
-    "addContact": {
-      "title": "Adaugă Contact Swypik",
-      "subtitle": "Fără numere de telefon — conectare 100% prin @username",
-      "close": "Închide",
-      "searchPlaceholder": "Scrie un nume sau @username...",
-      "minChars": "Scrie cel puțin 2 caractere.",
-      "searching": "Se caută...",
-      "noResults": "Niciun utilizator găsit",
-      "noResultsHint": "Verifică dacă ai introdus numele corect",
-      "unknownUser": "Utilizator",
-      "open": "Deschide",
-      "add": "Adaugă",
-      "searchFailed": "Căutarea a eșuat. Încearcă din nou.",
-      "openFailed": "Nu am putut deschide conversația.",
-      "clear": "Șterge căutarea"
-    },
-    "searchPlaceholder": "Caută după nume sau @username...",
-    "loading": "Se încarcă...",
-    "noConversations": "Nicio conversație încă",
-    "unknownUser": "Utilizator",
-    "noMessagesYet": "Conversație nouă",
-    "selectConversation": "Selectează o conversație pentru a începe",
-    "backToList": "Înapoi la contacte",
-    "securityBanner": "Conexiune directă prin Swypik Handle • Fără număr de telefon",
-    "sendFailed": "Netrimis",
-    "messagePlaceholder": "Scrie un mesaj...",
     "calls": {
       "startVideo": "Apel Video",
       "startAudio": "Apel Audio",
@@ -6913,6 +6828,218 @@
         "syncFailed": "Sincronizarea a eșuat. Încearcă din nou.",
         "generic": "Ceva n-a mers. Încearcă din nou."
       }
+    }
+  },
+  "dm": {
+    "metaTitle": "Conversație — Swypik",
+    "notify": {
+      "title": "Mesaj nou de la {name}",
+      "titleAnonymous": "Mesaj nou",
+      "photo": "📷 Fotografie"
+    },
+    "chat": {
+      "imageAlt": "Imagine trimisă în conversație",
+      "failed": "Netrimis",
+      "retry": "Reîncearcă",
+      "sending": "Se trimite",
+      "seen": "Văzut",
+      "sent": "Trimis",
+      "today": "Azi",
+      "yesterday": "Ieri",
+      "loadOlder": "Mesaje mai vechi",
+      "emptyTitle": "Începe conversația",
+      "emptyDescription": "Trimite primul mesaj. Nu e nevoie de număr de telefon.",
+      "typing": "scrie…",
+      "unknownUser": "Utilizator",
+      "videoCall": "Apel video",
+      "audioCall": "Apel audio",
+      "more": "Mai multe opțiuni",
+      "blockedError": "Nu poți trimite mesaje în această conversație.",
+      "attachmentsUnavailable": "Trimiterea de imagini nu e disponibilă momentan.",
+      "youBlocked": "Ai blocat acest utilizator.",
+      "cannotReply": "Nu poți răspunde în această conversație.",
+      "manage": "Gestionează"
+    },
+    "composer": {
+      "unsupportedImage": "Poți trimite doar imagini JPG, PNG, WebP sau GIF.",
+      "imageTooLarge": "Imaginea depășește {mb} MB.",
+      "previewAlt": "Previzualizarea imaginii atașate",
+      "removeImage": "Elimină imaginea",
+      "attachImage": "Atașează o imagine",
+      "placeholder": "Scrie un mesaj…",
+      "send": "Trimite"
+    },
+    "safety": {
+      "title": "Opțiuni conversație",
+      "viewProfile": "Vezi profilul",
+      "block": "Blochează",
+      "unblock": "Deblochează",
+      "report": "Raportează",
+      "blockTitle": "Blochezi utilizatorul?",
+      "blockDescription": "Nu îți va mai putea trimite mesaje și nici tu nu îi vei putea scrie. Poți debloca oricând.",
+      "reportTitle": "Raportează utilizatorul",
+      "reportReasonLegend": "Ce se întâmplă?",
+      "sendReport": "Trimite raportul",
+      "blockedToast": "Utilizator blocat",
+      "unblockedToast": "Utilizator deblocat",
+      "reportedToast": "Mulțumim, echipa noastră va analiza raportul.",
+      "error": "Nu am reușit. Încearcă din nou.",
+      "reasons": {
+        "spam": "Spam sau reclame nedorite",
+        "harassment": "Hărțuire sau amenințări",
+        "hate": "Discurs instigator la ură",
+        "scam": "Înșelătorie sau fraudă",
+        "sexual_content": "Conținut sexual",
+        "other": "Altceva"
+      }
+    },
+    "inbox": {
+      "metaTitle": "Inbox — Swypik",
+      "title": "Inbox",
+      "tabsLabel": "Secțiuni Inbox",
+      "tabMessages": "Mesaje",
+      "tabNotifications": "Notificări",
+      "newMessage": "Mesaj nou",
+      "newConversation": "Conversație nouă",
+      "photo": "📷 Fotografie",
+      "you": "Tu: {text}",
+      "searchLabel": "Caută în conversații",
+      "searchPlaceholder": "Caută după nume sau @username",
+      "noMatches": "Nicio conversație nu se potrivește.",
+      "unknownUser": "Utilizator",
+      "unreadCount": "{count, plural, one {# mesaj necitit} few {# mesaje necitite} other {# de mesaje necitite}}",
+      "emptyTitle": "Nicio conversație încă",
+      "emptyDescription": "Scrie cuiva din profilul lui, de pe un produs sau dintr-o comandă.",
+      "disabledTitle": "Mesajele vor fi disponibile curând",
+      "disabledDescription": "Funcționalitatea este temporar dezactivată.",
+      "notificationsEmptyTitle": "Nicio notificare încă",
+      "notificationsEmptyDescription": "Aici vei vedea aprecieri, comentarii, follow-uri și comenzi.",
+      "markAllRead": "Marchează toate citite"
+    },
+    "newMessage": {
+      "title": "Mesaj nou",
+      "searchLabel": "Caută o persoană",
+      "searchPlaceholder": "Nume sau @username",
+      "hint": "Scrie cel puțin {min} caractere.",
+      "error": "Căutarea a eșuat. Încearcă din nou.",
+      "noResults": "Niciun utilizator găsit.",
+      "unknownUser": "Utilizator"
+    },
+    "entry": {
+      "message": "Mesaj",
+      "messageSeller": "Scrie vânzătorului",
+      "contactSeller": "Contactează vânzătorul",
+      "contactRestaurant": "Scrie restaurantului",
+      "contactBuyer": "Scrie cumpărătorului"
+    }
+  },
+  "live": {
+    "notify": {
+      "title": "A început un LIVE"
+    },
+    "badge": {
+      "live": "LIVE",
+      "creatorFallback": "Creator"
+    },
+    "viewer": {
+      "metaTitle": "{title} — Swypik Live",
+      "metaTitleFallback": "Live — Swypik",
+      "waitingForHost": "Așteptăm camera creatorului…",
+      "tapForSound": "Atinge pentru sunet",
+      "creatorFallback": "Creator",
+      "liveBadge": "LIVE",
+      "viewers": "{count, plural, one {# spectator} few {# spectatori} other {# de spectatori}}",
+      "close": "Închide",
+      "products": "{count, plural, one {# produs} few {# produse} other {# de produse}}",
+      "guestName": "Vizitator"
+    },
+    "chat": {
+      "label": "Chat live",
+      "placeholder": "Scrie în chat…",
+      "send": "Trimite",
+      "anonymous": "Utilizator",
+      "signInToChat": "Autentifică-te ca să scrii în chat",
+      "slowDown": "Prea multe mesaje. Așteaptă câteva secunde.",
+      "sendFailed": "Mesajul nu a fost trimis."
+    },
+    "products": {
+      "title": "{count, plural, one {# produs în live} few {# produse în live} other {# de produse în live}}",
+      "buy": "Cumpără",
+      "untitled": "Produs"
+    },
+    "state": {
+      "connecting": "Se conectează…",
+      "unconfiguredTitle": "Live nu este configurat",
+      "unconfiguredDescription": "Transmisiunile live nu sunt încă active pe Swypik. Revino curând.",
+      "endedTitle": "Transmisiunea s-a încheiat",
+      "endedDescription": "Vezi ce alți creatori sunt live acum.",
+      "errorTitle": "Nu ne-am putut conecta",
+      "errorDescription": "Verifică conexiunea și încearcă din nou.",
+      "scheduledTitle": "Începe în curând",
+      "scheduledDescription": "Creatorul nu a pornit încă transmisiunea. Pagina se actualizează singură.",
+      "scheduledAt": "Programat pentru {when}",
+      "retry": "Reîncearcă",
+      "browseLive": "Vezi live-urile"
+    },
+    "index": {
+      "metaTitle": "Live — descoperă transmisiuni în direct | Swypik",
+      "metaDescription": "Urmărește creatori Swypik în direct și cumpără produsele prezentate live.",
+      "title": "Live",
+      "liveNow": "Live acum",
+      "liveBadge": "LIVE",
+      "soonBadge": "Curând",
+      "viewers": "{count, plural, one {# spectator} few {# spectatori} other {# de spectatori}}",
+      "upcoming": "Programate",
+      "emptyTitle": "Nimeni nu e live acum",
+      "emptyDescription": "Revino mai târziu sau urmărește creatorii preferați ca să afli când intră live.",
+      "goLive": "Intră live",
+      "unconfiguredTitle": "Live nu este configurat încă",
+      "unconfiguredDescription": "Transmisiunile live vor fi disponibile în curând."
+    },
+    "studio": {
+      "listTitle": "Live",
+      "newStream": "Stream nou",
+      "create": "Creează și deschide studioul",
+      "createError": "Nu am putut crea streamul.",
+      "titleLabel": "Titlu",
+      "descriptionLabel": "Descriere",
+      "scheduleLabel": "Programează (opțional)",
+      "scheduleHint": "Lasă gol ca să intri live acum.",
+      "emptyTitle": "Niciun stream încă",
+      "emptyDescription": "Creează un stream și intră live direct din browser, de pe telefon.",
+      "unconfiguredTitle": "Live nu este configurat",
+      "unconfiguredDescription": "Transmisiunile live nu sunt încă active. Revino curând.",
+      "peakViewers": "{count, plural, one {Maxim # spectator} few {Maxim # spectatori} other {Maxim # de spectatori}}",
+      "status": {
+        "scheduled": "Programat",
+        "live": "Live",
+        "ended": "Încheiat",
+        "failed": "Eșuat"
+      },
+      "readyHint": "Camera și microfonul pornesc când intri live. Spectatorii te văd după ce transmisiunea e confirmată.",
+      "goLive": "Intră live",
+      "back": "Înapoi la lista de streamuri",
+      "liveBadge": "LIVE",
+      "waitingConfirmation": "Se confirmă…",
+      "startingCamera": "Pornim camera…",
+      "toggleMic": "Pornește/oprește microfonul",
+      "toggleCamera": "Pornește/oprește camera",
+      "tokenError": "Nu am putut porni transmisiunea.",
+      "products": "{count, plural, one {# produs} few {# produse} other {# de produse}}",
+      "productsTitle": "Produse în live",
+      "addProductTitle": "Adaugă un produs",
+      "addProduct": "Adaugă produs",
+      "noProducts": "Niciun produs încă. Adaugă din magazinul tău.",
+      "noShopProducts": "Nu ai produse active în magazin.",
+      "loadingProducts": "Se încarcă produsele…",
+      "pin": "Fixează",
+      "pinned": "Fixat",
+      "productAdded": "Produs adăugat",
+      "productError": "Nu am putut actualiza produsele.",
+      "endStream": "Încheie",
+      "endError": "Nu am putut încheia streamul.",
+      "confirmEndTitle": "Închei transmisiunea?",
+      "confirmEndDescription": "Spectatorii vor fi deconectați și streamul nu mai poate fi repornit."
     }
   }
 }
