@@ -2,6 +2,17 @@
 
 import { useEffect, useRef } from "react";
 import type HlsType from "hls.js";
+import { VIDEO_PLAYBACK } from "@/lib/config/video-playback";
+import { isHlsUrl } from "./feed-preload";
+import { hlsBufferConfig, hlsConfig, type HlsBufferMode } from "./hls-config";
+
+export type UseHlsVideoOptions = {
+  /**
+   * `active` (implicit) = buffer complet; `preload` = vecin preîncărcat, doar
+   * primul segment. Schimbarea modului NU recreează playerul — ajustează bufferul.
+   */
+  bufferMode?: HlsBufferMode;
+};
 
 /**
  * useHlsVideo
@@ -14,16 +25,26 @@ import type HlsType from "hls.js";
  * <video> element, or hls.js will fight the native loader.
  *
  * hls.js is loaded dynamically only when needed (non-Safari + HLS source),
- * keeping it out of the main bundle (~500KB savings on initial load).
+ * keeping it out of the main bundle. Config comes from `lib/video/hls-config.ts`
+ * (shared by feed, Movies episode and hero trailer).
  */
-export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string | undefined | null) {
+export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string | undefined | null, options: UseHlsVideoOptions = {}) {
   const ref = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<HlsType | null>(null);
+  const bufferMode = options.bufferMode ?? "active";
+  const modeRef = useRef<HlsBufferMode>(bufferMode);
+  modeRef.current = bufferMode;
+
+  // Vecinul preîncărcat devine activ (sau invers): doar bufferul se schimbă;
+  // stream-controller-ul hls.js citește aceste valori la fiecare tick.
+  useEffect(() => {
+    const hls = hlsRef.current;
+    if (hls) Object.assign(hls.config, hlsBufferConfig(bufferMode));
+  }, [bufferMode]);
 
   useEffect(() => {
     const video = ref.current;
     if (!video || !src) return;
-
-    const isHls = /\.m3u8(\?|$)/i.test(src);
 
     // La demontare/schimbare de sursă nu e destul să distrugem instanța hls.js:
     // pe căile progressive și HLS-nativ elementul rămânea atașat la sursă și
@@ -38,36 +59,35 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
       }
     };
 
-    if (!isHls) {
-      // Plain mp4 / webm / other progressive — let the browser handle it.
-      video.src = src;
-      return releaseElement;
-    }
-
-    // Safari / iOS have native HLS support — prefer it (lower CPU, better
-    // battery) and skip the hls.js download entirely.
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    // Progressive (mp4/webm) sau HLS nativ (Safari/iOS: CPU mai mic, fără hls.js);
+    // cât de mult se descarcă decide atributul `preload` al elementului.
+    if (!isHlsUrl(src) || video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src;
       return releaseElement;
     }
 
     let cancelled = false;
-    let hlsInstance: HlsType | null = null;
     let fallbackTried = false;
     let networkRecoveries = 0;
     let mediaRecoveries = 0;
+
+    const destroyHls = () => {
+      try {
+        hlsRef.current?.destroy();
+      } catch {
+        // ignore
+      }
+      hlsRef.current = null;
+    };
 
     const fallbackToProgressive = () => {
       if (cancelled || fallbackTried || !fallbackSrc || fallbackSrc === src) return;
       fallbackTried = true;
       // Repornim redarea DOAR dacă acest clip chiar rula. Altfel, un clip vecin
       // al cărui master.m3u8 dă 404 (stare normală cât e în procesare) începea
-      // să ruleze în afara ecranului, în buclă, la nesfârșit — bandă și decoder
-      // consumate în paralel cu clipul pe care userul îl privește.
+      // să ruleze în afara ecranului, în buclă, la nesfârșit.
       const wasPlaying = !video.paused;
-      try {
-        hlsInstance?.destroy();
-      } catch {}
+      destroyHls();
       video.src = fallbackSrc;
       video.load();
       if (wasPlaying) void video.play().catch(() => {});
@@ -78,35 +98,23 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
 
     void (async () => {
       try {
-        const mod = await import("hls.js");
-        const Hls = mod.default;
+        const Hls = (await import("hls.js")).default;
         if (cancelled || !ref.current) return;
         if (!Hls.isSupported()) {
-          // Last-ditch fallback: try to assign directly. Browser will likely
-          // fail but at least the error will surface via the <video> onError.
+          // Last-ditch fallback: the error (if any) surfaces via <video> onError.
           video.src = src;
           return;
         }
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: false,
-          startLevel: 0,
-          capLevelToPlayerSize: true,
-          // Calibrare buffer fluid fără sacadare (buffer înainte 14s, rezervă maximă 30s)
-          maxBufferLength: 14,
-          maxMaxBufferLength: 30,
-          backBufferLength: 10,
-          maxBufferSize: 30 * 1000 * 1000,
-        });
-        hlsInstance = hls;
+        const hls = new Hls(hlsConfig(modeRef.current));
+        hlsRef.current = hls;
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (!data?.fatal) return;
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRecoveries < 2) {
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRecoveries < VIDEO_PLAYBACK.maxNetworkRecoveries) {
             networkRecoveries += 1;
             hls.startLoad();
             return;
           }
-          if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveries < 2) {
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveries < VIDEO_PLAYBACK.maxMediaRecoveries) {
             mediaRecoveries += 1;
             hls.recoverMediaError();
             return;
@@ -124,13 +132,7 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
     return () => {
       cancelled = true;
       video.removeEventListener("error", onVideoError);
-      if (hlsInstance) {
-        try {
-          hlsInstance.destroy();
-        } catch {
-          // ignore
-        }
-      }
+      destroyHls();
       releaseElement();
     };
   }, [src, fallbackSrc]);
