@@ -25,7 +25,8 @@ function usernameFromSeed(prefix: string, seed: string): string {
 
 // ---------- HMAC-signed anon cookie (UUID.hmac) ----------
 
-function getAnonSigningKey(): string {
+/** Cheia HMAC pentru token-urile de identitate anonimă (anon_session, feed_sid). */
+export function getAnonSigningKey(): string {
   const key = process.env.APP_ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || "";
   if (!key) {
     if (process.env.NODE_ENV === "production") {
@@ -156,35 +157,56 @@ async function isAnonUser(userId: string): Promise<boolean> {
   }
 }
 
-async function resolveExistingSocialUser(cookieStore: CookieStore): Promise<string | null> {
+export type SocialIdentity = {
+  userId: string;
+  /** true = shell anonim (cookie `anon_session` / legacy), fără cont real. */
+  isAnon: boolean;
+};
+
+async function resolveExistingSocialUser(cookieStore: CookieStore): Promise<SocialIdentity | null> {
   const shopperSession = cookieStore.get("swypik_session")?.value;
   if (shopperSession) {
     // 1) New hashed-token user_sessions (canonical authenticated path)
     const userSessionId = await resolveUserSession(shopperSession);
-    if (userSessionId) return userSessionId;
+    if (userSessionId) return { userId: userSessionId, isAnon: false };
 
     // 3) Legacy plain-UUID cookie: ONLY accept if the DB row is a real anon shell.
     //    Otherwise refuse — forces re-login and blocks UUID impersonation.
     if (isUuid(shopperSession) && (await isAnonUser(shopperSession))) {
-      return ensureUuidUser(shopperSession, "shopper");
+      return { userId: await ensureUuidUser(shopperSession, "shopper"), isAnon: true };
     }
   }
 
   const creatorSession = cookieStore.get("creator_session")?.value;
   if (process.env.NODE_ENV !== "production" && isUuid(creatorSession)) {
-    return ensureUuidUser(creatorSession, "creator");
+    return { userId: await ensureUuidUser(creatorSession, "creator"), isAnon: false };
   }
 
   const rawAnon = cookieStore.get(ANON_SESSION_COOKIE)?.value;
   const verifiedAnon = parseSignedAnon(rawAnon);
-  if (verifiedAnon) return ensureUuidUser(verifiedAnon, "anon");
+  if (verifiedAnon) return { userId: await ensureUuidUser(verifiedAnon, "anon"), isAnon: true };
 
   return null;
 }
 
-export async function getOptionalSocialUserId(): Promise<string | null> {
+/** Identitatea socială curentă (cont real sau shell anonim semnat), fără a crea nimic. */
+export async function getSocialIdentity(): Promise<SocialIdentity | null> {
   const cookieStore = await cookies();
   return resolveExistingSocialUser(cookieStore);
+}
+
+/**
+ * Id-ul unui cont REAL (sesiune autentificată). Shell-urile anonime întorc null.
+ * Folosit acolo unde un cont e obligatoriu (DM, apeluri, XP gaming, rapoarte).
+ */
+export async function getAccountUserId(): Promise<string | null> {
+  const identity = await getSocialIdentity();
+  return identity && !identity.isAnon ? identity.userId : null;
+}
+
+export async function getOptionalSocialUserId(): Promise<string | null> {
+  const identity = await getSocialIdentity();
+  return identity?.userId ?? null;
 }
 
 /**
@@ -203,8 +225,8 @@ export async function getAnonShellUserId(): Promise<string | null> {
 
 export async function getOrCreateSocialUser(): Promise<SocialUserSession> {
   const cookieStore = await cookies();
-  const existingUserId = await resolveExistingSocialUser(cookieStore);
-  if (existingUserId) return { userId: existingUserId };
+  const existing = await resolveExistingSocialUser(cookieStore);
+  if (existing) return { userId: existing.userId };
 
   const anonSessionId = crypto.randomUUID();
   const userId = await ensureUuidUser(anonSessionId, "anon");
