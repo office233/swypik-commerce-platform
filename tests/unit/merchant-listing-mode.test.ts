@@ -100,7 +100,7 @@ describe("GET /api/merchants — public listing", () => {
     expect(sql).toContain("listing_mode");
     expect(sql).toContain("AS is_orderable");
     expect(sql).toContain("NULL::numeric AS rating");
-    expect(sql).toMatch(/ORDER BY \(listing_mode = 'orderable'\) DESC/);
+    expect(sql).toMatch(/ORDER BY \(m\.listing_mode = 'orderable'\) DESC/);
     expect(sql).not.toMatch(/ORDER BY[^;]*rating DESC/);
   });
 });

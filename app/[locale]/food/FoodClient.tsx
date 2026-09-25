@@ -1,305 +1,164 @@
 "use client";
 
 /**
- * Swypik Food — listarea restaurantelor din oraș.
- * Mobile-first: alegi orașul o dată, vezi cine e deschis, intri în meniu.
+ * Swypik Food — listarea restaurantelor.
+ * Partenerii comandabili primii; restaurantele care nu sunt încă pe Swypik
+ * apar separat, onest („Nu încă pe Swypik”), cu „Sugerează proprietarului”.
  */
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { ArrowLeft, Cake, Clock, Ham, MapPin, Pizza, Salad, Soup, Star, Truck, UtensilsCrossed, type LucideIcon } from "lucide-react";
-import { haptic } from "@/lib/haptic";
-import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { MapPin, Receipt, Store, UtensilsCrossed } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { IconButton } from "@/components/ui/IconButton";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import FoodFilters, { type FoodFilterState } from "@/components/food/FoodFilters";
+import CitySheet from "@/components/food/CitySheet";
+import MerchantCard from "@/components/food/MerchantCard";
+import UnclaimedMerchantRow from "@/components/food/UnclaimedMerchantRow";
+import { useFoodLocation } from "@/components/food/useFoodLocation";
+import { useMerchantList } from "@/components/food/useMerchantList";
+import { useSuggestMerchant } from "@/components/food/useSuggestMerchant";
 
-const ACCENT = "#2DBE60"; // verdele Swypik Food
-const CITY_KEY = "swypik_city";
-const GEO_KEY = "swypik_geo"; // {lat,lng,t}
-
-interface Merchant {
-  id: string;
-  kind: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  cuisine_types: string[];
-  location_city: string | null;
-  delivery_fee_cents: number;
-  min_order_cents: number;
-  avg_prep_minutes: number;
-  rating: number | null;
-  image_url: string | null;
-  is_open: boolean;
-  hours_known?: boolean;
-  distance_km?: number | null;
-  menu_count: number;
-}
-
-const CUISINES: readonly { id: string; Icon: LucideIcon; labelKey: string }[] = [
-  { id: "pizza", Icon: Pizza, labelKey: "cuisinePizza" },
-  { id: "burgers", Icon: Ham, labelKey: "cuisineBurgers" },
-  { id: "asian", Icon: Soup, labelKey: "cuisineAsian" },
-  { id: "romanian", Icon: UtensilsCrossed, labelKey: "cuisineRomanian" },
-  { id: "desserts", Icon: Cake, labelKey: "cuisineDesserts" },
-  { id: "healthy", Icon: Salad, labelKey: "cuisineHealthy" },
-] as const;
+const INITIAL: FoodFilterState = { q: "", cuisine: null, sort: "recommended", openNow: false };
 
 export default function FoodClient() {
-  const router = useRouter();
-  const fmt = useFormatPrice();
-  const t = useTranslations("foodPage");
-  const [city, setCity] = useState<string | null>(null);
-  const [cuisine, setCuisine] = useState<string | null>(null);
-  const [merchants, setMerchants] = useState<Merchant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
-  const [geoState, setGeoState] = useState<"idle" | "asking" | "ok" | "denied">("idle");
+  const t = useTranslations("foodHub");
+  const { toast } = useToast();
+  const loc = useFoodLocation();
+  const [filters, setFilters] = useState<FoodFilterState>(INITIAL);
+  const [cityOpen, setCityOpen] = useState(false);
+  const list = useMerchantList({ filters, city: loc.city, geo: loc.geo, enabled: loc.ready });
+  const sug = useSuggestMerchant();
 
-  useEffect(() => {
-    setCity(localStorage.getItem(CITY_KEY));
-    try {
-      const cached = JSON.parse(localStorage.getItem(GEO_KEY) ?? "null");
-      if (cached?.lat && Date.now() - (cached.t ?? 0) < 30 * 60 * 1000) {
-        setGeo({ lat: cached.lat, lng: cached.lng });
-        setGeoState("ok");
-      }
-    } catch { /* ignore */ }
-  }, []);
+  const partners = useMemo(() => list.items.filter((m) => m.is_orderable), [list.items]);
+  const unclaimed = useMemo(() => list.items.filter((m) => !m.is_orderable), [list.items]);
+  const filtered = filters.q.trim() !== "" || filters.cuisine !== null || filters.openNow;
 
-  const askLocation = useCallback(() => {
-    if (!("geolocation" in navigator)) {
-      alert(t("geoUnsupported"));
-      return;
-    }
-    setGeoState("asking");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const g = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        localStorage.setItem(GEO_KEY, JSON.stringify({ ...g, t: Date.now() }));
-        setGeo(g);
-        setGeoState("ok");
-      },
-      (err) => {
-        setGeoState("denied");
-        // 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
-        alert(err.code === 1 ? t("geoDenied") : t("geoFailed"));
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
-    );
-  }, [t]);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const qs = new URLSearchParams({ kind: "restaurant", limit: "40" });
-      if (geo) {
-        qs.set("lat", String(geo.lat));
-        qs.set("lng", String(geo.lng));
-      } else if (city) {
-        qs.set("city", city);
-      }
-      if (cuisine) qs.set("cuisine", cuisine);
-      const res = await fetch(`/api/merchants?${qs}`);
-      if (!res.ok) {
-        setMerchants([]);
-        return;
-      }
-      const data = await res.json().catch(() => null);
-      if (data?.success) setMerchants(data.merchants ?? []);
-      else setMerchants([]);
-    } catch {
-      setMerchants([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [city, cuisine, geo]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const pickCity = () => {
-    haptic("tap");
-    const c = prompt(t("cityPrompt"), city ?? "");
-    if (c?.trim()) {
-      localStorage.setItem(CITY_KEY, c.trim());
-      setCity(c.trim());
-      // orașul ales manual are prioritate — dezactivăm filtrarea GPS
-      localStorage.removeItem(GEO_KEY);
-      setGeo(null);
-      setGeoState("idle");
-    }
+  const locate = async () => {
+    const err = await loc.locate();
+    if (err) toast({ title: t(`geo.${err}`), tone: "danger" });
+    else setCityOpen(false);
   };
 
-  const fmtLei = (cents: number) => fmt(cents, { showDecimals: false });
+  const placeLabel = loc.geo ? t("nearMe") : loc.city ?? t("chooseCity");
 
   return (
-    <div className="min-h-dvh bg-white dark:bg-black pb-24">
-      {/* Header verde Food */}
-      <header
-        className="sticky top-0 z-30 border-b border-black/5 dark:border-white/10 backdrop-blur-xl"
-        style={{ backgroundColor: `${ACCENT}14` }}
+    <div className="min-h-dvh bg-canvas">
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        actions={
+          <>
+            <Button variant="ghost" size="sm" className="max-w-[9rem] min-h-11" onClick={() => setCityOpen(true)}>
+              <MapPin size={16} aria-hidden className="shrink-0 text-brand" />
+              <span className="truncate">{placeLabel}</span>
+            </Button>
+            <IconButton asChild label={t("myOrders")}>
+              <Link href="/food/orders">
+                <Receipt aria-hidden />
+              </Link>
+            </IconButton>
+          </>
+        }
       >
-        <div className="flex h-14 items-center gap-3 px-4">
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            aria-label={t("back")}
-            className="grid h-9 w-9 place-items-center rounded-full bg-white/85 dark:bg-black/60 dark:text-white transition active:scale-95"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div className="min-w-0">
-            <h1 className="text-base font-black leading-tight dark:text-white">Swypik Food</h1>
-            <p className="text-[11px] leading-tight text-[#6E6E80] dark:text-[#A1A1AA]">{t("fastDelivery")}</p>
-          </div>
-          <button
-            type="button"
-            onClick={pickCity}
-            className="ml-auto inline-flex h-9 items-center gap-1 rounded-full bg-white/85 dark:bg-black/60 dark:text-white px-3 text-xs font-bold transition active:scale-95"
-          >
-            <MapPin size={14} className="shrink-0" style={{ color: ACCENT }} />
-            <span className="max-w-[110px] truncate">
-              {geoState === "ok" ? t("nearMe") : city ?? t("chooseCity")}
-            </span>
-          </button>
-          {geoState !== "ok" && (
-            <button
-              type="button"
-              onClick={askLocation}
-              aria-label={t("useMyLocation")}
-              className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs font-bold text-white transition active:scale-95"
-              style={{ backgroundColor: ACCENT }}
-            >
-              {geoState === "asking" ? "…" : "GPS"}
-            </button>
-          )}
-        </div>
+        <FoodFilters value={filters} onChange={setFilters} hasGeo={!!loc.geo} />
+      </PageHeader>
 
-        {/* Tipuri de bucătărie */}
-        <div className="flex snap-x gap-2 overflow-x-auto px-4 pb-2.5 scrollbar-none">
-          {CUISINES.map((c) => {
-            const active = cuisine === c.id;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => {
-                  haptic("tap");
-                  setCuisine(active ? null : c.id);
-                }}
-                aria-pressed={active}
-                style={active ? { backgroundColor: ACCENT } : undefined}
-                className={`inline-flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-full px-3.5 text-xs font-bold transition active:scale-95 ${active ? "text-white" : "bg-white/85 dark:bg-black/60 text-[#6E6E80] dark:text-[#A1A1AA]"
-                  }`}
-              >
-                <c.Icon size={14} aria-hidden />
-                {t(c.labelKey)}
-              </button>
-            );
-          })}
-        </div>
-      </header>
-
-      <main className="px-4 pt-4">
-        {!city && !loading && merchants.length === 0 && (
+      <main className="mx-auto max-w-3xl space-y-6 px-gutter pt-4">
+        {!loc.city && !loc.geo && loc.ready ? (
           <button
             type="button"
-            onClick={pickCity}
-            className="mb-4 flex w-full items-center gap-3 rounded-2xl border-2 border-dashed border-[#E5E5E5] dark:border-[#1F1F1F] p-4 text-left transition active:scale-[0.98]"
+            onClick={() => setCityOpen(true)}
+            className="flex w-full items-center gap-3 rounded-card border-2 border-dashed border-strong p-4 text-left"
           >
-            <span className="grid h-11 w-11 place-items-center rounded-xl" style={{ backgroundColor: `${ACCENT}1A` }}>
-              <MapPin size={20} style={{ color: ACCENT }} />
+            <span className="grid h-11 w-11 place-items-center rounded-control bg-brand-soft text-brand-soft-fg" aria-hidden>
+              <MapPin size={20} />
             </span>
             <span>
-              <span className="block text-sm font-black dark:text-white">{t("chooseCityTitle")}</span>
-              <span className="block text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{t("chooseCitySub")}</span>
+              <span className="block text-sm font-bold text-fg">{t("chooseCityTitle")}</span>
+              <span className="block text-sm text-muted">{t("chooseCitySub")}</span>
             </span>
           </button>
-        )}
+        ) : null}
 
-        {loading ? (
-          <div className="space-y-3">
+        {list.error && list.items.length === 0 ? (
+          <ErrorState title={t("loadError")} onRetry={() => void list.reload()} />
+        ) : list.loading && list.items.length === 0 ? (
+          <div className="space-y-3" aria-busy="true">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-28 animate-pulse rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23]" />
+              <Skeleton key={i} className="h-28 rounded-card" />
             ))}
           </div>
-        ) : merchants.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="mb-3 flex justify-center dark:text-white" aria-hidden><UtensilsCrossed size={48} /></div>
-            <p className="font-black dark:text-white">{t("noRestaurants", { city: city ? ` — ${city}` : "" })}</p>
-            <p className="mx-auto mt-1 max-w-xs text-sm text-[#6E6E80] dark:text-[#A1A1AA]">
-              {t("ownerCta")}
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/seller")}
-              style={{ backgroundColor: ACCENT }}
-              className="mt-5 h-11 rounded-xl px-5 text-sm font-bold text-white transition active:scale-95"
-            >
-              {t("ownerBtn")}
-            </button>
-          </div>
+        ) : list.items.length === 0 ? (
+          <EmptyState
+            icon={UtensilsCrossed}
+            title={filtered ? t("noResults") : t("noRestaurants")}
+            description={filtered ? t("noResultsSub") : t("ownerCta")}
+            action={
+              filtered ? (
+                <Button variant="secondary" onClick={() => setFilters(INITIAL)}>{t("clearFilters")}</Button>
+              ) : (
+                <Button asChild><Link href="/food/aplica">{t("ownerBtn")}</Link></Button>
+              )
+            }
+          />
         ) : (
-          <div className="space-y-3">
-            {merchants.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => {
-                  haptic("tap");
-                  router.push(`/food/${m.slug}`);
-                }}
-                className="flex w-full gap-3 overflow-hidden rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-3 text-left shadow-sm transition active:scale-[0.98]"
-              >
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#F7F7F8] dark:bg-[#1F1F23]">
-                  {m.image_url ? (
-                    <Image src={m.image_url} alt={m.name} fill sizes="96px" className="object-cover" />
-                  ) : (
-                    <div className="grid h-full place-items-center dark:text-white"><UtensilsCrossed size={28} /></div>
-                  )}
-                  {!m.is_open && m.hours_known !== false && (
-                    <div className="absolute inset-0 grid place-items-center bg-black/55">
-                      <span className="text-[10px] font-black uppercase text-white">{t("closed")}</span>
-                    </div>
-                  )}
+          <>
+            {partners.length > 0 ? (
+              <section aria-labelledby="food-partners" className="space-y-3">
+                <h2 id="food-partners" className="text-base font-bold text-fg">{t("partnersTitle")}</h2>
+                {partners.map((m) => <MerchantCard key={m.id} m={m} />)}
+              </section>
+            ) : null}
+
+            {unclaimed.length > 0 ? (
+              <section aria-labelledby="food-unclaimed" className="space-y-3">
+                <div>
+                  <h2 id="food-unclaimed" className="text-base font-bold text-fg">{t("notOnSwypikTitle")}</h2>
+                  <p className="text-sm text-muted">{t("notOnSwypikSub")}</p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="truncate text-[15px] font-black dark:text-white">{m.name}</h2>
-                    {m.rating != null && (
-                      <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-bold dark:text-white">
-                        <Star size={12} fill="#FACC15" className="text-[#FACC15]" />
-                        {Number(m.rating).toFixed(1)}
-                      </span>
-                    )}
-                  </div>
-                  {m.cuisine_types?.length > 0 && (
-                    <p className="mt-0.5 truncate text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{m.cuisine_types.join(" · ")}</p>
-                  )}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-[#6E6E80] dark:text-[#A1A1AA]">
-                    {m.distance_km != null && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin size={12} />
-                        {Number(m.distance_km) < 1 ? `${Math.round(Number(m.distance_km) * 1000)} m` : `${Number(m.distance_km).toFixed(1)} km`}
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1">
-                      <Clock size={12} />
-                      {m.avg_prep_minutes + 25}–{m.avg_prep_minutes + 40} min
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Truck size={12} />
-                      {m.delivery_fee_cents === 0 ? t("freeDelivery") : fmtLei(m.delivery_fee_cents)}
-                    </span>
-                    {m.min_order_cents > 0 && <span>{t("minOrder", { amount: fmtLei(m.min_order_cents) })}</span>}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                {unclaimed.map((m) => (
+                  <UnclaimedMerchantRow
+                    key={m.id}
+                    m={m}
+                    suggested={sug.suggested.has(m.id)}
+                    count={sug.counts[m.id] ?? m.suggestion_count}
+                    busy={sug.busyId === m.id}
+                    onSuggest={(id) => void sug.suggest(id)}
+                  />
+                ))}
+              </section>
+            ) : null}
+
+            {list.hasMore ? (
+              <Button variant="secondary" block loading={list.loading} onClick={() => void list.loadMore()}>
+                {t("loadMore")}
+              </Button>
+            ) : null}
+
+            <Link href="/food/aplica" className="flex min-h-11 items-center justify-center gap-2 text-sm font-semibold text-muted">
+              <Store size={16} aria-hidden /> {t("ownerBtn")}
+            </Link>
+          </>
         )}
       </main>
+
+      <CitySheet
+        open={cityOpen}
+        onOpenChange={setCityOpen}
+        city={loc.city}
+        locating={loc.locating}
+        onLocate={() => void locate()}
+        onSaveCity={(c) => {
+          loc.setCity(c);
+          setCityOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -94,6 +94,7 @@
 /admin/marketplace/[id]
 /admin/marketplace/import
 /admin/marketplace/new
+/admin/merchant-claims
 /admin/moderation
 /admin/moderation/[id]
 /admin/orders

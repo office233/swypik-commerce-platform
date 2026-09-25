@@ -37,6 +37,7 @@ const SOURCE_META: Record<string, SourceMeta> = {
     host: { labelKey: "sourceHost", Icon: Home, color: "bg-teal-100 text-teal-700", href: "/admin/hosts" },
     creator: { labelKey: "sourceCreator", Icon: Clapperboard, color: "bg-pink-100 text-pink-700", href: "/admin/applications" },
     restaurant: { labelKey: "sourceRestaurant", Icon: UtensilsCrossed, color: "bg-orange-100 text-orange-700", href: "/admin/aplicatii" },
+    restaurant_claim: { labelKey: "sourceRestaurantClaim", Icon: UtensilsCrossed, color: "bg-orange-100 text-orange-700", href: "/admin/merchant-claims" },
 };
 
 const PENDING_STATUSES = new Set(["pending", "submitted", "in_review", "needs_info"]);
@@ -66,7 +67,7 @@ async function loadAll(): Promise<UnifiedApp[]> {
         } catch { return []; }
     };
 
-    const [couriers, franchises, sellers, hosts, creators, merchants] = await Promise.all([
+    const [couriers, franchises, sellers, hosts, creators, merchants, claims] = await Promise.all([
         safe(`SELECT kind AS source, id::text, full_name AS name,
              CONCAT(vehicle_type, COALESCE(' · ' || vehicle_plate, ''), ' · ', phone) AS detail,
              city, verification_status AS status, created_at::text
@@ -91,11 +92,18 @@ async function loadAll(): Promise<UnifiedApp[]> {
         safe(`SELECT 'restaurant' AS source, id::text, name,
                CONCAT(COALESCE(address, ''), ' · ', COALESCE(phone, '')) AS detail,
                location_city AS city, status, created_at::text
-           FROM local_merchants WHERE seller_id IS NULL OR status = 'pending'
+           FROM local_merchants
+          -- Doar aplicații reale: profilurile importate din OSM nu sunt cereri.
+          WHERE status = 'pending' AND COALESCE(source, 'manual') <> 'osm'
           ORDER BY created_at DESC LIMIT 50`),
+        safe(`SELECT 'restaurant_claim' AS source, c.id::text, m.name,
+               CONCAT(COALESCE(c.contact_name, ''), ' · ', c.contact_phone) AS detail,
+               m.location_city AS city, c.status, c.created_at::text
+           FROM merchant_claim_requests c JOIN local_merchants m ON m.id = c.merchant_id
+          ORDER BY c.created_at DESC LIMIT 50`),
     ]);
 
-    return [...couriers, ...franchises, ...sellers, ...hosts, ...creators, ...merchants]
+    return [...couriers, ...franchises, ...sellers, ...hosts, ...creators, ...merchants, ...claims]
         .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 }
 

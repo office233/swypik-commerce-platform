@@ -3,6 +3,8 @@
  *
  * Creează un rând în `local_merchants` cu status='pending' și seller_id NULL.
  * Aplicația apare în coada unificată /admin/aplicatii, unde adminul o aprobă/respinge.
+ * Dacă aplicantul e logat, se creează și o cerere de revendicare
+ * (/admin/merchant-claims) — aprobarea ei leagă sellerul și activează comenzile.
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -10,6 +12,9 @@ import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { getAuthSession } from "@/lib/auth/session";
+import { merchantSlug } from "@/lib/merchants/slug";
+import { createClaim } from "@/lib/food/claims";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,16 +28,6 @@ const MerchantApplySchema = z.object({
   schedule: z.string().trim().max(400).optional(),
   description: z.string().trim().max(2000).optional(),
 });
-
-function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 70);
-}
 
 export async function POST(req: Request) {
   try {
@@ -54,7 +49,7 @@ export async function POST(req: Request) {
       .filter(Boolean)
       .join("\n") || null;
 
-    const slug = `${slugify(d.name)}-${Date.now().toString(36).slice(-4)}`;
+    const slug = merchantSlug(d.name);
 
     const { rows } = await dbQuery(
       `INSERT INTO local_merchants (
@@ -65,7 +60,22 @@ export async function POST(req: Request) {
       [d.name, slug, description, d.phone, d.email || null, d.address, d.city],
     );
 
-    return NextResponse.json({ success: true, id: rows[0]?.id }, { status: 201 });
+    // Aplicantul logat devine automat solicitantul revendicării: la aprobarea
+    // din /admin/merchant-claims primește panoul de restaurant (seller legat),
+    // în loc de un profil activ fără proprietar (fundătura de dinainte).
+    const session = await getAuthSession();
+    let claimId: string | null = null;
+    if (session?.userId && rows[0]?.id) {
+      const claim = await createClaim({
+        merchantId: rows[0].id,
+        userId: session.userId,
+        contactPhone: d.phone,
+        contactEmail: d.email || null,
+      });
+      claimId = claim.ok ? claim.claimId : null;
+    }
+
+    return NextResponse.json({ success: true, id: rows[0]?.id, claim_id: claimId }, { status: 201 });
   } catch (error: unknown) {
     logger.error({ err: error }, "[merchants/apply] POST error");
     return NextResponse.json({ success: false, error: "Eroare la trimiterea aplicației." }, { status: 500 });

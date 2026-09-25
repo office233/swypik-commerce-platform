@@ -12,6 +12,7 @@
 import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { refundLocalOrder } from "@/lib/food/refund";
 
 const log = logger.child({ mod: "payments/eats-stripe" });
 
@@ -86,13 +87,20 @@ export async function createLocalOrderPaymentIntent(orderId: string): Promise<{
 
 /** Webhook: payment_intent.succeeded pentru o comandă Eats. Idempotent. */
 export async function markLocalOrderPaid(localOrderId: string, paymentIntentId: string): Promise<boolean> {
-    const { rowCount } = await dbQuery(
+    const { rows, rowCount } = await dbQuery<{ status: string }>(
         `UPDATE local_orders
         SET payment_status = 'paid', payment_intent_id = COALESCE(payment_intent_id, $2), updated_at = now()
-      WHERE id = $1 AND payment_status <> 'paid'`,
+      WHERE id = $1 AND payment_status NOT IN ('paid', 'refunded')
+      RETURNING status`,
         [localOrderId, paymentIntentId],
     );
     if (rowCount) log.info({ localOrderId, paymentIntentId }, "local order marked paid");
+    // Plata a ajuns după ce comanda fusese anulată/refuzată (ex. PaymentIntent
+    // „processing" la momentul anulării) → banii se întorc imediat.
+    const status = rows[0]?.status;
+    if (status === "cancelled" || status === "rejected") {
+        await refundLocalOrder(localOrderId, "paid_after_cancel");
+    }
     return Boolean(rowCount);
 }
 
