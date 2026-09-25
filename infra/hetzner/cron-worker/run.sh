@@ -66,6 +66,9 @@ while true; do
   # 2026-09-26: mutat de la 5 min la fiecare minut (ofertele expira in 45s;
   # scripts/dispatch-worker.mjs ramane varianta recomandata la 10s).
   run_job dispatch-tick POST
+  # Live (Cloudflare Realtime SFU, fara webhooks): streamurile fara heartbeat de
+  # la gazda devin ended + numarul de spectatori din Redis in DB. (2026-09-27)
+  run_job live-sweep POST
 
   # Every 5 min
   if [ $((TICK % 300)) -lt 60 ]; then

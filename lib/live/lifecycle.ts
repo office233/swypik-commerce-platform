@@ -1,8 +1,9 @@
 /**
  * Ciclul de viață al unui stream, într-un singur loc (audit live §6.3):
- *   scheduled ──(media confirmată: webhook LiveKit / hook MediaMTX)──▶ live ──▶ ended
- * Un stream devine 'live' DOAR când serverul media confirmă publicarea
- * (w1-security); un stream încheiat nu mai poate reveni.
+ *   scheduled ──(media confirmată: heartbeat gazdă + track activ în SFU-ul Cloudflare)──▶ live ──▶ ended
+ * Un stream devine 'live' DOAR când SFU-ul confirmă publicarea (w1-security);
+ * un stream încheiat nu mai poate reveni. Tranzițiile: lib/live/access.ts
+ * (decideTransition), orchestrarea: lib/live/media.ts + lib/live/sweep.ts.
  */
 import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
@@ -11,13 +12,12 @@ import { logger } from "@/lib/logger";
 import { sendPushToUser } from "@/lib/push/web-push";
 import { LIVE_CONFIG } from "./config";
 
-/** Prin cheia RTMP (hook MediaMTX) sau prin id (+ creator, când vine de la gazdă). */
-export type StreamRef = { streamKey: string } | { streamId: string; creatorId?: string };
+/** Prin id (+ creator, când vine de la gazdă). */
+export type StreamRef = { streamId: string; creatorId?: string };
 
 export type WentLive = { id: string; creator_id: string; title: string; prev_status: string };
 
 function whereFor(ref: StreamRef): { sql: string; params: string[] } {
-  if ("streamKey" in ref) return { sql: "stream_key = $1", params: [ref.streamKey] };
   return ref.creatorId
     ? { sql: "id = $1::uuid AND creator_id = $2", params: [ref.streamId, ref.creatorId] }
     : { sql: "id = $1::uuid", params: [ref.streamId] };
@@ -62,7 +62,7 @@ export async function markStreamEnded(ref: StreamRef, opts: { includeScheduled?:
   return rows.length > 0;
 }
 
-/** Numărul curent de spectatori (din prezența LiveKit) + vârful. */
+/** Numărul curent de spectatori (din heartbeat-urile din Redis) + vârful. */
 export async function updateViewerCount(streamId: string, viewers: number): Promise<void> {
   const n = Math.max(0, Math.trunc(viewers));
   await dbQuery(

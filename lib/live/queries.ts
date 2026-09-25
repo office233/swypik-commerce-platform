@@ -8,12 +8,14 @@ export type LiveStreamPublic = {
   title: string;
   description: string | null;
   status: LiveStatus;
-  provider: "rtmp" | "livekit";
+  provider: "rtmp" | "livekit" | "cf_sfu";
   viewer_count: number;
   peak_viewers: number;
   scheduled_at: string | null;
   started_at: string | null;
   ended_at: string | null;
+  /** Ultima publicare reușită a gazdei (se schimbă la reconectare → spectatorii retrag). */
+  sfu_published_at: string | null;
   creator_id: string;
   username: string | null;
   display_name: string | null;
@@ -34,7 +36,7 @@ export type LiveShopItem = {
 };
 
 const STREAM_COLUMNS = `ls.id, ls.title, ls.description, ls.status, ls.provider, ls.viewer_count, ls.peak_viewers,
-       ls.scheduled_at, ls.started_at, ls.ended_at, ls.creator_id,
+       ls.scheduled_at, ls.started_at, ls.ended_at, ls.sfu_published_at, ls.creator_id,
        u.username, u.display_name, u.avatar_url`;
 
 /** Streamul fără secrete (stream_key / rtmp_url nu ies niciodată de aici). */
@@ -48,6 +50,29 @@ export async function getLiveStream(id: string): Promise<LiveStreamPublic | null
     [id],
   );
   return rows[0] ?? null;
+}
+
+export type LiveTrack = { trackName: string; mid: string };
+
+/** Starea media a unui stream (doar server: sesiunea SFU a gazdei și track-urile ei). */
+export type LiveMediaState = {
+  id: string;
+  status: LiveStatus;
+  creator_id: string;
+  sfu_session_id: string | null;
+  sfu_tracks: LiveTrack[];
+  sfu_published_at: string | null;
+};
+
+export async function getLiveMediaState(id: string): Promise<LiveMediaState | null> {
+  const { rows } = await dbQuery<LiveMediaState>(
+    `SELECT id, status, creator_id, sfu_session_id, sfu_tracks, sfu_published_at
+       FROM live_streams WHERE id = $1::uuid LIMIT 1`,
+    [id],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return { ...row, sfu_tracks: Array.isArray(row.sfu_tracks) ? row.sfu_tracks : [] };
 }
 
 export async function getLiveItems(streamId: string): Promise<LiveShopItem[]> {

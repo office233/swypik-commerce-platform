@@ -1,6 +1,8 @@
 /**
- * Messenger call-session business logic — call token issuance, join,
- * decline/end signaling. Kept separate from the route handlers so it can be
+ * Messenger call-session business logic — call creation, join, decline/end
+ * signaling. Media runs on Cloudflare RealtimeKit (one meeting per call,
+ * lib/realtime/rtk.ts); lifecycle updates from its signed webhooks live in
+ * lib/messenger/call-webhook.ts. Kept separate from the route handlers so it can be
  * unit-tested with a mocked `@/lib/db`.
  *
  * Authorization model:
@@ -43,6 +45,7 @@ export type CallSessionRow = {
   call_type: CallType;
   status: "initiating" | "ringing" | "accepted" | "rejected" | "missed" | "busy" | "ended" | "failed";
   livekit_room_name: string;
+  rtk_meeting_id: string | null;
   started_at: string;
 };
 
@@ -58,7 +61,7 @@ export async function expireStaleRingingCalls(): Promise<void> {
 
 async function getCall(callId: string): Promise<CallSessionRow | null> {
   const { rows } = await dbQuery<CallSessionRow>(
-    `SELECT id, conversation_id, caller_id, call_type, status, livekit_room_name, started_at
+    `SELECT id, conversation_id, caller_id, call_type, status, livekit_room_name, rtk_meeting_id, started_at
        FROM call_sessions WHERE id = $1 LIMIT 1`,
     [callId],
   );
@@ -74,30 +77,41 @@ async function assertCallParticipant(call: CallSessionRow, userId: string): Prom
   if (!ok) throw new CallAuthError("Not a participant of this call", 403);
 }
 
-/** Start a brand-new call. Caller must be a participant of conversationId. */
+/**
+ * Checks the caller may start a call in this conversation and returns a fresh
+ * unique room key (also used as the RealtimeKit meeting title). Nothing is
+ * written yet: the row is only inserted once the media provider succeeded.
+ */
+export async function prepareCall(callerId: string, conversationId: string): Promise<{ roomName: string }> {
+  const ok = await assertParticipant(conversationId, callerId);
+  if (!ok) throw new CallAuthError("Not a participant of this conversation", 403);
+  return { roomName: `swypik_call_${crypto.randomUUID()}` };
+}
+
+/** Persist a brand-new ringing call bound to its RealtimeKit meeting. */
 export async function createCall(
   callerId: string,
   conversationId: string,
   callType: CallType,
-): Promise<{ callId: string; roomName: string }> {
+  media: { roomName: string; meetingId: string },
+): Promise<{ callId: string }> {
   const ok = await assertParticipant(conversationId, callerId);
   if (!ok) throw new CallAuthError("Not a participant of this conversation", 403);
 
-  const roomName = `swypik_call_${crypto.randomUUID()}`;
   const { rows } = await dbQuery<{ id: string }>(
-    `INSERT INTO call_sessions (conversation_id, caller_id, call_type, status, livekit_room_name)
-     VALUES ($1, $2, $3, 'ringing', $4)
+    `INSERT INTO call_sessions (conversation_id, caller_id, call_type, status, livekit_room_name, provider, rtk_meeting_id)
+     VALUES ($1, $2, $3, 'ringing', $4, 'cf_rtk', $5)
      RETURNING id`,
-    [conversationId, callerId, callType, roomName],
+    [conversationId, callerId, callType, media.roomName, media.meetingId],
   );
-  return { callId: rows[0].id, roomName };
+  return { callId: rows[0].id };
 }
 
 /** Join an existing call (accept as callee, or the caller re-joining their own room). */
 export async function joinCall(
   userId: string,
   callId: string,
-): Promise<{ roomName: string; callType: CallType }> {
+): Promise<{ meetingId: string; callType: CallType }> {
   await expireStaleRingingCalls();
 
   const call = await getCall(callId);
@@ -108,6 +122,8 @@ export async function joinCall(
   if (!["initiating", "ringing", "accepted"].includes(call.status)) {
     throw new CallAuthError("Call is no longer active", 410);
   }
+  // Legacy LiveKit calls have no RealtimeKit meeting to join.
+  if (!call.rtk_meeting_id) throw new CallAuthError("Call is no longer active", 410);
 
   if (call.status === "ringing" && call.caller_id !== userId) {
     await dbQuery(
@@ -118,7 +134,7 @@ export async function joinCall(
     );
   }
 
-  return { roomName: call.livekit_room_name, callType: call.call_type };
+  return { meetingId: call.rtk_meeting_id, callType: call.call_type };
 }
 
 /** Decline a ringing call. Only a non-caller participant may decline. */

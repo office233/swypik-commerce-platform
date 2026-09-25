@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
-import { isLiveKitConfigured } from "@/lib/livekit/server";
+import { isLiveMediaConfigured } from "@/lib/live/config";
 import { parseBody } from "@/lib/validation/schemas";
 import { paginationSchema, queryObject } from "@/lib/validation/params";
 import { z } from "zod";
@@ -24,9 +24,9 @@ const CreateStreamSchema = z.object({
 });
 
 /**
- * POST /api/live/streams — creează un stream LiveKit, mereu 'scheduled'. Devine
- * 'live' DOAR când LiveKit confirmă că gazda publică (webhook semnat,
- * /api/live/webhook). Fără RTMP/HLS: URL-urile /hls/... dădeau 404 prin tunel.
+ * POST /api/live/streams — creează un stream pe Cloudflare Realtime SFU, mereu
+ * 'scheduled'. Devine 'live' DOAR după ce gazda publică și primul heartbeat
+ * confirmă un track activ în SFU (lib/live/media.ts).
  */
 async function POST_impl(req: NextRequest) {
   const session = await getAuthSession();
@@ -48,10 +48,10 @@ async function POST_impl(req: NextRequest) {
     `INSERT INTO live_streams (creator_id, title, description, stream_key, provider, scheduled_at, status)
      VALUES ($1,$2,$3,$4,$5,$6,$7)
      RETURNING id`,
-    [session.userId, title, description ?? null, streamKey, "livekit", scheduled_at ?? null, "scheduled"],
+    [session.userId, title, description ?? null, streamKey, "cf_sfu", scheduled_at ?? null, "scheduled"],
   );
 
-  return NextResponse.json({ id: rows[0].id, status: "scheduled", live_configured: isLiveKitConfigured() });
+  return NextResponse.json({ id: rows[0].id, status: "scheduled", live_configured: isLiveMediaConfigured() });
 }
 
 async function GET_impl(req: NextRequest) {

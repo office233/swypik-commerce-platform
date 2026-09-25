@@ -160,8 +160,6 @@
 /api/hosts/apply
 /api/i18n/preferences
 /api/inquiries
-/api/internal/live/ended
-/api/internal/live/started
 /api/internal/moderation/decide
 /api/internal/moderation/pending
 /api/internal/send-email

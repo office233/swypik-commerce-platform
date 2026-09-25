@@ -8,7 +8,7 @@
 
 Swypik = platformă de video commerce (TikTok-style feed + marketplace + servicii: zboruri, cazări, ride-hailing, food delivery) cu economie internă pe token SWYP (geth PoA privat, chainId 643366).
 
-**Stack**: Next.js (App Router) + TypeScript, next-intl (7 limbi: ro, en, es, fr, de, pt, it), PostgreSQL 16 + pgvector, Redis, MinIO, Stripe, mediamtx (live RTMP/HLS), Cloudflare Workers (ai, api-proxy, video), platform-api în Go, video-worker în Python (FFmpeg).
+**Stack**: Next.js (App Router) + TypeScript, next-intl (7 limbi: ro, en, es, fr, de, pt, it), PostgreSQL 16 + pgvector, Redis, MinIO, Stripe, Cloudflare Realtime (SFU pentru Live, RealtimeKit pentru apeluri — `docs/infra/realtime.md`), Cloudflare Workers (ai, api-proxy, video), platform-api în Go, video-worker în Python (FFmpeg).
 
 ## 2. Servicii / containere (infra/hetzner/docker-compose.prod.yml + minio)
 
@@ -20,7 +20,6 @@ Swypik = platformă de video commerce (TikTok-style feed + marketplace + servici
 | redis | redis:7.4-alpine | intern | cache, cozi, rate-limit |
 | video-worker ×3 | python:3.11-slim | — | pipeline FFmpeg (transcodare, thumbnails, captions) |
 | cron-worker | shell custom | — | rulează cron-urile prin curl → /api/cron/* |
-| mediamtx | bluenviron/mediamtx:1.10 | 1935 (RTMP), 8888 (HLS), 9997 (API) | live streaming |
 | minio | minio/minio | 9000/9001 | stocare S3 (video, imagini) |
 | caddy, pgbouncer | — | — | **dezactivate** (`profiles: [disabled]`) — păstrate pentru scale-prep |
 
@@ -36,7 +35,7 @@ db/                → schema.sql + migrations/ (aplicare additivă)
 services/          → platform-api (Go)
 workers/           → video-worker (Python/FFmpeg)
 chain/             → geth PoA privat, token SWYP
-infra/hetzner/     → compose files, Caddyfile, cron-worker/run.sh, mediamtx.yml, .env.production
+infra/hetzner/     → compose files, Caddyfile, cron-worker/run.sh, .env.production
 messages/          → traduceri next-intl (7 limbi)
 scripts/           → audituri (scan-hardcoded.mjs, audit-i18n.mjs), backup, check-env
 tests/             → Playwright E2E
@@ -49,7 +48,7 @@ tests/             → Playwright E2E
 | `/api/auth/*`, oauth google/apple | publice prin design |
 | `/api/cron/*` (~29 joburi) | `Authorization: Bearer CRON_SECRET` |
 | `/api/admin/*` | sesiune admin (`requireAuth` cu rol admin) |
-| `/api/internal/*` (live started/ended etc.) | header `INTERNAL_SECRET` (apelate de mediamtx) |
+| `/api/internal/*` | header `INTERNAL_SECRET` |
 | `/api/webhooks/stripe*` | semnătură Stripe (`STRIPE_WEBHOOK_SECRET`, `STRIPE_IDENTITY_WEBHOOK_SECRET`) |
 | `/api/partner/*` | `PARTNER_PROVISION_SECRET` |
 | `/api/health` public; `/api/health/full` | `INTERNAL_HEALTH_SECRET` |
@@ -74,7 +73,7 @@ Sursa de adevăr runtime: `/opt/swypik/app/infra/hetzner/.env.production` (NU se
 2. Upload video → video-worker FFmpeg → publish → feed rank
 3. Shop: product → cart → checkout Stripe → order → commission → payout
 4. SWYP: earn → wallet → on-chain deposit/withdraw (scan-chain-deposits, verify-supply)
-5. Live: RTMP → mediamtx → webhook /api/internal/live → HLS + live shop
+5. Live: browserul gazdei → Cloudflare Realtime SFU (prin /api/live/streams/[id]/publish) → heartbeat → live; spectatorii trag prin /watch; chat + produse fixate pe SSE
 6. Go (rides): estimate → request → dispatch-tick → watchdog-rides
 7. Food: restaurant → order → courier dispatch
 8. Fly/Stays: search (Duffel/Kiwi/RateHawk) → booking

@@ -63,7 +63,7 @@ COMPOSE=(docker compose
 #   platform-api  → context services/platform-api    (Go)
 #   video-worker  → context workers/video-worker     (Python: transcodare HLS)
 #   cron-worker   → context infra/hetzner/cron-worker (run.sh — declanșator de cron)
-# Restul sunt imagini externe pinned (postgres, redis, minio, mediamtx) sau
+# Restul sunt imagini externe pinned (postgres, redis, minio) sau
 # dezactivate prin `profiles: [disabled]` (caddy, pgbouncer) — nu se reconstruiesc.
 CODE_SERVICES=(web-next platform-api video-worker cron-worker)
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, Eye, Radio, ShoppingBag, Square } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -12,17 +11,17 @@ import { IconButton } from "@/components/ui/IconButton";
 import { useToast } from "@/components/ui/Toast";
 import type { LiveShopItem, LiveStreamPublic } from "@/lib/live/queries";
 import { LiveStateCard } from "../LiveStateCard";
-import { useLiveToken } from "../useLiveToken";
+import type { LivePulse } from "../rtc/client";
+import { useHostPublisher } from "../rtc/useHostPublisher";
 import { LiveChat } from "../viewer/LiveChat";
+import HostRoom from "./HostRoom";
 import { StudioProducts } from "./StudioProducts";
-
-const HostRoom = dynamic(() => import("./HostRoom"), { ssr: false });
 
 type Props = { initialStream: LiveStreamPublic; initialItems: LiveShopItem[]; configured: boolean; pollMs: number };
 
 /**
- * Studio-ul gazdei (telefon sau desktop): „Intră live” → token de gazdă →
- * camera se publică în LiveKit → webhook-ul confirmă → streamul devine live.
+ * Studio-ul gazdei (telefon sau desktop): „Intră live” → camera se publică în
+ * SFU-ul Cloudflare prin API-ul nostru → heartbeat-ul confirmă media → live.
  */
 export default function HostStudio({ initialStream, initialItems, configured, pollMs }: Props) {
   const t = useTranslations("live.studio");
@@ -35,7 +34,10 @@ export default function HostStudio({ initialStream, initialItems, configured, po
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [ending, setEnding] = useState(false);
   const ended = stream.status === "ended" || stream.status === "failed";
-  const token = useLiveToken(stream.id, "host", configured && connecting && !ended, attempt);
+  const onPulse = useCallback((pulse: LivePulse) => {
+    setStream((s) => ({ ...s, status: pulse.status, viewer_count: pulse.viewers }));
+  }, []);
+  const publisher = useHostPublisher(stream.id, configured && connecting && !ended, attempt, onPulse);
 
   const refresh = useCallback(async () => {
     try {
@@ -55,9 +57,12 @@ export default function HostStudio({ initialStream, initialItems, configured, po
     return () => clearInterval(timer);
   }, [refresh, ended, connecting, pollMs]);
 
+  const publishError = publisher.state.status === "error" ? publisher.state.code : null;
   useEffect(() => {
-    if (token.status === "error") toast({ title: t("tokenError"), tone: "danger" });
-  }, [token, t, toast]);
+    if (!publishError) return;
+    toast({ title: publishError === "permission_denied" ? t("cameraBlocked") : t("tokenError"), tone: "danger" });
+    setConnecting(false);
+  }, [publishError, t, toast]);
 
   const endStream = async () => {
     setEnding(true);
@@ -81,10 +86,17 @@ export default function HostStudio({ initialStream, initialItems, configured, po
   let stage;
   if (!configured) stage = <LiveStateCard kind="unconfigured" />;
   else if (ended) stage = <LiveStateCard kind="ended" />;
-  else if (connecting && token.status === "ready") {
-    stage = <HostRoom connection={token.connection} onDisconnected={() => setConnecting(false)} />;
-  } else if (connecting && token.status !== "error") stage = <LiveStateCard kind="connecting" />;
-  else {
+  else if (connecting) {
+    stage = (
+      <HostRoom
+        media={publisher.media}
+        micOn={publisher.micOn}
+        camOn={publisher.camOn}
+        onToggleMic={publisher.toggleMic}
+        onToggleCam={publisher.toggleCam}
+      />
+    );
+  } else {
     stage = (
       <div className="flex h-full flex-col items-center justify-center gap-4 px-gutter text-center">
         <Radio className="h-10 w-10 text-danger" aria-hidden />

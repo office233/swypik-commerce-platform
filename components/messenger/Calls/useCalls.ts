@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/ui/Toast";
 
-/** Apelurile apar doar când LiveKit e configurat la build (NEXT_PUBLIC_LIVEKIT_URL). */
-export const CALLS_ENABLED = Boolean(process.env.NEXT_PUBLIC_LIVEKIT_URL);
+/**
+ * Butoanele de apel apar doar când Cloudflare RealtimeKit e configurat la build
+ * (NEXT_PUBLIC_CALLS_ENABLED=1). Serverul răspunde oricum 503 fără chei.
+ */
+export const CALLS_ENABLED = process.env.NEXT_PUBLIC_CALLS_ENABLED === "1";
 const INCOMING_CALL_POLL_MS = 5000;
 
-export type ActiveCall = { token: string; serverUrl: string; callType: "audio" | "video"; callId: string };
+export type ActiveCall = { authToken: string; callType: "audio" | "video"; callId: string };
 export type IncomingCall = {
   id: string;
   conversation_id: string;
@@ -51,8 +54,8 @@ export function useCalls() {
           body: JSON.stringify(callId ? { callId } : { conversationId, callType }),
         });
         const data = (await res.json().catch(() => ({}))) as Partial<ActiveCall> & { error?: string };
-        if (res.ok && data.token && data.serverUrl && data.callId) {
-          setActive({ token: data.token, serverUrl: data.serverUrl, callType, callId: data.callId });
+        if (res.ok && data.authToken && data.callId) {
+          setActive({ authToken: data.authToken, callType: data.callType ?? callType, callId: data.callId });
         } else if (res.status === 503) {
           toast({ title: t("unavailable"), tone: "danger" });
         } else {

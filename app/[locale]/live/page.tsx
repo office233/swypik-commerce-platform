@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { getAuthSession } from "@/lib/auth/session";
 import { Link } from "@/lib/i18n/navigation";
-import { isLiveKitConfigured } from "@/lib/livekit/server";
+import { isLiveMediaConfigured } from "@/lib/live/config";
 import { getLiveFeedItems, toLiveFeedItem } from "@/lib/live/feed-items";
 import { listLiveStreams } from "@/lib/live/queries";
 
@@ -40,7 +40,7 @@ export default async function LivePage() {
     .filter((s) => s.scheduled_at && new Date(s.scheduled_at).getTime() > now)
     .slice(0, UPCOMING_LIMIT);
   const canHost = Boolean(session && HOST_ROLES.has(session.role ?? ""));
-  const configured = isLiveKitConfigured();
+  const configured = isLiveMediaConfigured();
   const goLive = canHost ? (
     <Button asChild>
       <Link href="/creator/live">{t("goLive")}</Link>

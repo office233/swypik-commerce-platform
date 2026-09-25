@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
+import { subscribeLiveState } from "@/lib/live/events";
+import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { isUuid } from "@/lib/validation/uuid";
 import { LiveChatMessageSchema, parseBody } from "@/lib/validation/schemas";
@@ -58,6 +60,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const stream = new ReadableStream({
       async start(controller) {
         controller.enqueue(encoder.encode(":ok\n\n"));
+        // Starea streamului (live/ended, spectatori, republicare) — fan-out Redis (lib/live/events.ts).
+        let unsubscribe: (() => void) | null = null;
+        if (process.env.REDIS_URL) {
+          unsubscribe = await subscribeLiveState(streamId, (state) => {
+            if (closed) return;
+            try {
+              controller.enqueue(encoder.encode(`event: state\ndata: ${JSON.stringify(state)}\n\n`));
+            } catch {
+              // conexiunea s-a închis între timp
+            }
+          }).catch((err: unknown) => {
+            logger.warn({ err, streamId }, "[live/chat] state subscription failed");
+            return null;
+          });
+          if (closed) unsubscribe?.();
+        }
         const tick = async () => {
           if (closed) return;
           try {
@@ -81,6 +99,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         req.signal.addEventListener("abort", () => {
           closed = true;
           clearInterval(interval);
+          unsubscribe?.();
           try { controller.close(); } catch {}
         });
       },

@@ -48,9 +48,6 @@ services:
         NEXT_PUBLIC_FEATURE_MESSENGER: ${NEXT_PUBLIC_FEATURE_MESSENGER:-}
         FEATURE_DM: ${FEATURE_DM:-}
         NEXT_PUBLIC_FEATURE_DM: ${NEXT_PUBLIC_FEATURE_DM:-}
-        # NEXT_PUBLIC_LIVEKIT_URL alimentează atât CSP-ul (next.config.mjs
-        # connect-src, calculat la build) cât și clientul de apeluri video.
-        NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL:-}
         # Media (R2 + CDN, docs/infra/r2.md): CSP-ul din next.config.mjs și
         # loader-ul next/image se calculează la BUILD din aceste valori.
         MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-}
@@ -58,6 +55,9 @@ services:
         S3_PRESIGN_ENDPOINT: ${S3_PRESIGN_ENDPOINT:-}
         NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL: ${NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL:-}
         NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM: ${NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM:-}
+        # NEXT_PUBLIC_CALLS_ENABLED=1 afișează butoanele de apel (Cloudflare
+        # RealtimeKit); cheile rămân server-only în .env.production.
+        NEXT_PUBLIC_CALLS_ENABLED: ${NEXT_PUBLIC_CALLS_ENABLED:-}
       dockerfile_inline: |
         # ── Build stage ──
         FROM node:20.19.0-alpine AS builder
@@ -107,8 +107,6 @@ services:
         ENV FEATURE_DM=$FEATURE_DM
         ARG NEXT_PUBLIC_FEATURE_DM
         ENV NEXT_PUBLIC_FEATURE_DM=$NEXT_PUBLIC_FEATURE_DM
-        ARG NEXT_PUBLIC_LIVEKIT_URL
-        ENV NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL
         ARG MEDIA_PUBLIC_BASE_URL
         ENV MEDIA_PUBLIC_BASE_URL=$MEDIA_PUBLIC_BASE_URL
         ARG MEDIA_SIGNED_BASE_URL
@@ -119,6 +117,8 @@ services:
         ENV NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL=$NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL
         ARG NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM
         ENV NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM=$NEXT_PUBLIC_MEDIA_IMAGE_TRANSFORM
+        ARG NEXT_PUBLIC_CALLS_ENABLED
+        ENV NEXT_PUBLIC_CALLS_ENABLED=$NEXT_PUBLIC_CALLS_ENABLED
         RUN npm run build
 
         # ── Runtime stage ──
@@ -156,10 +156,9 @@ services:
     env_file:
       # Server-only runtime secrets pass through as-is from .env.production —
       # no defaults here, missing values fail loudly in the code that reads
-      # them (lib/messenger/livekit.ts,
-      # lib/audio/jamendo.ts, lib/news/ai-journalist.ts): LIVEKIT_API_KEY,
-      # LIVEKIT_API_SECRET, LIVEKIT_URL, GEMINI_API_KEY,
-      # JAMENDO_CLIENT_ID.
+      # them (lib/realtime/config.ts,
+      # lib/audio/jamendo.ts, lib/news/ai-journalist.ts): CF_REALTIME_*,
+      # CF_REALTIMEKIT_*, CF_TURN_*, GEMINI_API_KEY, JAMENDO_CLIENT_ID.
       - .env.production
     depends_on:
       postgres:
@@ -435,35 +434,12 @@ services:
       postgres:
         condition: service_healthy
 
-  # ──────────────────────────────────────────────
-  # 8. mediamtx — RTMP ingest + HLS output (live commerce)
-  # ──────────────────────────────────────────────
-  mediamtx:
-    image: bluenviron/mediamtx:1.10.0
-    container_name: swypik-prod-mediamtx-1
-    # reactivat 2026-08-02 (audit P0.4): hooks started/ended există în
-    # app/api/internal/live — live commerce funcțional din nou
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    ports:
-      - "127.0.0.1:8888:8888"
-      # 2026-08-10 (audit P0): RTMP legat pe loopback — ingest-ul public nu e
-      # posibil oricum prin tunelul Cloudflare (nu face passthrough RTMP);
-      # expunerea 0.0.0.0 permitea stream-uri nesolicitate din LAN.
-      - "127.0.0.1:1935:1935"
-      - "127.0.0.1:9997:9997"
-    volumes:
-      - ./mediamtx.yml:/mediamtx.yml:ro
-      - swypik_mediamtx_recordings:/recordings
-
 
 # ============================================================================
 # Named volumes — persistent data on Hetzner VPS disk
 # ============================================================================
 volumes:
   swypik_postgres_data:
-  swypik_mediamtx_recordings:
   swypik_redis_data:
   swypik_caddy_data:
   swypik_caddy_config:

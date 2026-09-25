@@ -2,8 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import ImmersiveSurface from "@/components/theme/ImmersiveSurface";
 import HostStudio from "@/components/live/studio/HostStudio";
 import { getAuthSession } from "@/lib/auth/session";
-import { isLiveKitConfigured } from "@/lib/livekit/server";
-import { LIVE_CONFIG } from "@/lib/live/config";
+import { isLiveMediaConfigured, LIVE_CONFIG } from "@/lib/live/config";
 import { getLiveItems, getLiveStream } from "@/lib/live/queries";
 import { isUuidParam } from "@/lib/validation/params";
 
@@ -21,7 +20,7 @@ export default async function CreatorLiveHostPage({ params }: { params: Promise<
 
   return (
     <ImmersiveSurface>
-      <HostStudio initialStream={stream} initialItems={items} configured={isLiveKitConfigured()} pollMs={LIVE_CONFIG.viewerPollMs} />
+      <HostStudio initialStream={stream} initialItems={items} configured={isLiveMediaConfigured()} pollMs={LIVE_CONFIG.viewerPollMs} />
     </ImmersiveSurface>
   );
 }

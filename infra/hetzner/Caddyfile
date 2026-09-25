@@ -45,11 +45,6 @@ swypik.com {
 		format json
 	}
 
-	# DISABLED 2026-05-17 — mediamtx în profile:disabled; reactivează când e nevoie de RTMP live
-	# handle_path /hls/* {
-	#	reverse_proxy mediamtx:8888
-	# }
-
 	# Next.js static assets — long cache (Cache-Control set by Next, no dup here)
 	handle /_next/static/* {
 		reverse_proxy web-next:3000 {

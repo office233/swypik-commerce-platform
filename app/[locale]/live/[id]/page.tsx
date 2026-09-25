@@ -4,8 +4,7 @@ import { getTranslations } from "next-intl/server";
 import ImmersiveSurface from "@/components/theme/ImmersiveSurface";
 import LiveViewer from "@/components/live/viewer/LiveViewer";
 import { getAuthSession } from "@/lib/auth/session";
-import { isLiveKitConfigured } from "@/lib/livekit/server";
-import { LIVE_CONFIG } from "@/lib/live/config";
+import { isLiveMediaConfigured, LIVE_CONFIG } from "@/lib/live/config";
 import { getLiveItems, getLiveStream } from "@/lib/live/queries";
 import { isUuidParam } from "@/lib/validation/params";
 
@@ -33,7 +32,7 @@ export default async function LiveViewerPage({ params }: Props) {
       <LiveViewer
         initialStream={stream}
         initialItems={items}
-        configured={isLiveKitConfigured()}
+        configured={isLiveMediaConfigured()}
         signedIn={Boolean(session)}
         pollMs={LIVE_CONFIG.viewerPollMs}
       />
