@@ -8,6 +8,7 @@
  * Auth: Bearer ${CRON_SECRET}.
  */
 
+import { withCronLock } from "@/lib/cron/lock";
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
@@ -36,7 +37,11 @@ export async function POST(req: Request) {
   if (!authorizeCronRequest(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  // Exact-once între replici: o a doua declanșare concurentă iese imediat (200 skipped).
+  return withCronLock("strikes-decay", decayStrikes);
+}
 
+async function decayStrikes(): Promise<Response> {
   const start = Date.now();
   try {
     const { rows } = await dbQuery<{ expired: number; recomputed: number }>(

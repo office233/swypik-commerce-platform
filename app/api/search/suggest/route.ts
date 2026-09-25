@@ -11,8 +11,11 @@ export const dynamic = "force-dynamic";
 
 type Suggestion = { label: string; type: "categorie" | "produs" | "hashtag" | "user"; href?: string; count?: number };
 
+// Cache per replică (acceptabil: date publice, TTL 5 min, fără invalidare).
+// Mărginit — înainte creștea nelimitat cu fiecare interogare distinctă.
 const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_MAX_ENTRIES = 1000;
 const SOFT_COMMERCE_QUERY_RE = /\b(sexy|adult|erotic|fetish|bdsm|underwear|underpants|panties|panty|lingerie|shapewear|bodysuit|bra|bras|bralette|briefs|bikini|swimwear|nightdress|sleepwear|corset|socks?)\b/i;
 const SOFT_COMMERCE_TITLE_RE = /\b(sexy|adult|erotic|fetish|bdsm|underwear|underpants|panties|panty|lingerie|shapewear|bodysuit|bra|bras|bralette|briefs|bikini|swimwear|nightdress|sleepwear|corset)\b/i;
 const MARKETPLACE_SPAM_TITLE_RE = /\b(amazon|hot[ -]?selling|luxury|wholesale|factory direct|dropship)\b/i;
@@ -92,6 +95,7 @@ export async function GET(req: Request) {
     }
 
     const responseData = { ok: true, q, suggestions: suggestions.slice(0, limit) };
+    if (cache.size >= CACHE_MAX_ENTRIES) cache.delete(cache.keys().next().value as string);
     cache.set(cacheKey, { data: responseData, ts: Date.now() });
     return NextResponse.json(responseData, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
   } catch (error: any) {

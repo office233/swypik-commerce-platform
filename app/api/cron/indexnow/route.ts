@@ -1,6 +1,7 @@
 // /opt/swypik/app/app/api/cron/indexnow/route.ts
 // Real-time URL submission to Bing + Yandex via IndexNow protocol.
 // Auth: Bearer ${CRON_SECRET}. Accepts ad-hoc body { urls: [...] } for live push.
+import { withCronLock } from "@/lib/cron/lock";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "node:crypto";
@@ -64,10 +65,19 @@ async function submit(endpoint: string, key: string, urls: string[]) {
   return { ok: res.ok, status: res.status };
 }
 
-export async function POST(req: Request) {
+function bearer(req: Request): string | null {
   const auth = req.headers.get("authorization") || "";
-  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
-  if (!ok(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+}
+
+/** Exact-once între replici: autentificare întâi, apoi lock (o rulare concurentă → 200 skipped). */
+export async function POST(req: Request) {
+  if (!ok(bearer(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withCronLock("indexnow", () => submitUrls(req));
+}
+
+/** Rulează doar sub lock, după autentificarea din POST. */
+async function submitUrls(req: Request): Promise<Response> {
 
   const key = process.env.INDEXNOW_KEY;
   if (!key) return NextResponse.json({ error: "no_key" }, { status: 500 });

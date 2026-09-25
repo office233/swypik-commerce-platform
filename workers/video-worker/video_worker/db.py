@@ -1,25 +1,32 @@
 from __future__ import annotations
 
-import threading
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
 from .config import Settings
 from .models import VideoJob
+from .pg_pool import DatabaseUnavailableError, PooledConnections
+
+__all__ = ["DatabaseUnavailableError", "PostgresRepository"]
+
+logger = logging.getLogger(__name__)
+
+# Fencing: doar deținătorul lease-ului (sau un job fără lease) poate scrie rândul.
+_FENCE_SQL = " AND (locked_by IS NULL OR locked_by = %s)"
 
 
-class DatabaseUnavailableError(RuntimeError):
-    pass
-
-
-class PostgresRepository:
-    def __init__(self, settings: Settings) -> None:
+class PostgresRepository(PooledConnections):
+    def __init__(self, settings: Settings, lease_owner: str | None = None) -> None:
         self.settings = settings
-        # 2026-08-10 (audit P1): pool de conexiuni reutilizabile în loc de o
-        # conexiune nouă per operație (fiecare job deschidea 4-5 conexiuni →
-        # risc de epuizare max_connections sub burst). Pool lazy, thread-safe.
-        self._pool = None
-        self._pool_lock = threading.Lock()
+        # Setat doar pentru backend-ul postgres (= worker_id). Fără el (stream/
+        # list/--job-json) SQL-ul rămâne cel vechi, fără gardă `locked_by`.
+        self.lease_owner = lease_owner
+        self._init_pool()
+
+    @property
+    def database_url(self) -> str | None:
+        return self.settings.database_url
 
     def try_claim(self, job: VideoJob) -> bool:
         """Atomically claim a job: flip status queued->running only if still queued.
@@ -32,23 +39,18 @@ class PostgresRepository:
         """
         if not self.settings.database_url:
             return True
-        connection = self._connect()
-        try:
-            with connection:
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        _format_table(
-                            "UPDATE {jobs} SET status='running', started_at=NOW(), "
-                            "attempt_count=COALESCE(attempt_count,0)+1, error_message=NULL "
-                            "WHERE id=%s AND status='queued' RETURNING id",
-                            "jobs",
-                            self.settings.jobs_table,
-                        ),
-                        (job.job_id,),
-                    )
-                    return cursor.fetchone() is not None
-        finally:
-            self._release(connection)
+        with self.cursor() as cursor:
+            cursor.execute(
+                _format_table(
+                    "UPDATE {jobs} SET status='running', started_at=NOW(), "
+                    "attempt_count=COALESCE(attempt_count,0)+1, error_message=NULL "
+                    "WHERE id=%s AND status='queued' RETURNING id",
+                    "jobs",
+                    self.settings.jobs_table,
+                ),
+                (job.job_id,),
+            )
+            return cursor.fetchone() is not None
 
     def heartbeat(self, job: VideoJob) -> None:
         """Împinge `updated_at` cât timp jobul rulează.
@@ -61,24 +63,18 @@ class PostgresRepository:
         """
         if not self.settings.database_url:
             return
-        connection = self._connect()
-        try:
-            with connection:
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        _format_table(
-                            "UPDATE {jobs} SET updated_at=NOW() "
-                            "WHERE id=%s AND status='running'",
-                            "jobs",
-                            self.settings.jobs_table,
-                        ),
-                        (job.job_id,),
-                    )
-        finally:
-            self._release(connection)
+        with self.cursor() as cursor:
+            cursor.execute(
+                _format_table(
+                    "UPDATE {jobs} SET updated_at=NOW() WHERE id=%s AND status='running'",
+                    "jobs",
+                    self.settings.jobs_table,
+                ),
+                (job.job_id,),
+            )
 
-    def mark_processing(self, job: VideoJob) -> None:
-        self._execute_job_and_asset(
+    def mark_processing(self, job: VideoJob) -> bool:
+        return self._execute_job_and_asset(
             job,
             "running",
             "UPDATE {jobs} SET status = %s, started_at = NOW(), error_message = NULL WHERE id = %s",
@@ -104,7 +100,7 @@ class PostgresRepository:
             (code, message, job.job_id),
         )
 
-    def mark_ready(self, job: VideoJob, result: dict[str, Any]) -> None:
+    def mark_ready(self, job: VideoJob, result: dict[str, Any]) -> bool:
         video_metadata = {
             "preview_url": result.get("preview_url"),
             "audio_url": result.get("audio_url"),
@@ -113,7 +109,7 @@ class PostgresRepository:
             "renditions": result.get("renditions"),
             "processed_at": datetime.now(timezone.utc).isoformat(),
         }
-        self._execute_job_and_asset(
+        return self._execute_job_and_asset(
             job,
             "succeeded",
             (
@@ -149,14 +145,18 @@ class PostgresRepository:
             else None,
         )
 
-    def mark_failed(self, job: VideoJob, message: str, error_code: str = "internal_error") -> None:
+    def mark_failed(
+        self, job: VideoJob, message: str, error_code: str = "internal_error", *, dead_letter: bool = False
+    ) -> bool:
+        """`dead_letter=True`: reîncercările tranzitorii s-au epuizat → `dead_lettered_at`."""
         error = {"error_message": message, "error_code": error_code}
-        self._execute_job_and_asset(
+        dead = ", dead_lettered_at = NOW()" if dead_letter else ""
+        return self._execute_job_and_asset(
             job,
             "failed",
             (
                 "UPDATE {jobs} SET status = %s, completed_at = NOW(), error_message = %s, "
-                "error_code = %s, updated_at = NOW() WHERE id = %s"
+                f"error_code = %s{dead}, updated_at = NOW() WHERE id = %s"
             ),
             "UPDATE {assets} SET status = %s, updated_at = NOW(), metadata = metadata || %s::jsonb WHERE id = %s",
             ("failed", message, error_code, job.job_id),
@@ -170,16 +170,20 @@ class PostgresRepository:
             ("failed", _json(error), job.video_id) if job.video_id else None,
         )
 
+    def _fence(self, sql: str, params: tuple[Any, ...], *, clear_lease: bool = False):
+        """Cu lease owner: gardă `locked_by` (+ eliberarea lease-ului la final)."""
+        if not self.lease_owner:
+            return sql, params
+        if clear_lease:
+            sql = sql.replace(" WHERE id", ", locked_by = NULL, lease_expires_at = NULL WHERE id", 1)
+        return sql + _FENCE_SQL, (*params, self.lease_owner)
+
     def _execute_job_only(self, sql: str, params: tuple[Any, ...]) -> None:
         if not self.settings.database_url:
             return
-        connection = self._connect()
-        try:
-            with connection:
-                with connection.cursor() as cursor:
-                    cursor.execute(_format_table(sql, "jobs", self.settings.jobs_table), params)
-        finally:
-            self._release(connection)
+        sql, params = self._fence(sql, params)
+        with self.cursor() as cursor:
+            cursor.execute(_format_table(sql, "jobs", self.settings.jobs_table), params)
 
     def _execute_job_and_asset(
         self,
@@ -191,63 +195,26 @@ class PostgresRepository:
         asset_params: tuple[Any, ...],
         video_sql: str | None = None,
         video_params: tuple[Any, ...] | None = None,
-    ) -> None:
-        del job, status
+    ) -> bool:
+        """Întoarce False dacă rândul jobului e deținut de alt worker (fencing)."""
         if not self.settings.database_url:
-            return
-
-        connection = self._connect()
-        try:
-            with connection:
-                with connection.cursor() as cursor:
-                    cursor.execute(_format_table(job_sql, "jobs", self.settings.jobs_table), job_params)
-                    cursor.execute(
-                        _format_table(asset_sql, "assets", self.settings.assets_table), asset_params
-                    )
-                    if video_sql and video_params:
-                        cursor.execute(video_sql, video_params)
-        finally:
-            self._release(connection)
-
-    def _connect(self):
-        try:
-            import psycopg
-        except ImportError as exc:
-            raise DatabaseUnavailableError(
-                "psycopg is not installed; install requirements.txt to enable Postgres updates"
-            ) from exc
-        # Pool lazy (psycopg_pool) cu fallback la conexiune directă dacă pool-ul
-        # nu e disponibil. getconn/putconn e gestionat de _borrow().
-        if self._pool is None:
-            with self._pool_lock:
-                if self._pool is None:
-                    try:
-                        from psycopg_pool import ConnectionPool
-                        self._pool = ConnectionPool(
-                            self.settings.database_url,
-                            min_size=1,
-                            max_size=4,
-                            open=True,
-                            timeout=10,
-                        )
-                    except ImportError:
-                        self._pool = False  # marcaj: pool indisponibil → conexiuni directe
-        if self._pool:
-            return self._pool.getconn()
-        return psycopg.connect(self.settings.database_url)
-
-    def _release(self, connection) -> None:
-        """Întoarce conexiunea în pool (dacă există) sau o închide."""
-        if self._pool:
-            try:
-                self._pool.putconn(connection)
-                return
-            except Exception:
-                pass
-        try:
-            connection.close()
-        except Exception:
-            pass
+            return True
+        final = status in ("succeeded", "failed")
+        job_sql, job_params = self._fence(job_sql, job_params, clear_lease=final)
+        with self.cursor() as cursor:
+            cursor.execute(_format_table(job_sql, "jobs", self.settings.jobs_table), job_params)
+            if self.lease_owner and getattr(cursor, "rowcount", 1) == 0:
+                logger.warning(
+                    "Job %s is owned by another worker (lease lost); skipping %s asset/video updates",
+                    job.job_id, status,
+                )
+                return False
+            # Payload invalid (ex. reprocess admin cu `{}`): fără asset_id nu atingem video_assets.
+            if job.asset_id:
+                cursor.execute(_format_table(asset_sql, "assets", self.settings.assets_table), asset_params)
+            if video_sql and video_params:
+                cursor.execute(video_sql, video_params)
+        return True
 
 
 def _format_table(sql: str, placeholder: str, table_name: str) -> str:

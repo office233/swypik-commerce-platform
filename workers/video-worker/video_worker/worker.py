@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import mimetypes
 import tempfile
@@ -44,6 +45,7 @@ class VideoProcessor:
         analysis_hooks: Iterable[object] | None = None,
         prober=None,
         sleep: Callable[[float], None] | None = None,
+        defer_transient: bool = False,
     ) -> None:
         self.settings = settings
         self.storage = storage
@@ -53,22 +55,17 @@ class VideoProcessor:
         self.analysis_hooks = list(analysis_hooks or [])
         self.prober = prober or FfprobeProber()
         self._sleep = sleep or time.sleep
+        # Coada Postgres: jobul e deja revendicat (lease), o singură încercare;
+        # eroarea tranzitorie e întoarsă cozii (retry cu backoff / dead letter),
+        # iar heartbeat-ul lease-ului acoperă tot jobul (îl ține pg_runner).
+        self.defer_transient = defer_transient
 
     def process(self, job: VideoJob) -> ProcessResult:
-        # ATOMIC CLAIM: refuse duplicates. If this UPDATE doesn't flip a row
-        # from 'queued' the job is already taken / done — ack & skip.
-        try_claim = getattr(self.repository, "try_claim", None)
-        if try_claim is not None:
-            try:
-                claimed = try_claim(job)
-            except Exception:
-                logger.exception("try_claim raised for job %s; proceeding optimistically", job.job_id)
-                claimed = True
-            if not claimed:
-                logger.info("Job %s skipped (not in 'queued' state)", job.job_id)
-                return ProcessResult(ok=True, message="JOB_SKIPPED")
+        if not self.defer_transient and not self._try_claim(job):
+            logger.info("Job %s skipped (not in 'queued' state)", job.job_id)
+            return ProcessResult(ok=True, message="JOB_SKIPPED")
 
-        max_attempts = max(1, int(self.settings.max_attempts))
+        max_attempts = 1 if self.defer_transient else max(1, int(self.settings.max_attempts))
         processing_marked = False
         for attempt in range(1, max_attempts + 1):
             try:
@@ -90,12 +87,30 @@ class VideoProcessor:
                     self._mark_retrying(job, attempt, code, message)
                     self._sleep(delay)
                     continue
+                if transient and self.defer_transient:
+                    logger.warning("Video job %s failed transiently (%s): %s", job.job_id, code, message)
+                    return ProcessResult(
+                        ok=False, message=message,
+                        details={"error_code": code, "transient": True, "attempts": attempt},
+                    )
                 logger.exception("Video job %s failed (%s): %s", job.job_id, code, message)
                 self._mark_failed(job, message, code)
                 return ProcessResult(
                     ok=False, message=message, details={"error_code": code, "attempts": attempt}
                 )
         raise AssertionError("unreachable")  # pragma: no cover
+
+    def _try_claim(self, job: VideoJob) -> bool:
+        """ATOMIC CLAIM (stream/list): refuză duplicatele. Dacă UPDATE-ul nu
+        mută rândul din 'queued', jobul e deja luat / terminat — ack & skip."""
+        try_claim = getattr(self.repository, "try_claim", None)
+        if try_claim is None:
+            return True
+        try:
+            return bool(try_claim(job))
+        except Exception:
+            logger.exception("try_claim raised for job %s; proceeding optimistically", job.job_id)
+            return True
 
     def _run_attempt(self, job: VideoJob) -> dict[str, Any]:
         source_bucket = job.source_bucket or job.bucket or self.settings.bucket
@@ -123,8 +138,10 @@ class VideoProcessor:
                 self._progress(job, "transcoding", _TRANSCODE_START + clamped * span // 100)
 
             # Heartbeat pe toată durata pașilor lungi (transcode + upload),
-            # ca watchdog-ul să nu fure jobul de sub un worker sănătos.
-            with _heartbeat(self.repository, job):
+            # ca watchdog-ul să nu fure jobul de sub un worker sănătos. În modul
+            # Postgres lease-ul e prelungit de pg_runner pe TOT jobul.
+            inner_heartbeat = contextlib.nullcontext() if self.defer_transient else _heartbeat(self.repository, job)
+            with inner_heartbeat:
                 transcode_result = self.transcoder.transcode(
                     source_path,
                     output_dir,

@@ -91,14 +91,18 @@ function memoryRateLimit(identifier: string, limit: number, windowSeconds: numbe
   return { success: true, remaining: limit - entry.count };
 }
 
-// Cleanup stale entries periodically (every 60s)
+// Cleanup stale entries periodically (every 60s). Store-ul în memorie e doar
+// pentru dev: în producție fără Redis limitarea „fails closed” (vezi rateLimit),
+// fiindcă un contor per-replică ar înmulți limita cu numărul de replici.
+// `unref` — timerul nu ține procesul (scripturi, teste) în viață.
 if (typeof setInterval !== "undefined") {
-  setInterval(() => {
+  const sweep = setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of memoryStore) {
       if (now > entry.resetAt) memoryStore.delete(key);
     }
   }, 60_000);
+  (sweep as { unref?: () => void }).unref?.();
 }
 
 // ── Public API ──────────────────────────────────────────────────────

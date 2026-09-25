@@ -1,10 +1,11 @@
 # Swypik Video Worker
 
-Python worker for Redis Streams-driven video processing jobs.
+Python worker for video processing jobs. The queue is the Postgres table `video_processing_jobs` itself
+(competing consumers); Redis Streams / lists remain as legacy backends.
 
 The worker:
 
-- consumes JSON or field-based jobs from Redis Streams consumer groups;
+- claims jobs from Postgres with `FOR UPDATE SKIP LOCKED`, holds a lease with a heartbeat, retries with backoff and dead-letters exhausted jobs (see [Queue](#queue));
 - downloads the raw upload from R2/S3-compatible storage (or, for admin re-encodes, from an external `source_url`);
 - probes it with `ffprobe` (display dimensions after rotation, duration, audio presence, codec);
 - validates the (trimmed) duration against per-job or default limits;
@@ -14,9 +15,81 @@ The worker:
 - retries transient failures inline and records a stable `error_code` on failure;
 - exposes status and AI/moderation/tagging hooks for future pipeline extensions.
 
+## Queue
+
+Default backend: `VIDEO_QUEUE_BACKEND=postgres`. Schema: `db/migrations/20260927_0010_video_job_queue_lease.sql`
+(`locked_by`, `lease_expires_at`, `heartbeat_at`, `dead_lettered_at`).
+
+**Why Postgres.** Jobs are already durable rows, inserted by Next.js and the Go platform-api in the same
+transaction as the video row. Redis Streams was a second copy of the same fact, which drifted (job in the DB but
+`XADD` failed, stream entries without a row, a 30-minute watchdog re-publishing). Now the table *is* the queue;
+Redis is at most a wake-up signal and never the source of truth.
+
+**Lifecycle.**
+
+1. *Claim*: one `UPDATE … FROM (SELECT … ORDER BY priority DESC, scheduled_at LIMIT 1 FOR UPDATE SKIP LOCKED)`
+   picks a `transcode` job that is `queued` and due (`scheduled_at <= NOW()`), or `running` with an expired lease,
+   and has attempts left. It sets `status='running'`, `locked_by=<VIDEO_WORKER_ID>`, `lease_expires_at`,
+   `heartbeat_at`, `started_at` and increments `attempt_count`. Two workers never get the same row.
+   The job is built from `payload`; `job_id` is always the row id, and `video_id` / `asset_id` / `source_url` come
+   from the row when the payload lacks them. An invalid or empty payload (e.g. an admin "reprocess" that inserts
+   `{}`) fails the job with `error_code='invalid_payload'` and the loop moves on.
+2. *Lease + heartbeat*: a background thread extends `lease_expires_at` by `VIDEO_LEASE_SECONDS` every
+   `max(5, lease/3)` seconds for the **whole** job (download, probe, transcode, upload). A dead worker stops
+   heartbeating, its lease expires and another worker re-claims the job. If the heartbeat finds the row no longer
+   owned, the lease is marked lost and a warning is logged.
+3. *Fencing*: every job-row write (`mark_processing`, progress, `mark_ready`, `mark_failed`) carries
+   `AND (locked_by IS NULL OR locked_by = <worker id>)`; final writes also clear `locked_by` / `lease_expires_at`.
+   If the job row is owned by someone else, the asset/video rows are not touched. Outputs go to deterministic keys
+   (`output_prefix`), so a re-run after a lost lease overwrites the same objects.
+4. *Retry*: a transient error with attempts left puts the job back to `queued` with
+   `scheduled_at = NOW() + min(VIDEO_RETRY_BACKOFF_SECONDS * 2^(attempt-1), VIDEO_RETRY_BACKOFF_MAX_SECONDS) + 0..10% jitter`
+   and `stage='retrying'`. The worker does not sleep inline; it moves on to the next job.
+5. *Dead letter*: a transient error on the last attempt marks job/asset/video `failed` and sets
+   `dead_lettered_at`. Running jobs whose lease expired after the last attempt are dead-lettered by a reaper
+   (`error_code='lease_expired'`, at most every 30 s, before a claim). Permanent errors (see the table below) fail
+   without dead-lettering, as before, so the creator can retry. `max_attempts` comes from the row (default 3).
+6. *Idle*: when nothing is due the worker waits `VIDEO_POLL_INTERVAL_SECONDS`, or less if a message arrives on the
+   Redis pub/sub channel `VIDEO_WAKEUP_CHANNEL` (optional; producers may `PUBLISH video:jobs:wakeup <job_id>` after
+   the insert). Without `REDIS_URL`, or with Redis down, it simply polls.
+
+**Scaling.** Run as many workers as you like, on any host: `docker compose up --scale video-worker=N`. Each
+worker needs only `DATABASE_URL` and the S3/R2 credentials; Redis is optional. Worker ids default to
+`hostname:pid:random6`, so they are unique across containers.
+
+**Queue stats.** `python -m video_worker.main --stats` prints one JSON object: `queued`, `scheduled_retry`,
+`running`, `expired_leases`, `dead_letter`, `failed_24h`, `succeeded_24h`, `oldest_queued_age_s`.
+
+**Legacy backends.** `VIDEO_QUEUE_BACKEND=stream` (Redis Streams consumer group) and `list` (`BLPOP`) still work,
+with the old behaviour: atomic `try_claim`, inline retries with sleeps, no lease or fencing.
+
+## Shutdown
+
+- `VIDEO_SHUTDOWN_MODE=release` (default): on SIGTERM/SIGINT an idle worker exits at once. A busy worker aborts
+  the job (ffmpeg is killed as the `ShutdownRequested` exception unwinds), releases it back to the queue
+  (`status='queued'`, `attempt_count` decremented, `scheduled_at=NOW()`), stops the heartbeat, cleans its temp dir
+  and exits 0. Another worker picks the job up right away. A second signal during the release is ignored.
+- `VIDEO_SHUTDOWN_MODE=finish`: the signal only sets the stop flag; the current job finishes first. In compose,
+  `stop_grace_period` must then be longer than `FFMPEG_TIMEOUT_SECONDS`, or Docker will SIGKILL the worker (the
+  lease then expires and the job is retried).
+
+## Healthcheck
+
+The worker writes the current Unix time to `VIDEO_HEARTBEAT_FILE` (default `/tmp/video-worker-heartbeat`) on
+every loop iteration and on every lease heartbeat, so the file stays fresh during long jobs. A docker healthcheck
+should fail when the file is older than a few lease intervals, e.g.:
+
+```yaml
+healthcheck:
+  test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(cat /tmp/video-worker-heartbeat 2>/dev/null || echo 0) )) -lt 300"]
+  interval: 30s
+  retries: 3
+```
+
 ## Job Payload
 
-Add stream entries to `VIDEO_QUEUE_NAME`:
+In Postgres mode the payload is the row's `payload` jsonb column (fields below). For the legacy stream backend,
+add stream entries to `VIDEO_QUEUE_NAME`:
 
 ```powershell
 redis-cli XADD video:jobs * job_id job_123 asset_id asset_456 source_key uploads/raw/product.mp4 output_prefix videos/asset_456 source_bucket raw-videos output_bucket processed-videos
@@ -60,7 +133,9 @@ The worker also accepts a single `payload` field containing JSON:
 
 On success the job `result` (and the `videos` row) gets `master_url`, `thumbnail_url`, `preview_url`, `audio_url` (or `null`), `duration_ms` (trimmed), `width`/`height` (source display size), `has_audio`, `orientation` (`vertical` / `landscape` / `square`) and `renditions`. A thumbnail chosen by the creator (`videos.metadata.cover_source = 'custom'`) is not overwritten.
 
-Transient errors (storage/network) are retried inline up to `VIDEO_MAX_ATTEMPTS` total attempts with backoff `VIDEO_RETRY_BACKOFF_SECONDS * 2^(attempt-1)`. Permanent errors fail immediately. Error codes:
+Transient errors (storage/network) are retried: in Postgres mode through the queue (see [Queue](#queue)); in
+the legacy stream/list modes and with `--job-json`, inline up to `VIDEO_MAX_ATTEMPTS` total attempts with backoff
+`VIDEO_RETRY_BACKOFF_SECONDS * 2^(attempt-1)`. Permanent errors fail immediately. Error codes:
 
 | code | retried | cause |
 |---|---|---|
@@ -72,6 +147,8 @@ Transient errors (storage/network) are retried inline up to `VIDEO_MAX_ATTEMPTS`
 | `worker_misconfigured` | no | ffmpeg/ffprobe/boto3/psycopg missing |
 | `storage_error` | yes | S3/R2 or network failure |
 | `internal_error` | yes | anything else |
+| `invalid_payload` | no | Postgres mode: the row's `payload` cannot be turned into a job |
+| `lease_expired` | no | Postgres mode: the lease expired after the last attempt (dead letter) |
 
 A failed video is set to `status='failed'`; visibility is left to the DB trigger `enforce_video_public_safety`, so the creator can retry.
 
@@ -84,6 +161,7 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 copy .env.example .env
 python -m video_worker.main --once
+python -m video_worker.main --stats
 ```
 
 Install `ffmpeg` (which ships `ffprobe`) separately and ensure both are on `PATH`.
@@ -98,19 +176,27 @@ python -m video_worker.main --job-json '{"job_id":"local","asset_id":"asset_loca
 
 Use `.env.example` as the starting point. Important variables:
 
-- `REDIS_URL`: Redis connection string for job polling.
-- `VIDEO_QUEUE_BACKEND`: `stream` by default; set `list` for legacy `BLPOP` behavior.
+- `VIDEO_QUEUE_BACKEND`: `postgres` (default), or legacy `stream` / `list`. Anything else stops the worker at startup.
+- `DATABASE_URL`: Postgres URL. **Required** for the `postgres` backend (the worker exits with code 2 without it); optional for `stream`/`list`/`--job-json`, where status updates are skipped when unset.
+- `VIDEO_WORKER_ID`: lease owner id, default `hostname:pid:random6`.
+- `VIDEO_LEASE_SECONDS` (default `120`): lease length; the heartbeat runs every `max(5, lease/3)` s.
+- `VIDEO_POLL_INTERVAL_SECONDS` (default `2`): wait between empty claims.
+- `VIDEO_WAKEUP_CHANNEL` (default `video:jobs:wakeup`): optional Redis pub/sub wake-up channel.
+- `VIDEO_RETRY_BACKOFF_MAX_SECONDS` (default `900`): cap for the queue retry backoff.
+- `VIDEO_HEARTBEAT_FILE` (default `/tmp/video-worker-heartbeat`): liveness file for the healthcheck.
+- `VIDEO_SHUTDOWN_MODE`: `release` (default) or `finish`, see [Shutdown](#shutdown).
+- `REDIS_URL`: Redis connection string: the job queue for `stream`/`list`, only the optional wake-up signal for `postgres`.
 - `VIDEO_QUEUE_NAME`: stream or queue key, default `video:jobs`.
 - `VIDEO_CONSUMER_GROUP`: Redis Streams consumer group, default `video-workers`.
 - `VIDEO_CONSUMER_NAME`: consumer name, default host name.
 - `VIDEO_FAILED_STREAM`: optional stream where failed message metadata is copied.
 - `VIDEO_ACK_FAILED_JOBS`: set true to acknowledge failed stream jobs after writing `VIDEO_FAILED_STREAM`.
-- `DATABASE_URL`: optional Postgres URL. If unset, status updates are skipped.
 - `S3_BUCKET`, `VIDEO_OUTPUT_BUCKET`, `S3_ENDPOINT_URL`, `S3_PUBLIC_BASE_URL`: R2/S3 settings.
 - `VIDEO_LADDER`: rendition ladder, `short_side:bitrate` comma-separated.
 - `VIDEO_ENCODER`: `libx264` (default, CPU) or `h264_nvenc` (NVIDIA GPU). Any other value stops the worker at startup. NVENC needs an NVIDIA GPU, an ffmpeg built with `--enable-nvenc`, and GPU access in the container (NVIDIA Container Toolkit).
 - `VIDEO_MIN_DURATION_MS` (default `1000`), `VIDEO_MAX_DURATION_MS` (default `180000`): default duration limits.
-- `VIDEO_MAX_ATTEMPTS` (default `3`), `VIDEO_RETRY_BACKOFF_SECONDS` (default `5`): inline retries.
+- `VIDEO_MAX_ATTEMPTS` (default `3`): inline retries (legacy backends / `--job-json`); in Postgres mode the row's `max_attempts` applies.
+- `VIDEO_RETRY_BACKOFF_SECONDS` (default `5`): backoff base for both inline and queue retries.
 - `FFMPEG_TIMEOUT_SECONDS` (default `900`): per-command ffmpeg budget.
 - `VIDEO_WORK_DIR`: optional scratch directory.
 

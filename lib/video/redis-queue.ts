@@ -1,9 +1,10 @@
 import type { ProcessVideoJobPayload } from "@/lib/video/upload-session";
 import { logger } from "@/lib/logger";
+import { videoQueueBackend, wakeVideoWorkers } from "@/lib/queue/video-jobs";
 
 export type QueuePublishResult = {
   queued: boolean;
-  backend: "upstash" | "native" | "none";
+  backend: "postgres" | "upstash" | "native" | "none";
   messageId?: string;
   error?: string;
 };
@@ -13,6 +14,13 @@ let warnedAboutRedisUrl = false;
 export async function publishProcessVideoJob(
   payload: ProcessVideoJobPayload
 ): Promise<QueuePublishResult> {
+  // Coada implicită e tabela Postgres (lib/queue/video-jobs.ts): rândul 'queued'
+  // inserat de apelant ESTE înscrierea în coadă. Aici doar trezim workerii
+  // inactivi (best-effort — fără Redis, ei fac polling).
+  if (videoQueueBackend() === "postgres") {
+    await wakeVideoWorkers(payload.job_id);
+    return { queued: true, backend: "postgres" };
+  }
   const queueName = process.env.VIDEO_QUEUE_NAME || process.env.REDIS_STREAM_VIDEO_JOBS || "video:jobs";
   const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
   const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;

@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { checkR2, checkEmail } from "@/lib/health";
+import { releaseInfo, replicaInfo } from "@/lib/runtime/replica";
 
 const APP_VERSION = "0.1.0";
 
@@ -77,11 +78,7 @@ export async function GET() {
 
   const status = services.database === "error" ? "degraded" : "healthy";
 
-  const release = {
-    commit: process.env.BUILD_COMMIT || process.env.GIT_COMMIT || "unknown",
-    build_time: process.env.BUILD_TIME || "unknown",
-    deployed_at: process.env.DEPLOYED_AT || "unknown",
-  };
+  const release = releaseInfo();
 
   return NextResponse.json(
     {
@@ -89,6 +86,9 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       version: APP_VERSION,
       release,
+      // Replica care a răspuns (hostname-ul containerului) — cu N replici în
+      // spatele tunelului, arată care instanță servește și ce commit rulează.
+      replica: replicaInfo(),
       services,
       uptime: process.uptime(),
     },

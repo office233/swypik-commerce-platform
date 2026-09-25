@@ -109,6 +109,47 @@ def test_settings_parses_encoder_limits_and_retries():
     assert settings.retry_backoff_seconds == 0.5
 
 
+def test_settings_postgres_queue_defaults():
+    settings = Settings.from_env({})
+
+    assert settings.queue_backend == "postgres"
+    assert settings.lease_seconds == 120
+    assert settings.heartbeat_interval_seconds == 40
+    assert settings.poll_interval_seconds == 2
+    assert settings.wakeup_channel == "video:jobs:wakeup"
+    assert settings.retry_backoff_max_seconds == 900
+    assert str(settings.heartbeat_file).replace("\\", "/") == "/tmp/video-worker-heartbeat"
+    assert settings.shutdown_mode == "release"
+    assert settings.worker_id.count(":") >= 2
+
+
+def test_settings_postgres_queue_overrides():
+    settings = Settings.from_env(
+        {
+            "VIDEO_WORKER_ID": "host-a:1",
+            "VIDEO_LEASE_SECONDS": "12",
+            "VIDEO_POLL_INTERVAL_SECONDS": "0.5",
+            "VIDEO_RETRY_BACKOFF_MAX_SECONDS": "60",
+            "VIDEO_SHUTDOWN_MODE": "finish",
+            "VIDEO_QUEUE_BACKEND": "LIST",
+        }
+    )
+
+    assert settings.worker_id == "host-a:1"
+    assert settings.lease_seconds == 12
+    assert settings.heartbeat_interval_seconds == 5  # minim 5 s
+    assert settings.poll_interval_seconds == 0.5
+    assert settings.retry_backoff_max_seconds == 60
+    assert settings.shutdown_mode == "finish"
+    assert settings.queue_backend == "list"
+
+
+@pytest.mark.parametrize("key,value", [("VIDEO_QUEUE_BACKEND", "kafka"), ("VIDEO_SHUTDOWN_MODE", "later")])
+def test_settings_rejects_unknown_queue_options(key, value):
+    with pytest.raises(ValueError, match=key):
+        Settings.from_env({key: value})
+
+
 def test_settings_rejects_unknown_encoder():
     with pytest.raises(ValueError, match="VIDEO_ENCODER"):
         Settings.from_env({"VIDEO_ENCODER": "hevc_qsv"})

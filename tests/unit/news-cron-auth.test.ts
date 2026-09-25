@@ -26,6 +26,15 @@ vi.mock("@/lib/security/rate-limit", () => ({
   getClientIP: () => "127.0.0.1",
 }));
 
+// Advisory lock Postgres (exact-once între replici): implicit obținut.
+let lockFree = true;
+vi.mock("@/lib/cron/lock", () => ({
+  cronLockKey: (job: string) => `cron:${job}`,
+  withAdvisoryLock: async (_key: string, fn: () => Promise<unknown>) =>
+    lockFree ? { acquired: true, value: await fn() } : { acquired: false },
+  cronSkippedResponse: (job: string) => Response.json({ success: true, skipped: true, job, reason: "locked" }),
+}));
+
 import { POST } from "@/app/api/cron/news-pipeline/route";
 
 function req(headers: Record<string, string> = {}, body: unknown = {}): Request {
@@ -37,6 +46,7 @@ function req(headers: Record<string, string> = {}, body: unknown = {}): Request 
 }
 
 beforeEach(() => {
+  lockFree = true;
   adminOk = false;
   pipelineOut = DEFAULT_OUT;
   pipelineMock.mockClear();
@@ -104,5 +114,15 @@ describe("POST /api/cron/news-pipeline outcomes are visible to the cron-worker",
     const res = await cron();
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ ok: true, ingested: 0, duplicates: 9 });
+  });
+});
+
+describe("POST /api/cron/news-pipeline — exact-once între replici", () => {
+  it("o rulare concurentă (lock ținut de altă replică) → 200 skipped, fără apeluri Gemini", async () => {
+    lockFree = false;
+    const res = await POST(req({ "x-cron-secret": "test-cron-secret-value" }) as any);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ skipped: true, job: "news-pipeline" });
+    expect(pipelineMock).not.toHaveBeenCalled();
   });
 });

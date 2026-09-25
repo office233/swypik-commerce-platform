@@ -128,6 +128,14 @@ function evaluateBreaches(
   if ((d.length ?? 0) >= QUEUE_LENGTH_THRESHOLD) {
     breaches.push({ metric: "redis stream length", value: d.length, threshold: QUEUE_LENGTH_THRESHOLD });
   }
+  // Coada Postgres (implicită): lease expirat = worker mort în timpul unui job;
+  // dead-letter = reîncercări epuizate, cer intervenție (/api/admin/video-queue).
+  if ((d.expired_leases ?? 0) > 0) {
+    breaches.push({ metric: "expired leases (dead workers)", value: d.expired_leases, threshold: 1 });
+  }
+  if ((d.dead_letter ?? 0) >= QUEUE_FAILED_THRESHOLD) {
+    breaches.push({ metric: "dead-letter jobs", value: d.dead_letter, threshold: QUEUE_FAILED_THRESHOLD });
+  }
   return breaches;
 }
 

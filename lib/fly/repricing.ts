@@ -10,10 +10,17 @@
  */
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { broadcastCacheInvalidate, onCacheInvalidate } from "@/lib/cache/invalidation";
 
 // 5 min în producție; în dev fără cache ca să vezi efectul imediat.
 const CACHE_TTL_MS = process.env.NODE_ENV === "production" ? 5 * 60 * 1000 : 0;
 let cache: { map: Map<string, number>; loadedAt: number } | null = null;
+// Cu N replici web, scrierea (cron-ul fly-price-watch) invalidează cache-ul pe
+// TOATE replicile prin Redis (lib/cache/invalidation.ts), nu doar pe cea curentă.
+const CACHE_NAME = "fly:route-markup";
+const resetCache = () => {
+    cache = null;
+};
 
 export function minMarkupRonCents(): number {
     // Podea 12 lei: acoperă Stripe (~7,5 lei pe un bilet mediu) + TVA pe marjă
@@ -23,6 +30,7 @@ export function minMarkupRonCents(): number {
 }
 
 async function loadMap(): Promise<Map<string, number>> {
+    onCacheInvalidate(CACHE_NAME, resetCache);
     if (cache && Date.now() - cache.loadedAt < CACHE_TTL_MS) return cache.map;
     const map = new Map<string, number>();
     try {
@@ -59,7 +67,7 @@ export async function setRouteMarkup(
                        reason = EXCLUDED.reason, updated_at = NOW()`,
         [origin.toUpperCase(), destination.toUpperCase(), clamped, reason],
     );
-    cache = null; // invalidează cache-ul imediat
+    await broadcastCacheInvalidate(CACHE_NAME); // pe toate replicile
 }
 
 /** Șterge override-ul (revenim la marja standard). */
@@ -68,5 +76,5 @@ export async function clearRouteMarkup(origin: string, destination: string): Pro
         origin.toUpperCase(),
         destination.toUpperCase(),
     ]);
-    cache = null;
+    await broadcastCacheInvalidate(CACHE_NAME);
 }

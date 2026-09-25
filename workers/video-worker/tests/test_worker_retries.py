@@ -45,6 +45,35 @@ def test_transient_failure_exhausts_attempts(tmp_path):
     assert repository.failures == [("down", "storage_error")]
 
 
+def test_defer_transient_runs_one_attempt_and_leaves_retry_to_the_queue(tmp_path):
+    storage = FakeStorage(download_errors=[ConnectionError("r2 reset")])
+    sleeps = []
+
+    class ClaimingRepository(FakeRepository):
+        def try_claim(self, job):
+            raise AssertionError("postgres mode must not call try_claim")
+
+    repository = ClaimingRepository()
+    result = _processor(
+        tmp_path, storage=storage, repository=repository, sleeps=sleeps, defer_transient=True
+    ).process(_job())
+
+    assert result.ok is False
+    assert result.details == {"error_code": "storage_error", "transient": True, "attempts": 1}
+    assert len(storage.downloads) == 1 and sleeps == []
+    assert repository.failures == [] and repository.retries == []
+
+
+def test_defer_transient_still_fails_permanent_errors(tmp_path):
+    repository = FakeRepository()
+    prober = FakeProber(error=PermanentJobError("no_video_stream", "no video"))
+
+    result = _processor(tmp_path, repository=repository, prober=prober, defer_transient=True).process(_job())
+
+    assert result.ok is False and not result.details.get("transient")
+    assert repository.failures == [("no video", "no_video_stream")]
+
+
 def test_permanent_error_is_not_retried(tmp_path):
     repository = FakeRepository()
     sleeps = []
