@@ -17,7 +17,7 @@ vi.mock("@/lib/feature-flags", () => ({
 }));
 
 vi.mock("@/lib/social/session", () => ({
-  getOrCreateSocialUser: async () => (userId ? { userId } : null),
+  getAccountUserId: async () => userId,
 }));
 
 vi.mock("@/lib/security/rate-limit", () => ({

@@ -1,7 +1,10 @@
 import crypto from "crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { isSessionTokenFormat } from "@/lib/auth/session";
+import { rateLimit, getClientIPFromHeaders } from "@/lib/security/rate-limit";
+import { ABUSE_LIMITS } from "@/lib/security/abuse-limits";
 
 export const ANON_SESSION_COOKIE = "anon_session";
 
@@ -9,6 +12,8 @@ type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
 export type SocialUserSession = {
   userId: string;
+  /** true = shell anonim (fără cont real). */
+  isAnon?: boolean;
   anonSessionId?: string;
 };
 
@@ -223,14 +228,56 @@ export async function getAnonShellUserId(): Promise<string | null> {
   return (await isAnonUser(verified)) ? verified : null;
 }
 
+/** Eroare la crearea unei identități anonime (limită per IP / cookie imposibil de setat). */
+export class AnonSessionError extends Error {
+  constructor(
+    readonly status: 403 | 429,
+    readonly code: "anon_rate_limited" | "anon_cookie_unavailable",
+  ) {
+    super(code);
+    this.name = "AnonSessionError";
+  }
+}
+
+/** Mapează AnonSessionError la un răspuns HTTP; null pentru alte erori. */
+export function anonSessionErrorResponse(err: unknown): NextResponse | null {
+  if (!(err instanceof AnonSessionError)) return null;
+  return NextResponse.json({ error: err.code }, { status: err.status });
+}
+
+const ANON_COOKIE_OPTIONS = {
+  path: "/",
+  maxAge: 60 * 60 * 24 * 365,
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+};
+
+/**
+ * Identitatea socială curentă sau, dacă lipsește, un shell anonim nou.
+ *
+ * 2026-09-26 (audit abuz): un shell nou se creează DOAR dacă cookie-ul semnat
+ * poate fi scris pe răspuns (Route Handler / Server Action) — altfel fiecare
+ * cerere fără cookie crea un rând `users` nou (gaming, DM). În plus, emiterea
+ * e limitată per IP ca rotirea cookie-ului să nu umfle contoarele.
+ */
 export async function getOrCreateSocialUser(): Promise<SocialUserSession> {
   const cookieStore = await cookies();
   const existing = await resolveExistingSocialUser(cookieStore);
-  if (existing) return { userId: existing.userId };
+  if (existing) return { userId: existing.userId, isAnon: existing.isAnon };
+
+  const ip = getClientIPFromHeaders(await headers());
+  const mint = await rateLimit("anon_mint", ip, ABUSE_LIMITS.anonMint);
+  if (!mint.success) throw new AnonSessionError(429, "anon_rate_limited");
 
   const anonSessionId = crypto.randomUUID();
+  try {
+    cookieStore.set(ANON_SESSION_COOKIE, signAnonValue(anonSessionId), ANON_COOKIE_OPTIONS);
+  } catch {
+    throw new AnonSessionError(403, "anon_cookie_unavailable");
+  }
   const userId = await ensureUuidUser(anonSessionId, "anon");
-  return { userId, anonSessionId };
+  return { userId, anonSessionId, isAnon: true };
 }
 
 export function setAnonSessionCookie(response: Response, anonSessionId?: string): void {
@@ -241,10 +288,5 @@ export function setAnonSessionCookie(response: Response, anonSessionId?: string)
   };
 
   // Store signed value: <uuid>.<hmac> — prevents impersonation if cookie is leaked/guessed.
-  nextResponse.cookies?.set(ANON_SESSION_COOKIE, signAnonValue(anonSessionId), {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    httpOnly: true,
-    sameSite: "lax",
-  });
+  nextResponse.cookies?.set(ANON_SESSION_COOKIE, signAnonValue(anonSessionId), ANON_COOKIE_OPTIONS);
 }

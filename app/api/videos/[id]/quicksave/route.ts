@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
-import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { anonSessionErrorResponse, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { isVideoInteractable } from "@/lib/video/interactable";
 
@@ -158,6 +158,8 @@ export async function POST(
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (err) {
+    const anonErr = anonSessionErrorResponse(err);
+    if (anonErr) return anonErr;
     logger.error({ err: err }, "[Quicksave] error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

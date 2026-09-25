@@ -8,11 +8,13 @@ import { NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import {
   getOptionalSocialUserId,
+  anonSessionErrorResponse,
   getOrCreateSocialUser,
   setAnonSessionCookie,
 } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { ABUSE_LIMITS } from "@/lib/security/abuse-limits";
 import { UUID_RE } from "@/lib/validation/uuid";
 
 import { logger } from "@/lib/logger";
@@ -23,15 +25,18 @@ export const dynamic = "force-dynamic";
  * Mirrors the video like route (same `likes` table, `comment_id` column).
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getOrCreateSocialUser();
-    const userId = session.userId;
     const { id: commentId } = await params;
     if (!UUID_RE.test(commentId)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+    // Limită per IP ÎNAINTE de a crea identitatea: rotirea cookie-ului anonim nu mai umflă like-urile.
+    const ipRl = await rateLimit("comment_like_ip", getClientIP(request), ABUSE_LIMITS.commentLikePerIp);
+    if (!ipRl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
+    const session = await getOrCreateSocialUser();
+    const userId = session.userId;
     const rl = await rateLimit("commentLike", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
@@ -101,7 +106,8 @@ export async function POST(
           );
           const author = crows[0]?.user_id;
           const vid = crows[0]?.video_id;
-          if (author) {
+          // Fără notificări de la vizitatori anonimi („Guest" spam) sau către sine.
+          if (author && author !== userId && !session.isAnon) {
             void notifyUser(author, {
               type: "like",
               actorUserId: userId,
@@ -129,6 +135,8 @@ export async function POST(
       client.release();
     }
   } catch (error: any) {
+    const anonErr = anonSessionErrorResponse(error);
+    if (anonErr) return anonErr;
     logger.error({ err: error }, "[Comment Like API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

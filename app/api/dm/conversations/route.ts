@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import {
   getOptionalSocialUserId,
-  getOrCreateSocialUser,
-  setAnonSessionCookie,
+  getAccountUserId,
 } from "@/lib/social/session";
 import {
   getOrCreateDmConversation,
   listConversations,
 } from "@/lib/dm/repository";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { ABUSE_LIMITS } from "@/lib/security/abuse-limits";
 import { DmConversationCreateSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
@@ -39,14 +39,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (!isEnabled("dm") && !isEnabled("messenger")) return frozenResponse("dm");
   try {
-    const session = await getOrCreateSocialUser();
-    const userId = session.userId;
+    // Cont real obligatoriu: anonimii nu pot scrie DM / apela (audit messenger P0).
+    const userId = await getAccountUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const rl = await rateLimit("dmConversation", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    const ipRl = await rateLimit("dm_ip", getClientIP(request), ABUSE_LIMITS.dmPerIp);
+    if (!ipRl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const rawBody = await request.json().catch(() => ({}));
     const parsed = parseBody(DmConversationCreateSchema, rawBody);
@@ -63,7 +65,6 @@ export async function POST(request: Request) {
       conversation_id: conversationId,
       is_new: isNew,
     });
-    setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (err: unknown) {
     logger.error({ err: err }, "[DM] create conversation:");

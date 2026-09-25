@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getOrCreateSocialUser } from "@/lib/social/session";
+import { getAccountUserId } from "@/lib/social/session";
 import { getOrCreateDmConversation } from "@/lib/dm/repository";
 import { isEnabled } from "@/lib/feature-flags";
 
@@ -23,18 +23,19 @@ export default async function NewMessagePage({
     redirect("/inbox");
   }
 
-  const session = await getOrCreateSocialUser();
-  if (!session.userId) {
+  // Cont real obligatoriu (fără shell anonim creat la randare).
+  const userId = await getAccountUserId();
+  if (!userId) {
     redirect(`/auth?next=${encodeURIComponent(`/messages/new?user=${peerId}`)}`);
   }
 
-  if (peerId === session.userId) {
+  if (peerId === userId) {
     redirect("/inbox");
   }
 
   try {
     const { conversationId } = await getOrCreateDmConversation(
-      session.userId,
+      userId,
       peerId,
     );
     // Single messenger surface: [id] redirects into /messages with the

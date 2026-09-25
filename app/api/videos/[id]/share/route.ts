@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import crypto from "crypto";
-import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { anonSessionErrorResponse, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { ABUSE_LIMITS } from "@/lib/security/abuse-limits";
 import { VideoShareSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
@@ -15,12 +16,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getOrCreateSocialUser();
-    const userId = session.userId;
     const { id: videoId } = await params;
     if (!UUID_RE.test(videoId)) {
       return NextResponse.json({ error: "invalid_video_id" }, { status: 400 });
     }
+    // Limită per IP înainte de identitate: rotirea cookie-ului nu mai umflă share_count.
+    const ipRl = await rateLimit("share_ip", getClientIP(request), ABUSE_LIMITS.sharePerIp);
+    if (!ipRl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    const session = await getOrCreateSocialUser();
+    const userId = session.userId;
 
     const rl = await rateLimit("videoShare", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
@@ -77,6 +81,8 @@ export async function POST(
       client.release();
     }
   } catch (error: any) {
+    const anonErr = anonSessionErrorResponse(error);
+    if (anonErr) return anonErr;
     logger.error({ err: error }, "[Share API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

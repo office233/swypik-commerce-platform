@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import {
+  anonSessionErrorResponse,
+  getOptionalSocialUserId,
+  getOrCreateSocialUser,
+  setAnonSessionCookie,
+  type SocialUserSession,
+} from "@/lib/social/session";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
@@ -34,7 +40,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const { userId, anonSessionId } = await getOrCreateSocialUser();
+  let social: SocialUserSession;
+  try {
+    social = await getOrCreateSocialUser();
+  } catch (err) {
+    const anonErr = anonSessionErrorResponse(err);
+    if (anonErr) return anonErr;
+    throw err;
+  }
+  const { userId, anonSessionId } = social;
   const ua = body.userAgent || request.headers.get("user-agent") || null;
 
   await dbQuery(
@@ -69,7 +83,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "missing_endpoint" }, { status: 400 });
   }
 
-  const { userId } = await getOrCreateSocialUser();
+  // Dezabonarea nu are de ce să creeze o identitate nouă.
+  const userId = await getOptionalSocialUserId();
+  if (!userId) return NextResponse.json({ ok: true });
   await dbQuery(
     `UPDATE user_push_tokens SET revoked_at = now()
       WHERE endpoint = $1 AND user_id = $2 AND revoked_at IS NULL`,

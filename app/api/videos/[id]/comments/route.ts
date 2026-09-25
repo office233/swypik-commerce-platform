@@ -3,7 +3,12 @@ import { getDb, dbQuery } from "@/lib/db";
 import { attachReplies, chooseCommentStatus, mapCommentRow, validateCommentText } from "@/lib/social/comments";
 import { moderateText } from "@/lib/moderation/moderateText";
 import { recordStrike } from "@/lib/moderation/strikes";
-import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import {
+  getOptionalSocialUserId,
+  anonSessionErrorResponse,
+  getOrCreateSocialUser,
+  setAnonSessionCookie,
+} from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { VideoCommentPostSchema, parseBody } from "@/lib/validation/schemas";
@@ -343,7 +348,8 @@ export async function POST(
 
     await client.query("COMMIT");
 
-    if (status === "visible") {
+    // Comentariile anonime nu notifică („Guest" spam, audit profiles-social).
+    if (status === "visible" && !session.isAnon) {
       const newCommentId = inserted.rows[0].id;
       const bodyPreview = String(textResult.text || "").slice(0, 120);
       try {
@@ -393,6 +399,8 @@ export async function POST(
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (error) {
+    const anonErr = anonSessionErrorResponse(error);
+    if (anonErr) return anonErr;
     await client.query("ROLLBACK").catch(() => { });
     logger.error({ err: error }, "[Comments API] POST Error:");
     return NextResponse.json({ error: "failed_to_post_comment" }, { status: 500 });
@@ -419,8 +427,8 @@ export async function DELETE(
     if (!commentId) {
       return NextResponse.json({ error: "comment_id_required" }, { status: 400 });
     }
-    const session = await getOrCreateSocialUser();
-    if (!session.userId) {
+    const viewerId = await getOptionalSocialUserId();
+    if (!viewerId) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -436,7 +444,7 @@ export async function DELETE(
       await client.query("ROLLBACK");
       return NextResponse.json({ error: "comment_not_found" }, { status: 404 });
     }
-    if (comment.user_id !== session.userId) {
+    if (comment.user_id !== viewerId) {
       await client.query("ROLLBACK");
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }

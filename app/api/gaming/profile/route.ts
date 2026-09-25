@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getOrCreateSocialUser } from "@/lib/social/session";
+import { getAccountUserId } from "@/lib/social/session";
 import { dbQuery } from "@/lib/db";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { logger } from "@/lib/logger";
@@ -14,8 +14,8 @@ export async function GET() {
   if (!isEnabled("gaming")) return frozenResponse("gaming");
 
   try {
-    const session = await getOrCreateSocialUser();
-    const userId = session?.userId;
+    // XP doar pentru conturi reale; vizitatorii nu mai creează rânduri `users` (audit G2).
+    const userId = await getAccountUserId();
     if (!userId) {
       return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
     }

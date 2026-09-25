@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { TOPICS } from "@/lib/topics";
 import {
   getOptionalSocialUserId,
+  anonSessionErrorResponse,
   getOrCreateSocialUser,
   signAnonValue,
   ANON_SESSION_COOKIE,
@@ -70,6 +71,8 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: any) {
+    const anonErr = anonSessionErrorResponse(error);
+    if (anonErr) return anonErr;
     logger.error({ err: error }, "Interests POST error:");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
