@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { IngestEpisodeSchema, validateIngest } from "@/lib/movies/ingest";
 import { isLicenseExpired, licenseProblems, publicAttribution, territoriesCover, type SeriesLicense } from "@/lib/movies/license";
 import { isSeriesPublic } from "@/lib/movies/access";
+import { targetVisibility } from "@/lib/movies/visibility";
 
 const NOW = Date.parse("2026-09-26T12:00:00Z");
 const base = {
@@ -101,5 +102,13 @@ describe("movies/license — reguli de publicare", () => {
     expect(licenseProblems(owned, { territory: "RO", now: NOW })).toEqual([]);
     expect(publicAttribution(owned)).toBeNull();
     expect(publicAttribution(lic({}))).toEqual({ licenseType: "cc_by", text: "credit", sourceUrl: "https://x.test" });
+  });
+});
+
+describe("movies/visibility — licența expirată scoate și episoadele gratuite din feed", () => {
+  it("episod gratuit al unui titlu publicat → public; după expirarea licenței → private", () => {
+    const ep = { episode_number: 1, status: "published" as const };
+    expect(targetVisibility({ status: "published", free_episodes: 3, license_expires_at: null }, ep, NOW)).toBe("public");
+    expect(targetVisibility({ status: "published", free_episodes: 3, license_expires_at: "2026-01-01T00:00:00Z" }, ep, NOW)).toBe("private");
   });
 });
