@@ -76,8 +76,12 @@ export async function listArticles(opts: {
   // +1 headroom so callers can probe for a next page with limit = page + 1.
   params.push(Math.min(NEWS_MAX_PAGE_SIZE + 1, Math.max(1, Math.trunc(opts.limit ?? NEWS_PAGE_SIZE))));
   const limitIdx = params.length;
-  params.push(Math.max(0, Math.trunc(opts.offset ?? 0)));
-  const offsetIdx = params.length;
+  const offset = Math.max(0, Math.trunc(opts.offset ?? 0));
+  let offsetSql = "";
+  if (offset > 0) {
+    params.push(offset);
+    offsetSql = ` OFFSET ${params.length}`;
+  }
 
   const { rows } = await dbQuery<NewsArticleListItem>(
     `SELECT ${LIST_COLUMNS}
@@ -86,7 +90,7 @@ export async function listArticles(opts: {
        ${PRIMARY_SOURCE_JOIN}
       WHERE ${where}
       ORDER BY a.published_at DESC, a.id DESC
-      LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+      LIMIT ${limitIdx}${offsetSql}`,
     params,
   );
   return rows;

@@ -73,8 +73,8 @@ export async function listLiveStreams(status: LiveStatus, limit: number, offset 
        LEFT JOIN users u ON u.id::text = ls.creator_id
       WHERE ls.status = $1
       ORDER BY ${order}
-      LIMIT $2 OFFSET $3`,
-    [status, limit, offset],
+      LIMIT $2${offset > 0 ? " OFFSET $3" : ""}`,
+    offset > 0 ? [status, limit, offset] : [status, limit],
   );
   return rows;
 }
