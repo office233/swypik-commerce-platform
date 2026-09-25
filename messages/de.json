@@ -32,7 +32,12 @@
     "collections": "Sammlungen",
     "orders": "Bestellungen",
     "messages": "Nachrichten",
-    "notifications": "Benachrichtigungen"
+    "notifications": "Benachrichtigungen",
+    "discover": "Entdecken",
+    "create": "Erstellen",
+    "profile": "Profil",
+    "openMenu": "Menü öffnen",
+    "mainNavigation": "Hauptnavigation"
   },
   "auth": {
     "login": "Anmelden",
@@ -2766,7 +2771,10 @@
   "topBar": {
     "categories": "Kategorien",
     "cart": "Warenkorb",
-    "inbox": "Posteingang"
+    "inbox": "Posteingang",
+    "search": "Suchen",
+    "cartWithCount": "Warenkorb, {count} Artikel",
+    "inboxWithCount": "Posteingang, {count} ungelesen"
   },
   "causesPanel": {
     "verifPending": "Ausstehend",
@@ -5855,5 +5863,98 @@
     "selectShadeLabel": "Farbton wählen",
     "applyShadeToOrder": "{shade} auf Bestellung anwenden",
     "previewDisclaimer": "Eine aus den Produktdaten erzeugte Farb-/Finish-Vorschau — keine echte Video-/AR-Simulation und keine Garantie für das Ergebnis auf Ihrer Haut."
+  },
+  "ui": {
+    "close": "Schließen",
+    "back": "Zurück",
+    "retry": "Erneut versuchen",
+    "dismiss": "Benachrichtigung schließen",
+    "loading": "Wird geladen…",
+    "errorTitle": "Etwas ist schiefgelaufen",
+    "errorBody": "Dieser Inhalt konnte nicht geladen werden. Bitte versuche es erneut."
+  },
+  "appMenu": {
+    "title": "Menü",
+    "account": "Mein Konto",
+    "signIn": "Anmelden",
+    "signInHint": "Bestellungen, Sammlungen und Nachrichten an einem Ort",
+    "viewProfile": "Profil ansehen",
+    "searchPlaceholder": "Produkte, Creator, Orte suchen…",
+    "searchAria": "Swypik durchsuchen",
+    "modules": "Swypik-Module",
+    "allModules": "Alle Module",
+    "language": "Sprache",
+    "copyright": "© {year} Swypik Technology",
+    "groups": {
+      "shopping": "Einkaufen",
+      "mobility": "Mobilität und Lieferung",
+      "travel": "Reisen",
+      "entertainment": "Unterhaltung",
+      "community": "Community",
+      "business": "Business und Rollen",
+      "settings": "Einstellungen und Hilfe"
+    },
+    "items": {
+      "shop": "Shop",
+      "categories": "Kategorien",
+      "live": "Live-Shopping",
+      "orders": "Meine Bestellungen",
+      "cart": "Warenkorb",
+      "collections": "Gespeicherte Sammlungen",
+      "go": "Swypik Go",
+      "food": "Swypik Food",
+      "stays": "Swypik Stays",
+      "fly": "Swypik Fly",
+      "movies": "Movies",
+      "music": "Music",
+      "gaming": "Arcade",
+      "news": "Nachrichten",
+      "messages": "Nachrichten",
+      "notifications": "Benachrichtigungen",
+      "missions": "Missionen",
+      "seller": "Verkäuferportal",
+      "creator": "Creator Studio",
+      "courier": "Kurier und Fahrer",
+      "fleet": "Flottenpartner",
+      "admin": "Verwaltung",
+      "account": "Mein Konto",
+      "help": "Hilfe"
+    },
+    "become": {
+      "becomeSeller": "Verkäufer werden",
+      "becomeCreator": "Creator werden",
+      "becomeCourier": "Kurier oder Fahrer werden",
+      "becomeFleet": "Flottenpartner werden"
+    },
+    "theme": {
+      "label": "Design",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    },
+    "legal": {
+      "terms": "AGB",
+      "privacy": "Datenschutz",
+      "cookies": "Cookies",
+      "anpc": "ANPC",
+      "sal": "AS — Streitbeilegung",
+      "sol": "OS — EU-Plattform"
+    }
+  },
+  "errorPage": {
+    "title": "Etwas ist schiefgelaufen",
+    "body": "Versuche es jetzt erneut. Wenn das Problem bleibt, komm etwas später wieder.",
+    "code": "Fehlercode: {code}",
+    "retry": "Erneut versuchen",
+    "home": "Zur Startseite",
+    "notFoundTitle": "Seite nicht gefunden",
+    "notFoundBody": "Der Link ist möglicherweise abgelaufen oder der Inhalt wurde verschoben.",
+    "backToFeed": "Zurück zum Feed",
+    "searchProducts": "Produkte suchen"
+  },
+  "discover": {
+    "title": "Swypik entdecken",
+    "metaTitle": "Entdecken — Produkte, Angebote und Module | Swypik",
+    "metaDescription": "Suche Produkte, sieh dir die Angebote des Tages an und entdecke alle Swypik-Module: Shop, Essen, Fahrten, Unterkünfte und Unterhaltung."
   }
 }

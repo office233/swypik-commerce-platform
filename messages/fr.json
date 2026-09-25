@@ -32,7 +32,12 @@
     "collections": "Collections",
     "orders": "Commandes",
     "messages": "Messages",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "discover": "Découvrir",
+    "create": "Créer",
+    "profile": "Profil",
+    "openMenu": "Ouvrir le menu",
+    "mainNavigation": "Navigation principale"
   },
   "auth": {
     "login": "Se connecter",
@@ -2766,7 +2771,10 @@
   "topBar": {
     "categories": "Catégories",
     "cart": "Panier",
-    "inbox": "Boîte de réception"
+    "inbox": "Boîte de réception",
+    "search": "Rechercher",
+    "cartWithCount": "Panier, {count} articles",
+    "inboxWithCount": "Boîte de réception, {count} non lus"
   },
   "causesPanel": {
     "verifPending": "En attente",
@@ -5855,5 +5863,98 @@
     "selectShadeLabel": "Choisir une teinte",
     "applyShadeToOrder": "Appliquer {shade} à la commande",
     "previewDisclaimer": "Un aperçu de couleur/finition généré à partir des données du produit — pas une simulation vidéo/RA réelle et ne garantit pas le résultat sur votre peau."
+  },
+  "ui": {
+    "close": "Fermer",
+    "back": "Retour",
+    "retry": "Réessayer",
+    "dismiss": "Fermer la notification",
+    "loading": "Chargement…",
+    "errorTitle": "Un problème est survenu",
+    "errorBody": "Impossible de charger ce contenu. Veuillez réessayer."
+  },
+  "appMenu": {
+    "title": "Menu",
+    "account": "Mon compte",
+    "signIn": "Se connecter",
+    "signInHint": "Commandes, collections et messages au même endroit",
+    "viewProfile": "Voir le profil",
+    "searchPlaceholder": "Rechercher produits, créateurs, lieux…",
+    "searchAria": "Rechercher sur Swypik",
+    "modules": "Modules Swypik",
+    "allModules": "Tous les modules",
+    "language": "Langue",
+    "copyright": "© {year} Swypik Technology",
+    "groups": {
+      "shopping": "Shopping",
+      "mobility": "Mobilité et livraison",
+      "travel": "Voyages",
+      "entertainment": "Divertissement",
+      "community": "Communauté",
+      "business": "Business et rôles",
+      "settings": "Réglages et aide"
+    },
+    "items": {
+      "shop": "Boutique",
+      "categories": "Catégories",
+      "live": "Shopping en direct",
+      "orders": "Mes commandes",
+      "cart": "Panier",
+      "collections": "Collections enregistrées",
+      "go": "Swypik Go",
+      "food": "Swypik Food",
+      "stays": "Swypik Stays",
+      "fly": "Swypik Fly",
+      "movies": "Movies",
+      "music": "Music",
+      "gaming": "Arcade",
+      "news": "Actualités",
+      "messages": "Messages",
+      "notifications": "Notifications",
+      "missions": "Missions",
+      "seller": "Portail vendeurs",
+      "creator": "Creator Studio",
+      "courier": "Livreur et chauffeur",
+      "fleet": "Partenaire de flotte",
+      "admin": "Administration",
+      "account": "Mon compte",
+      "help": "Aide"
+    },
+    "become": {
+      "becomeSeller": "Devenir vendeur",
+      "becomeCreator": "Devenir créateur",
+      "becomeCourier": "Devenir livreur ou chauffeur",
+      "becomeFleet": "Devenir partenaire de flotte"
+    },
+    "theme": {
+      "label": "Thème",
+      "light": "Clair",
+      "dark": "Sombre",
+      "system": "Système"
+    },
+    "legal": {
+      "terms": "Conditions",
+      "privacy": "Confidentialité",
+      "cookies": "Cookies",
+      "anpc": "ANPC",
+      "sal": "REL — litiges",
+      "sol": "RLL — plateforme UE"
+    }
+  },
+  "errorPage": {
+    "title": "Un problème est survenu",
+    "body": "Réessayez maintenant. Si le problème persiste, revenez un peu plus tard.",
+    "code": "Code d'erreur : {code}",
+    "retry": "Réessayer",
+    "home": "Aller à l'accueil",
+    "notFoundTitle": "Page introuvable",
+    "notFoundBody": "Le lien a peut-être expiré ou le contenu a été déplacé.",
+    "backToFeed": "Retour au fil",
+    "searchProducts": "Rechercher des produits"
+  },
+  "discover": {
+    "title": "Découvrir Swypik",
+    "metaTitle": "Découvrir — produits, offres et modules | Swypik",
+    "metaDescription": "Recherchez des produits, consultez les offres du jour et explorez tous les modules Swypik : boutique, repas, courses, hébergements et divertissement."
   }
 }

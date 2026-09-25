@@ -1,23 +1,17 @@
-import ChatInterface from "@/components/ChatInterface";
-import { searchProducts } from "@/lib/db/product-queries";
-import { dbQuery } from "@/lib/db";
-import type { OfferPost } from "@/lib/types/feed";
-import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
-import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import ExploreClient from "./explore/ExploreClient";
+import ImmersiveSurface from "@/components/theme/ImmersiveSurface";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { APP_URL } from "@/lib/app-url";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
-// ISR: datele vin din unstable_cache (revalidate 120), pagina nu citește
-// cookies/headers → HTML pre-randat, regenerat în fundal la 120s.
-export const revalidate = 120;
-export const preferredRegion = "fra1";
+// Home = feed-ul video vertical (decizia owner-ului). Pagina e statică: shell-ul
+// e pre-randat, clipurile se încarcă pe client prin lib/feed/client/feed-source.ts
+// (sesiune + seen-set personal, deci nu are sens în HTML-ul cache-uit).
+export const revalidate = 3600;
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
   return {
@@ -45,155 +39,32 @@ export async function generateMetadata({
   };
 }
 
-type ProductSearchResult = Awaited<ReturnType<typeof searchProducts>>;
-
-const emptyResult: ProductSearchResult = { products: [], total: 0, offset: 0, limit: 0, hasMore: false };
-
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
-}
-
-const getHomeProductSections = unstable_cache(
-  async () => {
-    let trending = emptyResult;
-    let bestValue = emptyResult;
-    let topRated = emptyResult;
-    let offers: OfferPost[] = [];
-
-    try {
-      [trending, bestValue, topRated] = await Promise.all([
-        withTimeout(searchProducts({ mode: "trending", limit: 20 }), 8000, emptyResult),
-        withTimeout(searchProducts({ mode: "bestvalue", limit: 20 }), 8000, emptyResult),
-        withTimeout(searchProducts({ mode: "toprated", limit: 20 }), 8000, emptyResult),
-      ]);
-    } catch (error) {
-      console.error("[Home] Failed to load initial products:", error);
-    }
-
-    try {
-      const feedResult = await withTimeout(
-        searchProducts({ mode: "trending", sort: "popular", limit: 36 }),
-        8000,
-        emptyResult,
-      );
-      const candidates = feedResult.products
-        .filter((p: any) => {
-          const img = Array.isArray(p.images) ? p.images[0] : undefined;
-          return p.hasValidPrice && typeof img === "string" && /^https?:\/\//.test(img);
-        })
-        .slice(0, 12);
-      const ids = candidates.map((p: any) => String(p.id));
-      let statsMap = new Map<string, { like: number; share: number }>();
-      let sellerMap = new Map<string, { verified: boolean; name: string | null }>();
-      if (ids.length) {
-        const { rows } = await dbQuery(
-          `SELECT product_id, like_count, share_count FROM product_stats WHERE product_id = ANY($1::uuid[])`,
-          [ids],
-        ).catch(() => ({ rows: [] as any[] }));
-        statsMap = new Map(rows.map((r: any) => [String(r.product_id), { like: Number(r.like_count) || 0, share: Number(r.share_count) || 0 }]));
-        const { rows: sellerRows } = await dbQuery(
-          `SELECT p.id AS product_id, s.is_verified, s.name
-             FROM marketplace_products p JOIN sellers s ON s.id = p.seller_id
-            WHERE p.id = ANY($1::uuid[])`,
-          [ids],
-        ).catch(() => ({ rows: [] as any[] }));
-        sellerMap = new Map(sellerRows.map((r: any) => [String(r.product_id), { verified: Boolean(r.is_verified), name: r.name ?? null }]));
-      }
-      offers = candidates.map((p: any) => ({
-        id: String(p.id),
-        title: p.title,
-        image: p.images[0],
-        price: p.price,
-        oldPrice: p.oldPrice,
-        discountPercent: p.discountPercent ?? 0,
-        currency: "RON",
-        rating: p.rating ?? 0,
-        orders: p.orders ?? 0,
-        brand: sellerMap.get(String(p.id))?.name || p.vendor || p.category || "Swypik",
-        category: p.category || "General",
-        categoryId: p.categoryId,
-        shipFree: Boolean(p.shipFree),
-        likeCount: statsMap.get(String(p.id))?.like ?? 0,
-        shareCount: statsMap.get(String(p.id))?.share ?? 0,
-        viewerLiked: false,
-        sellerVerified: sellerMap.get(String(p.id))?.verified ?? false,
-      }));
-    } catch (error) {
-      console.error("[Home] Failed to load offers feed:", error);
-    }
-
-    return { trending, bestValue, topRated, offers };
-  },
-  ["home-product-sections-v2"],
-  { revalidate: 120 },
-);
-
-export default async function Home({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  // Layout-ul și pagina se randează în paralel: fără apelul ăsta aici,
-  // getTranslations() poate citi header-ul middleware-ului → pagină dinamică.
+  // Fără apelul ăsta getTranslations() poate citi header-ul middleware-ului → pagină dinamică.
   setRequestLocale(locale);
   const t = await getTranslations("page");
-  const { trending, bestValue, topRated, offers } = await getHomeProductSections();
-
-  const websiteJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Swypik",
-    url: `${APP_URL}/`,
-    description:
-      "AI-powered video marketplace. Shop trending, best-value and top-rated products through curated video.",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${APP_URL}/search?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
-  };
+  const t2 = await getTranslations("rootMeta");
 
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Swypik",
     url: `${APP_URL}/`,
-    logo: `${APP_URL}/icon.png`,
+    logo: `${APP_URL}/icon-512.png`,
+    description: t2("description"),
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }} />
       <header className="sr-only">
         <h1>{t("swypikCumparaPrinVideo")}</h1>
-        <p>
-
-          {t("descoperaProdusePopulareOferte")}
-        </p>
-        <h2>{t("popularProducts")}</h2>
-        <h2>{t("calitatepretExcelent")}</h2>
-        <h2>{t("topRated")}</h2>
+        <p>{t("descoperaProdusePopulareOferte")}</p>
       </header>
-      <ChatInterface
-        initialTrending={trending.products}
-        initialBestValue={bestValue.products}
-        initialTopRated={topRated.products}
-        initialOffers={offers}
-      />
+      <ImmersiveSurface fullscreen>
+        <ExploreClient initialVideos={[]} />
+      </ImmersiveSurface>
     </>
   );
 }

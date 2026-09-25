@@ -32,7 +32,12 @@
     "collections": "Coleções",
     "orders": "Pedidos",
     "messages": "Mensagens",
-    "notifications": "Notificações"
+    "notifications": "Notificações",
+    "discover": "Descobrir",
+    "create": "Criar",
+    "profile": "Perfil",
+    "openMenu": "Abrir menu",
+    "mainNavigation": "Navegação principal"
   },
   "auth": {
     "login": "Entrar",
@@ -2766,7 +2771,10 @@
   "topBar": {
     "categories": "Categorias",
     "cart": "Carrinho",
-    "inbox": "Caixa de entrada"
+    "inbox": "Caixa de entrada",
+    "search": "Pesquisar",
+    "cartWithCount": "Carrinho, {count} artigos",
+    "inboxWithCount": "Caixa de entrada, {count} por ler"
   },
   "causesPanel": {
     "verifPending": "Pendente",
@@ -5855,5 +5863,98 @@
     "selectShadeLabel": "Escolher um tom",
     "applyShadeToOrder": "Aplicar {shade} ao pedido",
     "previewDisclaimer": "Uma pré-visualização de cor/acabamento gerada a partir dos dados do produto — não é uma simulação real de vídeo/AR e não garante o resultado na sua pele."
+  },
+  "ui": {
+    "close": "Fechar",
+    "back": "Voltar",
+    "retry": "Tentar novamente",
+    "dismiss": "Fechar notificação",
+    "loading": "A carregar…",
+    "errorTitle": "Algo correu mal",
+    "errorBody": "Não foi possível carregar este conteúdo. Tente novamente."
+  },
+  "appMenu": {
+    "title": "Menu",
+    "account": "A minha conta",
+    "signIn": "Iniciar sessão",
+    "signInHint": "Encomendas, coleções e mensagens num só lugar",
+    "viewProfile": "Ver perfil",
+    "searchPlaceholder": "Pesquisar produtos, criadores, locais…",
+    "searchAria": "Pesquisar no Swypik",
+    "modules": "Módulos Swypik",
+    "allModules": "Todos os módulos",
+    "language": "Idioma",
+    "copyright": "© {year} Swypik Technology",
+    "groups": {
+      "shopping": "Compras",
+      "mobility": "Mobilidade e entregas",
+      "travel": "Viagens",
+      "entertainment": "Entretenimento",
+      "community": "Comunidade",
+      "business": "Negócio e funções",
+      "settings": "Definições e ajuda"
+    },
+    "items": {
+      "shop": "Loja",
+      "categories": "Categorias",
+      "live": "Compras em direto",
+      "orders": "As minhas encomendas",
+      "cart": "Carrinho",
+      "collections": "Coleções guardadas",
+      "go": "Swypik Go",
+      "food": "Swypik Food",
+      "stays": "Swypik Stays",
+      "fly": "Swypik Fly",
+      "movies": "Movies",
+      "music": "Music",
+      "gaming": "Arcade",
+      "news": "Notícias",
+      "messages": "Mensagens",
+      "notifications": "Notificações",
+      "missions": "Missões",
+      "seller": "Portal de vendedores",
+      "creator": "Creator Studio",
+      "courier": "Estafeta e motorista",
+      "fleet": "Parceiro de frota",
+      "admin": "Administração",
+      "account": "A minha conta",
+      "help": "Ajuda"
+    },
+    "become": {
+      "becomeSeller": "Torne-se vendedor",
+      "becomeCreator": "Torne-se criador",
+      "becomeCourier": "Torne-se estafeta ou motorista",
+      "becomeFleet": "Torne-se parceiro de frota"
+    },
+    "theme": {
+      "label": "Tema",
+      "light": "Claro",
+      "dark": "Escuro",
+      "system": "Sistema"
+    },
+    "legal": {
+      "terms": "Termos",
+      "privacy": "Privacidade",
+      "cookies": "Cookies",
+      "anpc": "ANPC",
+      "sal": "RAL — litígios",
+      "sol": "RLL — plataforma UE"
+    }
+  },
+  "errorPage": {
+    "title": "Algo correu mal",
+    "body": "Tente novamente agora. Se o problema continuar, volte um pouco mais tarde.",
+    "code": "Código de erro: {code}",
+    "retry": "Tentar novamente",
+    "home": "Ir para a página inicial",
+    "notFoundTitle": "Página não encontrada",
+    "notFoundBody": "O link pode ter expirado ou o conteúdo foi movido.",
+    "backToFeed": "Voltar ao feed",
+    "searchProducts": "Pesquisar produtos"
+  },
+  "discover": {
+    "title": "Descobrir o Swypik",
+    "metaTitle": "Descobrir — produtos, ofertas e módulos | Swypik",
+    "metaDescription": "Pesquise produtos, veja as ofertas do dia e explore todos os módulos Swypik: loja, comida, viagens, alojamento e entretenimento."
   }
 }

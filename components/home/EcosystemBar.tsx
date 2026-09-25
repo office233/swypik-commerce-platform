@@ -1,121 +1,55 @@
 "use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 import { isEnabledClient } from "@/lib/feature-flags-client";
+import { ecosystemModules } from "@/lib/nav/visibility";
+import { cn } from "@/lib/ui/cn";
 
-import { useRouter } from "next/navigation";
-import { Users, UtensilsCrossed, Car, BedDouble, Plane, HeartHandshake } from "lucide-react";
-import { haptic } from "@/lib/haptic";
+/**
+ * Modulele ecosistemului (din lib/nav/modules.ts, doar cele cu flag ON).
+ * `layout="strip"`: rând orizontal scrollabil; `layout="grid"`: grilă 4 coloane.
+ */
+export default function EcosystemBar({
+  layout = "strip",
+  className,
+}: {
+  layout?: "strip" | "grid";
+  className?: string;
+}) {
+  const t = useTranslations("appMenu");
+  const modules = ecosystemModules(isEnabledClient);
+  if (modules.length === 0) return null;
 
-export default function EcosystemBar() {
-    const router = useRouter();
-
-    const items = [
-        ...(isEnabledClient("squadBuy") ? [{
-            id: "squad",
-            title: "Squad Buy",
-            badge: "-30%",
-            badgeColor: "bg-fuchsia-600 text-white",
-            icon: Users,
-            iconBg: "from-fuchsia-500 to-violet-600",
-            onClick: () => {
-                haptic("tap");
-                router.push("/squad");
-            },
-        }] : []),
-        {
-            id: "food",
-            title: "Food",
-            badge: "Eats",
-            badgeColor: "bg-emerald-500 text-white",
-            icon: UtensilsCrossed,
-            iconBg: "from-emerald-500 to-teal-600",
-            onClick: () => {
-                haptic("tap");
-                router.push("/food");
-            },
-        },
-        {
-            id: "go",
-            title: "Go",
-            badge: "Ride",
-            badgeColor: "bg-amber-500 text-black",
-            icon: Car,
-            iconBg: "from-amber-400 to-yellow-500",
-            onClick: () => {
-                haptic("tap");
-                router.push("/go");
-            },
-        },
-        {
-            id: "stays",
-            title: "Stays",
-            badge: "Hotel",
-            badgeColor: "bg-teal-600 text-white",
-            icon: BedDouble,
-            iconBg: "from-teal-500 to-cyan-600",
-            onClick: () => {
-                haptic("tap");
-                router.push("/stays");
-            },
-        },
-        {
-            id: "fly",
-            title: "Fly",
-            badge: "Zbor",
-            badgeColor: "bg-sky-500 text-white",
-            icon: Plane,
-            iconBg: "from-sky-400 to-blue-600",
-            onClick: () => {
-                haptic("tap");
-                router.push("/fly");
-            },
-        },
-        {
-            id: "cares",
-            title: "Cares",
-            badge: "0% Fee",
-            badgeColor: "bg-pink-600 text-white",
-            icon: HeartHandshake,
-            iconBg: "from-pink-500 to-rose-600",
-            onClick: () => {
-                haptic("tap");
-                router.push("/cares");
-            },
-        },
-    ];
-
-    return (
-        <div className="w-full py-2.5 overflow-x-auto no-scrollbar [scrollbar-width:none]">
-            <div className="flex items-center gap-3 px-3 min-w-max">
-                {items.map((it) => {
-                    const Icon = it.icon;
-                    return (
-                        <button
-                            key={it.id}
-                            type="button"
-                            onClick={it.onClick}
-                            className="group flex flex-col items-center gap-1.5 transition active:scale-95 text-left focus:outline-none"
-                        >
-                            <div className="relative">
-                                <div
-                                    className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${it.iconBg} text-white shadow-md transition-transform group-hover:scale-105`}
-                                >
-                                    <Icon size={22} className="drop-shadow-sm" />
-                                </div>
-                                {it.badge && (
-                                    <span
-                                        className={`absolute -top-1.5 -right-2 rounded-full px-1.5 py-0.2 text-[9px] font-black uppercase tracking-tight shadow-sm ${it.badgeColor}`}
-                                    >
-                                        {it.badge}
-                                    </span>
-                                )}
-                            </div>
-                            <span className="text-[11px] font-extrabold text-[#0D0D0D] dark:text-white/90">
-                                {it.title}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
-    );
+  return (
+    <nav aria-label={t("modules")} className={className}>
+      <ul
+        className={cn(
+          layout === "grid"
+            ? "grid grid-cols-4 gap-x-2 gap-y-4"
+            : "no-scrollbar flex gap-3 overflow-x-auto px-gutter [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]",
+        )}
+      >
+        {modules.map((m) => {
+          const Icon = m.icon;
+          return (
+            <li key={m.id} className={layout === "strip" ? "shrink-0" : undefined}>
+              <Link
+                href={m.route}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 rounded-control py-1 text-center focus-visible:outline-none focus-visible:ring-2",
+                  layout === "grid" ? "w-full" : "w-[4.5rem]",
+                )}
+              >
+                <span className="flex h-12 w-12 items-center justify-center rounded-card bg-brand-soft text-brand-soft-fg">
+                  <Icon className="h-6 w-6" aria-hidden />
+                </span>
+                <span className="line-clamp-2 text-xs font-medium leading-tight text-fg">{t(`items.${m.labelKey}`)}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
 }

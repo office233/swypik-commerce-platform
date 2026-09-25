@@ -20,6 +20,10 @@ import PushPrompt from "@/components/notifications/PushPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import ServiceWorkerRegistrar from "@/components/pwa/ServiceWorkerRegistrar";
 import CookieBanner from "@/components/CookieBanner";
+import ThemeProvider from "@/components/theme/ThemeProvider";
+import AppMenuProvider from "@/components/nav/AppMenuProvider";
+import { ToastProvider } from "@/components/ui/Toast";
+import { interFont } from "@/components/layout/fonts";
 import { APP_URL } from "@/lib/app-url";
 
 export default async function AppShell({
@@ -35,7 +39,7 @@ export default async function AppShell({
 }) {
   const t = await getTranslations({ locale, namespace: "rootMeta" });
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} className={interFont.variable} suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -94,30 +98,36 @@ export default async function AppShell({
           }}
         />
       </head>
-      <body className="antialiased" suppressHydrationWarning>
+      <body className="bg-canvas font-sans text-fg antialiased" suppressHydrationWarning>
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-[#0D0D0D] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-fg focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-fg-inverse focus:shadow-elev-3 focus:outline-none focus:ring-2"
         >
           {t("skipToContent")}
         </a>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <CurrencyProvider initial={currency}>
-            <FxRatesLoader />
-            <EmailVerifyBanner />
-            <OnboardingGate />
-            <MusicPlayerProvider>
-              <div id="main-content" style={{ minHeight: '100dvh' }}>
-                {children}
-              </div>
-              <MiniPlayer />
-              <BottomNav />
-            </MusicPlayerProvider>
-            <PushPrompt />
-            <InstallPrompt />
-            <CookieBanner />
-            <ServiceWorkerRegistrar />
-          </CurrencyProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <AppMenuProvider>
+                <CurrencyProvider initial={currency}>
+                  <FxRatesLoader />
+                  <EmailVerifyBanner />
+                  <OnboardingGate />
+                  <MusicPlayerProvider>
+                    {/* padding-bottom pentru BottomNav: CSS (--bottom-inset), vezi globals.css */}
+                    <div id="main-content">{children}</div>
+                    <MiniPlayer />
+                    <BottomNav />
+                  </MusicPlayerProvider>
+                  <PushPrompt />
+                  {/* Un singur overlay odată: InstallPrompt apare doar după alegerea cookie și după implicare. */}
+                  <InstallPrompt />
+                  <CookieBanner />
+                  <ServiceWorkerRegistrar />
+                </CurrencyProvider>
+              </AppMenuProvider>
+            </ToastProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

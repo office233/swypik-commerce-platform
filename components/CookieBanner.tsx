@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
+import { Button } from "@/components/ui/Button";
+import { Switch } from "@/components/ui/Switch";
 
 type Consent = {
   essential: true;
@@ -92,83 +94,45 @@ export default function CookieBanner() {
       role="dialog"
       aria-modal="false"
       aria-labelledby="cookie-banner-title"
-      className="fixed inset-x-0 bottom-[76px] md:bottom-0 z-40 px-3 pb-3 pointer-events-none"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 12px), 12px)" }}
+      className="pointer-events-none fixed inset-x-0 z-overlay px-3"
+      style={{ bottom: "calc(var(--bottom-inset) + 8px)" }}
     >
-      <div className="pointer-events-auto mx-auto w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950/95 backdrop-blur p-4 shadow-2xl text-sm text-neutral-100">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <h2 id="cookie-banner-title" className="font-semibold text-base mb-1">
-              {t("title")}
-            </h2>
-            <p className="text-neutral-300 leading-snug">
-              {t("description")}
-              {isEU ? ` ${t("gdprNote")}` : ""}
-            </p>
+      <div className="pointer-events-auto mx-auto w-full max-w-2xl animate-scale-in rounded-card border border-subtle bg-elevated p-4 text-sm text-fg shadow-elev-3">
+        <h2 id="cookie-banner-title" className="mb-1 text-base font-semibold">
+          {t("title")}
+        </h2>
+        <p className="leading-snug text-muted">
+          {t("description")}
+          {isEU ? ` ${t("gdprNote")}` : ""}
+        </p>
 
-            {showDetails && (
-              <div className="mt-3 space-y-2">
-                <ToggleRow
-                  label={t("essential")}
-                  description={t("essentialDesc")}
-                  checked
-                  locked
-                />
-                <ToggleRow
-                  label={t("analytics")}
-                  description={t("analyticsDesc")}
-                  checked={analytics}
-                  onChange={setAnalytics}
-                />
-                <ToggleRow
-                  label={t("marketing")}
-                  description={t("marketingDesc")}
-                  checked={marketing}
-                  onChange={setMarketing}
-                />
-              </div>
-            )}
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={acceptAll}
-                className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium"
-              >
-                {t("acceptAll")}
-              </button>
-              <button
-                type="button"
-                onClick={onlyEssential}
-                className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-medium"
-              >
-                {t("essentialOnly")}
-              </button>
-              {showDetails ? (
-                <button
-                  type="button"
-                  onClick={saveCustom}
-                  className="px-3 py-1.5 rounded-lg border border-neutral-700 hover:bg-neutral-800 text-neutral-100"
-                >
-                  {t("savePreferences")}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowDetails(true)}
-                  className="px-3 py-1.5 rounded-lg border border-neutral-700 hover:bg-neutral-800 text-neutral-100"
-                >
-                  {t("detailedSettings")}
-                </button>
-              )}
-              <Link
-                href="/legal/cookies"
-                className="px-3 py-1.5 text-neutral-400 hover:text-neutral-200 underline-offset-2 hover:underline"
-              >
-                {t("learnMore")}
-              </Link>
-            </div>
+        {showDetails && (
+          <div className="mt-3 space-y-2">
+            <ToggleRow label={t("essential")} description={t("essentialDesc")} checked locked />
+            <ToggleRow label={t("analytics")} description={t("analyticsDesc")} checked={analytics} onChange={setAnalytics} />
+            <ToggleRow label={t("marketing")} description={t("marketingDesc")} checked={marketing} onChange={setMarketing} />
           </div>
+        )}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={acceptAll}>
+            {t("acceptAll")}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={onlyEssential}>
+            {t("essentialOnly")}
+          </Button>
+          {showDetails ? (
+            <Button size="sm" variant="ghost" onClick={saveCustom}>
+              {t("savePreferences")}
+            </Button>
+          ) : (
+            <Button size="sm" variant="ghost" onClick={() => setShowDetails(true)}>
+              {t("detailedSettings")}
+            </Button>
+          )}
+          <Link href="/legal/cookies" className="inline-flex min-h-9 items-center px-2 text-muted underline-offset-2 hover:text-fg hover:underline">
+            {t("learnMore")}
+          </Link>
         </div>
       </div>
     </div>
@@ -188,20 +152,16 @@ function ToggleRow({
   onChange?: (v: boolean) => void;
   locked?: boolean;
 }) {
+  const id = useId();
   return (
-    <label className="flex items-start gap-3 p-2 rounded-lg bg-neutral-900/60">
-      <input
-        type="checkbox"
-        className="mt-1 h-4 w-4 accent-violet-600"
-        checked={checked}
-        disabled={locked}
-        onChange={(e) => onChange?.(e.target.checked)}
-        aria-label={label}
-      />
+    <div className="flex items-start gap-3 rounded-control bg-surface-2 p-3">
       <span className="flex-1">
-        <span className="block font-medium">{label}</span>
-        <span className="block text-xs text-neutral-400">{description}</span>
+        <label htmlFor={id} className="block font-medium">
+          {label}
+        </label>
+        <span className="block text-xs text-muted">{description}</span>
       </span>
-    </label>
+      <Switch id={id} checked={checked} disabled={locked} onCheckedChange={(v) => onChange?.(v)} />
+    </div>
   );
 }

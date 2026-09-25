@@ -32,7 +32,12 @@
     "collections": "Colecciones",
     "orders": "Pedidos",
     "messages": "Mensajes",
-    "notifications": "Notificaciones"
+    "notifications": "Notificaciones",
+    "discover": "Descubrir",
+    "create": "Crear",
+    "profile": "Perfil",
+    "openMenu": "Abrir menú",
+    "mainNavigation": "Navegación principal"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -2766,7 +2771,10 @@
   "topBar": {
     "categories": "Categorías",
     "cart": "Cesta",
-    "inbox": "Bandeja de entrada"
+    "inbox": "Bandeja de entrada",
+    "search": "Buscar",
+    "cartWithCount": "Carrito, {count} artículos",
+    "inboxWithCount": "Bandeja, {count} sin leer"
   },
   "causesPanel": {
     "verifPending": "Pendiente",
@@ -5855,5 +5863,98 @@
     "selectShadeLabel": "Elige un tono",
     "applyShadeToOrder": "Aplicar {shade} al pedido",
     "previewDisclaimer": "Una vista previa de color/acabado generada a partir de los datos del producto — no es una simulación real de video/AR y no garantiza el resultado en tu piel."
+  },
+  "ui": {
+    "close": "Cerrar",
+    "back": "Atrás",
+    "retry": "Reintentar",
+    "dismiss": "Cerrar notificación",
+    "loading": "Cargando…",
+    "errorTitle": "Algo salió mal",
+    "errorBody": "No pudimos cargar este contenido. Inténtalo de nuevo."
+  },
+  "appMenu": {
+    "title": "Menú",
+    "account": "Mi cuenta",
+    "signIn": "Iniciar sesión",
+    "signInHint": "Pedidos, colecciones y mensajes en un solo lugar",
+    "viewProfile": "Ver perfil",
+    "searchPlaceholder": "Busca productos, creadores, lugares…",
+    "searchAria": "Buscar en Swypik",
+    "modules": "Módulos de Swypik",
+    "allModules": "Todos los módulos",
+    "language": "Idioma",
+    "copyright": "© {year} Swypik Technology",
+    "groups": {
+      "shopping": "Compras",
+      "mobility": "Movilidad y entrega",
+      "travel": "Viajes",
+      "entertainment": "Entretenimiento",
+      "community": "Comunidad",
+      "business": "Negocio y roles",
+      "settings": "Ajustes y ayuda"
+    },
+    "items": {
+      "shop": "Tienda",
+      "categories": "Categorías",
+      "live": "Compras en directo",
+      "orders": "Mis pedidos",
+      "cart": "Carrito",
+      "collections": "Colecciones guardadas",
+      "go": "Swypik Go",
+      "food": "Swypik Food",
+      "stays": "Swypik Stays",
+      "fly": "Swypik Fly",
+      "movies": "Movies",
+      "music": "Music",
+      "gaming": "Arcade",
+      "news": "Noticias",
+      "messages": "Mensajes",
+      "notifications": "Notificaciones",
+      "missions": "Misiones",
+      "seller": "Portal de vendedores",
+      "creator": "Creator Studio",
+      "courier": "Repartidor y conductor",
+      "fleet": "Socio de flota",
+      "admin": "Administración",
+      "account": "Mi cuenta",
+      "help": "Ayuda"
+    },
+    "become": {
+      "becomeSeller": "Hazte vendedor",
+      "becomeCreator": "Hazte creador",
+      "becomeCourier": "Hazte repartidor o conductor",
+      "becomeFleet": "Hazte socio de flota"
+    },
+    "theme": {
+      "label": "Tema",
+      "light": "Claro",
+      "dark": "Oscuro",
+      "system": "Sistema"
+    },
+    "legal": {
+      "terms": "Términos",
+      "privacy": "Privacidad",
+      "cookies": "Cookies",
+      "anpc": "ANPC",
+      "sal": "RAL — litigios",
+      "sol": "RLL — plataforma UE"
+    }
+  },
+  "errorPage": {
+    "title": "Algo salió mal",
+    "body": "Inténtalo de nuevo ahora. Si el problema continúa, vuelve un poco más tarde.",
+    "code": "Código de error: {code}",
+    "retry": "Reintentar",
+    "home": "Ir a la página principal",
+    "notFoundTitle": "Página no encontrada",
+    "notFoundBody": "El enlace puede haber caducado o el contenido se ha movido.",
+    "backToFeed": "Volver al feed",
+    "searchProducts": "Buscar productos"
+  },
+  "discover": {
+    "title": "Descubre Swypik",
+    "metaTitle": "Descubrir — productos, ofertas y módulos | Swypik",
+    "metaDescription": "Busca productos, mira las ofertas del día y explora todos los módulos de Swypik: tienda, comida, viajes en coche, alojamiento y entretenimiento."
   }
 }

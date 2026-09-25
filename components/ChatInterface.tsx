@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bot, Bookmark, ClipboardList, Compass, Flame, Menu, Package, Send, Shield, ShoppingCart, Sparkles, Star, Upload, User, X, Zap } from "lucide-react";
+import { Bot, Package, Search, Send, ShoppingCart, SlidersHorizontal, Star, X } from "lucide-react";
 import ProductFeed from "./ProductFeed";
 import OffersFeed from "./home/OffersFeed";
 import CategorySidebar, { type CategoryNode } from "./home/CategorySidebar";
+import EcosystemBar from "./home/EcosystemBar";
+import AppMenuButton from "./nav/AppMenuButton";
+import { IconButton } from "./ui/IconButton";
 import type { OfferPost } from "@/lib/types/feed";
 import { THEME, commerceBadgeClass } from "@/lib/ui/theme";
 import { Link } from "@/lib/i18n/navigation";
@@ -118,7 +121,6 @@ export default function ChatInterface({
   const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
   const [homeCategory, setHomeCategory] = useState<string | null>(null);
   const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const feedSeed = useRef(Math.floor(Math.random() * 100000));
   const dealsLoadingRef = useRef(false);
@@ -315,61 +317,7 @@ export default function ChatInterface({
 
   const welcomeMessage: ChatMessage = { id: "welcome", role: "assistant", content: t("welcomeContent"), timestamp: new Date() };
 
-  return <main className={`min-h-screen ${THEME.classes.appBg} dark:bg-black dark:text-white`}><div className={`relative mx-auto min-h-screen w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl app-container ${THEME.classes.pageBg} dark:bg-black`}>{activeTab !== "feed" && <header className="sticky top-0 z-30 border-b border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 px-4 py-3 backdrop-blur-xl safe-top"><div className="flex items-center justify-between h-12"><div className="flex items-center gap-1"><button type="button" onClick={() => setCategoryDrawerOpen(true)} className="grid h-11 w-11 place-items-center rounded-full transition-transform hover:bg-[#F0F0F2] dark:hover:bg-[#1F1F23] active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("categorii")}><Menu size={22} className="text-[#0D0D0D] dark:text-white" /></button><button type="button" onClick={() => { setActiveTab("home"); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-2" aria-label={t("inapoiAcasa")}><span className="text-2xl font-black text-[#0D0D0D] dark:text-white tracking-tight">Swypik</span></button></div><div className="flex items-center gap-2"><a href="/cart" aria-label={t("cosulMeu")} className="relative grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] dark:bg-white text-white dark:text-black active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><ShoppingCart size={18} />{cartCount > 0 && <span className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-[#7C3AED] px-1 text-[9px] font-black text-white leading-none ring-2 ring-[#0D0D0D] dark:ring-white">{cartCount > 99 ? "99+" : cartCount}</span>}</a></div></div></header>}
-    {/* Slide-out Menu */}
-    {showMenu && <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("meniuNavigareAria")} onClick={() => setShowMenu(false)}>
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-      <div className="absolute right-0 top-0 h-full w-72 bg-white dark:bg-[#111113] shadow-2xl" onClick={e => e.stopPropagation()} style={{ animation: 'slideInRight 0.2s ease-out' }}>
-        <div className="p-5 border-b border-[#E5E5E5] dark:border-[#1F1F1F] flex items-center justify-between">
-          <h2 className="text-lg font-black text-[#0D0D0D] dark:text-white">{t("meniu")}</h2>
-          <button onClick={() => setShowMenu(false)} className="rounded-lg p-1.5 hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition" aria-label={t("inchide")}><X size={20} /></button>
-        </div>
-        <div className="p-3 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 120px)' }}>
-          <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">{t("descopera")}</p>
-          <Link href="/explore" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Compass size={18} className="text-[#0D0D0D] dark:text-white" /> {t("feedLabel")}
-          </Link>
-          <Link href="/onboarding" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Sparkles size={18} className="text-[#8B5CF6]" /> {t("alegeInterese")}
-          </Link>
-          <Link href="/collections" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Bookmark size={18} className="text-[#EC4899]" />  {t("colectiileMele")}
-          </Link>
-          <div className="my-2 border-t border-[#E5E5E5] dark:border-[#1F1F1F]" />
-          <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">{t("cont")}</p>
-          <Link href="/account" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <User size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" />  {t("contulMeu")}
-          </Link>
-          <Link href="/account" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <ClipboardList size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" /> {t("comenzileMele")}
-          </Link>
-          <button onClick={() => { setActiveTab("cart"); setShowMenu(false); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <ShoppingCart size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" />  {t("cosulMeu2")} {cartCount > 0 && <span className="ml-auto rounded-full bg-[#0D0D0D] dark:bg-white px-2 py-0.5 text-[10px] font-bold text-white dark:text-black">{cartCount}</span>}
-          </button>
-          <div className="my-2 border-t border-[#E5E5E5] dark:border-[#1F1F1F]" />
-          <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">{t("creator")}</p>
-          <Link href="/creator" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Zap size={18} className="text-[#0D0D0D] dark:text-white" /> {t("dashboardCreator")}
-          </Link>
-          <Link href="/upload" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Upload size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" />  {t("incarcaClip")}
-          </Link>
-          <Link href="/creator/videos" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Flame size={18} className="text-[#EF4444]" /> {t("clipurileMele")}
-          </Link>
-          <Link href="/creator/earnings" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Star size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" />  {t("castiguri")}
-          </Link>
-          <div className="my-2 border-t border-[#E5E5E5] dark:border-[#1F1F1F]" />
-          <Link href="/admin" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#A1A1AA] hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Shield size={18} /> {t("admin")}
-          </Link>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-[#E5E5E5] dark:border-[#1F1F1F]">
-          <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest text-center">{t("copyrightLine")}</p>
-        </div>
-      </div>
-    </div>}
+  return <main className={`min-h-screen ${THEME.classes.appBg} dark:bg-black dark:text-white`}><div className={`relative mx-auto min-h-screen w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl app-container ${THEME.classes.pageBg} dark:bg-black`}>{activeTab !== "feed" && <header className="sticky top-0 z-30 border-b border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 px-4 py-3 backdrop-blur-xl safe-top"><div className="flex items-center justify-between h-12"><div className="flex items-center gap-1"><AppMenuButton /><button type="button" onClick={() => { setActiveTab("home"); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-2" aria-label={t("inapoiAcasa")}><span className="text-2xl font-black text-[#0D0D0D] dark:text-white tracking-tight">Swypik</span></button></div><div className="flex items-center gap-1"><IconButton label={t("categorii")} onClick={() => setCategoryDrawerOpen(true)}><SlidersHorizontal aria-hidden /></IconButton><IconButton asChild label={t("cauta")}><Link href="/search"><Search aria-hidden /></Link></IconButton><a href="/cart" aria-label={t("cosulMeu")} className="relative grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] dark:bg-white text-white dark:text-black active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><ShoppingCart size={18} />{cartCount > 0 && <span className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-[#7C3AED] px-1 text-[9px] font-black text-white leading-none ring-2 ring-[#0D0D0D] dark:ring-white">{cartCount > 99 ? "99+" : cartCount}</span>}</a></div></div></header>}
     <section className={activeTab === "feed" ? "h-[100dvh]" : "min-h-[calc(100dvh-132px)] pb-20"} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {activeTab === "home" && (
         <div className="px-2 pt-2 sm:px-4 sm:pt-4">
@@ -381,6 +329,7 @@ export default function ChatInterface({
             open={categoryDrawerOpen}
             onOpenChange={setCategoryDrawerOpen}
           />
+          <EcosystemBar className="-mx-2 mb-3 sm:-mx-4" />
           <div className="mx-auto min-w-0 max-w-xl">
             <OffersFeed
               initialItems={initialOffers}

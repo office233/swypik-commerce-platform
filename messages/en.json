@@ -32,7 +32,12 @@
     "collections": "Collections",
     "orders": "Orders",
     "messages": "Messages",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "discover": "Discover",
+    "create": "Create",
+    "profile": "Profile",
+    "openMenu": "Open menu",
+    "mainNavigation": "Main navigation"
   },
   "go": {
     "title": "Swypik Go",
@@ -2766,7 +2771,10 @@
   "topBar": {
     "categories": "Categories",
     "cart": "Cart",
-    "inbox": "Inbox"
+    "inbox": "Inbox",
+    "search": "Search",
+    "cartWithCount": "Cart, {count} items",
+    "inboxWithCount": "Inbox, {count} unread"
   },
   "causesPanel": {
     "verifPending": "Pending",
@@ -5855,5 +5863,98 @@
     "selectShadeLabel": "Select a shade",
     "applyShadeToOrder": "Apply {shade} to order",
     "previewDisclaimer": "A color/finish preview generated from the product data — not a real video/AR simulation, and it doesn't guarantee the result on your skin."
+  },
+  "ui": {
+    "close": "Close",
+    "back": "Back",
+    "retry": "Try again",
+    "dismiss": "Dismiss notification",
+    "loading": "Loading…",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We couldn't load this content. Please try again."
+  },
+  "appMenu": {
+    "title": "Menu",
+    "account": "My account",
+    "signIn": "Sign in",
+    "signInHint": "Orders, collections and messages in one place",
+    "viewProfile": "View profile",
+    "searchPlaceholder": "Search products, creators, places…",
+    "searchAria": "Search Swypik",
+    "modules": "Swypik modules",
+    "allModules": "All modules",
+    "language": "Language",
+    "copyright": "© {year} Swypik Technology",
+    "groups": {
+      "shopping": "Shopping",
+      "mobility": "Mobility & delivery",
+      "travel": "Travel",
+      "entertainment": "Entertainment",
+      "community": "Community",
+      "business": "Business & roles",
+      "settings": "Settings & help"
+    },
+    "items": {
+      "shop": "Shop",
+      "categories": "Categories",
+      "live": "Live shopping",
+      "orders": "My orders",
+      "cart": "Cart",
+      "collections": "Saved collections",
+      "go": "Swypik Go",
+      "food": "Swypik Food",
+      "stays": "Swypik Stays",
+      "fly": "Swypik Fly",
+      "movies": "Movies",
+      "music": "Music",
+      "gaming": "Arcade",
+      "news": "News",
+      "messages": "Messages",
+      "notifications": "Notifications",
+      "missions": "Missions",
+      "seller": "Seller portal",
+      "creator": "Creator Studio",
+      "courier": "Courier & driver",
+      "fleet": "Fleet partner",
+      "admin": "Admin",
+      "account": "My account",
+      "help": "Help"
+    },
+    "become": {
+      "becomeSeller": "Become a seller",
+      "becomeCreator": "Become a creator",
+      "becomeCourier": "Become a courier or driver",
+      "becomeFleet": "Become a fleet partner"
+    },
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "legal": {
+      "terms": "Terms",
+      "privacy": "Privacy",
+      "cookies": "Cookies",
+      "anpc": "ANPC",
+      "sal": "ADR — disputes",
+      "sol": "ODR — EU platform"
+    }
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "body": "Try again now. If the problem persists, come back a little later.",
+    "code": "Error code: {code}",
+    "retry": "Try again",
+    "home": "Go to the home page",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The link may have expired or the content has moved.",
+    "backToFeed": "Back to the feed",
+    "searchProducts": "Search products"
+  },
+  "discover": {
+    "title": "Discover Swypik",
+    "metaTitle": "Discover — products, deals and modules | Swypik",
+    "metaDescription": "Search products, see today's deals and explore every Swypik module: shop, food, rides, stays and entertainment."
   }
 }

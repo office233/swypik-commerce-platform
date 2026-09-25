@@ -1,27 +1,38 @@
 import Link from "next/link";
+import { SearchX } from "lucide-react";
+import ro from "@/messages/ro.json";
+import { interFont } from "@/components/layout/fonts";
 
 // 404 pentru URL-uri care nu intră nici în [locale], nici în (site). Root
 // layout-ul e pass-through, deci pagina își randează singură <html>/<body>.
+// Nu există provider next-intl aici (și nici locale în URL) → textele vin
+// direct din limba implicită (ro); tokenurile vin din globals.css.
+const t = ro.errorPage;
 
 export default function NotFound() {
   return (
-    <html lang="ro">
-      <body className="antialiased">
-        <main className="min-h-dvh bg-white px-6 py-16 text-slate-950">
-          <div className="mx-auto flex max-w-xl flex-col items-start gap-6">
-            <p className="text-sm font-semibold uppercase tracking-wide text-violet-600">404</p>
-            <div className="space-y-3">
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Pagina nu a fost gasita</h1>
-              <p className="text-base leading-7 text-slate-600">
-                Linkul poate fi expirat sau continutul a fost mutat.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link className="rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white" href="/explore">
-                Inapoi la feed
+    <html lang="ro" className={interFont.variable}>
+      <body className="bg-canvas font-sans text-fg antialiased">
+        <main className="flex min-h-dvh items-center px-4 py-16">
+          <div className="mx-auto flex w-full max-w-md flex-col items-center text-center">
+            <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-brand-soft-fg">
+              <SearchX className="h-8 w-8" aria-hidden />
+            </span>
+            <p className="text-sm font-semibold uppercase tracking-wide text-brand">404</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">{t.notFoundTitle}</h1>
+            <p className="mt-2 text-sm text-muted">{t.notFoundBody}</p>
+            <div className="mt-6 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
+              <Link
+                className="inline-flex h-11 items-center justify-center rounded-control bg-brand px-5 text-sm font-semibold text-brand-fg hover:bg-brand-hover"
+                href="/"
+              >
+                {t.backToFeed}
               </Link>
-              <Link className="rounded-full border border-slate-200 px-5 py-3 text-sm font-bold text-slate-900" href="/search">
-                Cauta produse
+              <Link
+                className="inline-flex h-11 items-center justify-center rounded-control border border-subtle bg-surface px-5 text-sm font-semibold text-fg hover:bg-surface-2"
+                href="/search"
+              >
+                {t.searchProducts}
               </Link>
             </div>
           </div>

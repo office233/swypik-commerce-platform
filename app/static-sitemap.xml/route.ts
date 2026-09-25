@@ -28,6 +28,7 @@ type Entry = {
 const STATIC: Entry[] = [
   { path: "/", priority: 1.0, changefreq: "daily" },
   { path: "/explore", priority: 0.9, changefreq: "daily" },
+  { path: "/discover", priority: 0.9, changefreq: "daily" },
   { path: "/categories", priority: 0.9, changefreq: "daily" },
   { path: "/music", priority: 0.9, changefreq: "daily" },
   { path: "/search", priority: 0.7, changefreq: "daily" },

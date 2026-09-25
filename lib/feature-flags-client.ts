@@ -42,6 +42,15 @@ export const CLIENT_FEATURES = {
   news: flag(process.env.NEXT_PUBLIC_FEATURE_NEWS, false),
   gaming: flag(process.env.NEXT_PUBLIC_FEATURE_GAMING, false),
   messenger: flag(process.env.NEXT_PUBLIC_FEATURE_MESSENGER, false),
+  // Verticalele deja lansate — ON implicit, se pot ascunde din navigare cu
+  // NEXT_PUBLIC_FEATURE_X=0 (meniul le ascunde, nu le afișează gri).
+  // `go` oglindește FEATURE_GO (server, ON implicit).
+  go: flag(process.env.NEXT_PUBLIC_FEATURE_GO, true),
+  food: flag(process.env.NEXT_PUBLIC_FEATURE_FOOD, true),
+  stays: flag(process.env.NEXT_PUBLIC_FEATURE_STAYS, true),
+  fly: flag(process.env.NEXT_PUBLIC_FEATURE_FLY, true),
+  live: flag(process.env.NEXT_PUBLIC_FEATURE_LIVE, true),
+  missions: flag(process.env.NEXT_PUBLIC_FEATURE_MISSIONS, true),
 } as const;
 
 export type ClientFeatureName = keyof typeof CLIENT_FEATURES;

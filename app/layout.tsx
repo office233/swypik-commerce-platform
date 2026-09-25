@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { APP_URL } from "@/lib/app-url";
+import { THEME_COLORS } from "@/lib/theme/theme-color";
 
 const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 const appUrl =
@@ -18,10 +19,17 @@ export const metadata: Metadata = {
   keywords: "swypik, social commerce, video shopping, romania, produse, oferte, creators, tiktok shopping",
 };
 
+// viewportFit "cover": fără el toate `env(safe-area-inset-*)` sunt 0 pe iOS.
+// theme-color inițial după prefers-color-scheme; ThemeColorSync îl ajustează
+// apoi după tema aleasă de utilizator și pe suprafețele imersive.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#7C3AED",
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+  ],
 };
 
 // Root layout pass-through (pattern next-intl pentru static rendering).
